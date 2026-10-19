@@ -40,6 +40,8 @@ export interface Automation {
   config: Partial<Config>;
   revision: number;
   appliedRevision: number;
+  setupStep: number;
+  errorCode: string | null;
   status: string;
   sheetUrl: string | null;
   connected: boolean;

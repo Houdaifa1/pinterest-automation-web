@@ -223,3 +223,96 @@ it("revokes reference links immediately when the owner is blocked", async () => 
     .run();
   expect((await app.request(link, {}, env)).status).toBe(404);
 });
+it("restores a saved picture style without changing an earlier batch snapshot", async () => {
+  const { user, other, base } = await setup();
+  const media = (await (
+    await request(
+      base + "/accounts/profile/media",
+      user,
+      "POST",
+      fixture(),
+      true,
+    )
+  ).json()) as any;
+  const styles = (await (
+    await request(base + "/accounts/profile/styles", user)
+  ).json()) as any;
+  expect(styles.styles[0].count).toBe(1);
+  const { batch } = (await (
+    await request(base + "/batches", user, "POST", {
+      accountId: "profile",
+      lines: [{ kind: "free", count: 5 }],
+    })
+  ).json()) as any;
+  await request(base + "/media/" + media.id, user, "DELETE");
+  expect(
+    (
+      (await (
+        await request(base + "/accounts/profile/media", user)
+      ).json()) as any
+    ).media,
+  ).toHaveLength(0);
+  expect(
+    (
+      await request(
+        base + `/accounts/profile/styles/${styles.styles[0].id}/restore`,
+        other,
+        "POST",
+        {},
+      )
+    ).status,
+  ).toBe(404);
+  expect(
+    (
+      await request(
+        base + `/accounts/profile/styles/${styles.styles[0].id}/restore`,
+        user,
+        "POST",
+        {},
+      )
+    ).status,
+  ).toBe(200);
+  expect(
+    (
+      (await (
+        await request(base + "/accounts/profile/media", user)
+      ).json()) as any
+    ).media,
+  ).toHaveLength(1);
+  const restored = (await (
+    await request(base + "/batches", user, "POST", {
+      accountId: "profile",
+      lines: [{ kind: "free", count: 5 }],
+    })
+  ).json()) as any;
+  expect(restored.batch.id).toBe(batch.id);
+  expect(restored.batch.styleVersion).toBeTruthy();
+  const similar = (await (
+    await request(base + "/batches", user, "POST", {
+      accountId: "profile",
+      variant: crypto.randomUUID(),
+      lines: [{ kind: "free", count: 5 }],
+    })
+  ).json()) as any;
+  expect(similar.batch.id).not.toBe(batch.id);
+});
+it("requires evidence for page offers instead of assuming every crochet pattern is free", async () => {
+  const { user, base } = await setup();
+  const { batch } = (await (
+    await request(base + "/batches", user, "POST", {
+      accountId: "profile",
+      lines: [
+        { kind: "link", count: 1, url: "https://example.com/paid-pattern" },
+      ],
+    })
+  ).json()) as any;
+  expect(batch.prompt).toContain(
+    "Say FREE only after verifying the offer is free",
+  );
+  expect(batch.prompt).not.toContain("the patterns are free, so it is true");
+  expect(batch.prompt).toContain("Cite research sources with dates");
+  expect(batch.prompt).not.toContain("saved reference images below");
+  expect(batch.prompt).not.toContain("Tap to download the free PDF pattern.");
+  expect(batch.prompt).not.toContain("Find the free PDF pattern");
+  expect(batch.prompt).toContain("Use 1 different format across this batch");
+});

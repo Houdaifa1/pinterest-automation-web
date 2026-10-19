@@ -4,6 +4,8 @@ A simple home for Pinterest posting. Connect your accounts, choose a schedule, s
 
 [Open the website](https://automation.houdaifa.dev) · [Build and deployment checks](https://github.com/Houdaifa1/pinterest-automation-web/actions)
 
+![Automation website](docs/proof/screenshots/live-home.jpg)
+
 ## What you can do
 
 - Sign in with Google, without an invitation.
@@ -16,7 +18,7 @@ A simple home for Pinterest posting. Connect your accounts, choose a schedule, s
 - Recopy a saved batch, make a similar batch, and restore saved settings.
 - Manage website members from the owner account.
 
-The website prepares instructions. Pins are created and reviewed in Codex, then added to the Sheet. Copying text does not attach image files: reference links give temporary access to the selected images.
+The website prepares instructions. Pins are created and reviewed in Codex, then added to the Sheet. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
 
 ## How it fits together
 

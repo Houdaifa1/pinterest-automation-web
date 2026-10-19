@@ -1,7 +1,7 @@
 :root {
   font-family: "Geist Variable", Arial, sans-serif;
   color: #171717;
-  background: #fafafa;
+  background: var(--bg);
   color-scheme: light;
   --bg: #fafafa;
   --surface: #fff;
@@ -1161,4 +1161,17 @@ footer {
   object-fit: contain;
   background: var(--background);
   border-radius: 8px;
+}
+.account-heading {
+  flex-wrap: wrap;
+}
+.account-heading > div {
+  flex: 1;
+  min-width: 140px;
+}
+.account-heading h3 {
+  overflow-wrap: anywhere;
+}
+.account-heading > button {
+  margin-inline-start: auto;
 }

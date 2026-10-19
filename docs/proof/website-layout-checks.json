@@ -1,0 +1,219 @@
+{
+  "date": "2026-10-19",
+  "checks": [
+    {
+      "locale": "en",
+      "route": "summary",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 6,
+      "lang": "en",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "en",
+      "route": "accounts",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 29,
+      "lang": "en",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "en",
+      "route": "pins",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 8,
+      "lang": "en",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "en",
+      "route": "runs",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 3,
+      "lang": "en",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "en",
+      "route": "history",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 9,
+      "lang": "en",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "en",
+      "route": "settings",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 12,
+      "lang": "en",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "fr",
+      "route": "summary",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 6,
+      "lang": "fr",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "fr",
+      "route": "accounts",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 29,
+      "lang": "fr",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "fr",
+      "route": "pins",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 8,
+      "lang": "fr",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "fr",
+      "route": "runs",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 3,
+      "lang": "fr",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "fr",
+      "route": "history",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 9,
+      "lang": "fr",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "fr",
+      "route": "settings",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "inputs": 12,
+      "lang": "fr",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "ar",
+      "route": "summary",
+      "dir": "rtl",
+      "heading": "Website setup check",
+      "inputs": 6,
+      "lang": "ar",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "ar",
+      "route": "accounts",
+      "dir": "rtl",
+      "heading": "Website setup check",
+      "inputs": 29,
+      "lang": "ar",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "ar",
+      "route": "pins",
+      "dir": "rtl",
+      "heading": "Website setup check",
+      "inputs": 8,
+      "lang": "ar",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "ar",
+      "route": "runs",
+      "dir": "rtl",
+      "heading": "Website setup check",
+      "inputs": 3,
+      "lang": "ar",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "ar",
+      "route": "history",
+      "dir": "rtl",
+      "heading": "Website setup check",
+      "inputs": 9,
+      "lang": "ar",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "ar",
+      "route": "settings",
+      "dir": "rtl",
+      "heading": "Website setup check",
+      "inputs": 12,
+      "lang": "ar",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "locale": "en",
+      "route": "accounts",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "overflow": false,
+      "width": 320,
+      "correction": "Settings button wraps inside the card."
+    },
+    {
+      "locale": "en",
+      "route": "pins",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "overflow": false,
+      "width": 320
+    },
+    {
+      "locale": "en",
+      "route": "history",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "overflow": false,
+      "width": 320
+    },
+    {
+      "locale": "en",
+      "route": "settings",
+      "dir": "ltr",
+      "heading": "Website setup check",
+      "overflow": false,
+      "width": 320
+    }
+  ],
+  "limit": "Layout measurements on fully loaded pages; not a beginner usability session."
+}

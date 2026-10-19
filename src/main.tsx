@@ -32,6 +32,7 @@ import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import { api, ApiError, setCSRF } from "./api";
 import { References } from "./references";
+import { downloadBatch } from "./batch-package.mjs";
 import { translate, type Message } from "./i18n";
 import type {
   Account,
@@ -835,6 +836,23 @@ function AutomationPage() {
                         <ArrowRight size={16} />
                       </Link>
                     )}
+                    {automation.status === "problem" && (
+                      <div>
+                        <Notice>{t("setupRecovery")}</Notice>
+                        <button
+                          disabled={busy}
+                          onClick={() => void action("deploy")}
+                        >
+                          {t("retry")}
+                        </button>
+                        <Link
+                          className="button"
+                          to={`${base}/setup?connections=1`}
+                        >
+                          {t("logins")}
+                        </Link>
+                      </div>
+                    )}
                     {["starting", "applying"].includes(automation.status) && (
                       <p>{t("firstRun")}</p>
                     )}
@@ -899,6 +917,7 @@ function AutomationPage() {
                 edit={edit}
                 automation={automation}
                 load={load}
+                connections={connections}
                 rename={async (name: string) => {
                   await flush();
                   const r = await api(`/api/automations/${id}`, "PUT", {
@@ -970,9 +989,10 @@ function Setup({
         ? 0
         : location.search.includes("connections=1")
           ? 2
-          : automation.connected
-            ? 1
-            : 0,
+          : automation.sheetUrl ||
+              ["starting", "applying"].includes(automation.status)
+            ? 3
+            : Math.max(automation.setupStep || 0, automation.connected ? 1 : 0),
     ),
     [key, setKey] = useState(""),
     [projects, setProjects] = useState<{ choice: string; name: string }[]>([]),
@@ -980,7 +1000,9 @@ function Setup({
     [working, setWorking] = useState(false),
     [error, setError] = useState<unknown>(null),
     [token, setToken] = useState(""),
-    [botUrl, setBotUrl] = useState("");
+    [botUrl, setBotUrl] = useState(""),
+    [botStarted, setBotStarted] = useState(false),
+    [botReady, setBotReady] = useState(false);
   useEffect(() => {
     if (!connections.length) return;
     const next = { ...draft };
@@ -1036,6 +1058,24 @@ function Setup({
       window.removeEventListener("focus", focus);
     };
   }, [step]);
+  useEffect(() => {
+    if (!automation.connected || !draft.notifyTelegram) return;
+    const check = () =>
+      api(`/api/automations/${automation.id}/telegram-status`)
+        .then((r) => {
+          if (r.configured) {
+            setBotUrl(r.botUrl);
+            setBotStarted(r.started);
+            setBotReady(r.tested);
+          }
+        })
+        .catch(setError);
+    void check();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void check();
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [automation.id, automation.connected, draft.notifyTelegram]);
   const connectKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setWorking(true);
@@ -1061,6 +1101,9 @@ function Setup({
   const next = async () => {
     try {
       await flush();
+      await api(`/api/automations/${automation.id}/setup-step`, "POST", {
+        step: step + 1,
+      });
       setStep(step + 1);
     } catch (e) {
       setError(e);
@@ -1070,7 +1113,7 @@ function Setup({
     (draft.notifyEmail || draft.notifyTelegram) &&
     draft.google &&
     (!draft.notifyEmail || draft.gmail) &&
-    (!draft.notifyTelegram || draft.telegram) &&
+    (!draft.notifyTelegram || (draft.telegram && botReady)) &&
     draft.accounts.length,
   );
   return (
@@ -1185,6 +1228,8 @@ function Setup({
                     setToken("");
                     edit({ ...draft, telegram: r.connection });
                     setBotUrl(r.botUrl);
+                    setBotReady(false);
+                    setBotStarted(false);
                     await refresh();
                   } catch (e) {
                     setError(e);
@@ -1195,7 +1240,38 @@ function Setup({
               >
                 {t("connectBot")}
               </button>
-              {botUrl && <External href={botUrl}>{t("openBot")}</External>}
+              {botUrl && (
+                <>
+                  <External href={botUrl}>{t("openBot")}</External>
+                  <p role="status">
+                    {botReady
+                      ? t("testSent")
+                      : botStarted
+                        ? t("botStarted")
+                        : t("waitingStart")}
+                  </p>
+                  <button
+                    disabled={!botStarted || botReady || working}
+                    onClick={async () => {
+                      setWorking(true);
+                      try {
+                        await api(
+                          `/api/automations/${automation.id}/telegram-test`,
+                          "POST",
+                          {},
+                        );
+                        setBotReady(true);
+                      } catch (e) {
+                        setError(e);
+                      } finally {
+                        setWorking(false);
+                      }
+                    }}
+                  >
+                    {t("sendTest")}
+                  </button>
+                </>
+              )}
             </>
           )}
         </>
@@ -1297,7 +1373,10 @@ function Setup({
           <button
             className="primary"
             disabled={
-              step === 1 ? !draft.notifyEmail && !draft.notifyTelegram : !ready
+              step === 1
+                ? (!draft.notifyEmail && !draft.notifyTelegram) ||
+                  (draft.notifyTelegram && !botReady)
+                : !ready
             }
             onClick={() => void next()}
           >
@@ -1440,7 +1519,7 @@ function AccountCard({
             <h3>@{account.username}</h3>
           </bdi>
           <span className="muted">
-            {account.pinsPerDay} · {t("daily")}
+            {account.pinsPerDay} · {t("daily")} · {t(account.on ? "on" : "off")}
           </span>
         </div>
         <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
@@ -1564,7 +1643,7 @@ function AccountCard({
     </article>
   );
 }
-function Settings({ draft, edit, automation, rename }: any) {
+function Settings({ draft, edit, automation, rename, connections }: any) {
   const { t } = useWorkspace();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false),
@@ -1600,6 +1679,64 @@ function Settings({ draft, edit, automation, rename }: any) {
           onChange={(e) => edit({ ...draft, emailTo: e.target.value })}
         />
       </Field>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={draft.notifyEmail}
+          onChange={(e) => edit({ ...draft, notifyEmail: e.target.checked })}
+        />
+        {t("gmail")}
+      </label>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={draft.emailEveryPin}
+          onChange={(e) => edit({ ...draft, emailEveryPin: e.target.checked })}
+        />
+        {t("eachPinAlert")}
+      </label>
+      <Field label={t("reportTime")}>
+        <select
+          value={draft.reportHour}
+          onChange={(e) =>
+            edit({ ...draft, reportHour: Number(e.target.value) })
+          }
+        >
+          {Array.from({ length: 18 }, (_, n) => n + 6).map((h) => (
+            <option key={h} value={h}>
+              {String(h).padStart(2, "0")}:00
+            </option>
+          ))}
+        </select>
+      </Field>
+      <details>
+        <summary>{t("logins")}</summary>
+        {[
+          "google",
+          ...(draft.notifyEmail ? ["gmail"] : []),
+          ...(draft.notifyTelegram ? ["telegram"] : []),
+        ].map((service) => (
+          <ConnectionSelect
+            key={service}
+            service={service}
+            connections={connections}
+            value={draft[service]}
+            onChange={(value) =>
+              edit({
+                ...draft,
+                [service]: value,
+                ...(service === "google"
+                  ? {
+                      botEmail:
+                        connections.find((c: Connection) => c.id === value)
+                          ?.identity || draft.botEmail,
+                    }
+                  : {}),
+              })
+            }
+          />
+        ))}
+      </details>
       <Field label={t("timezone")}>
         <select
           value={draft.timeZone}
@@ -1685,11 +1822,16 @@ function Runs({ id }: { id: string }) {
               </span>
               <span>
                 {r.status === "SUCCEEDED" ? (
-                  <Check size={18} />
+                  <span className="positive">
+                    <Check size={18} aria-hidden="true" />
+                    {t("runFinished")}
+                  </span>
                 ) : r.status === "RUNNING" ? (
                   t("starting")
                 ) : (
-                  t("problem")
+                  <Link to={`/automations/${id}/setup?connections=1`}>
+                    {t("checkLogins")}
+                  </Link>
                 )}
               </span>
             </div>
@@ -1697,6 +1839,33 @@ function Runs({ id }: { id: string }) {
         )}
       </div>
     </section>
+  );
+}
+function PackageDownload({ batch }: { batch: any }) {
+  const { t } = useWorkspace();
+  const [busy, setBusy] = useState(false),
+    [failed, setFailed] = useState(false);
+  if (!batch.referenceCount) return null;
+  return (
+    <div>
+      <button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setFailed(false);
+          try {
+            await downloadBatch(batch);
+          } catch {
+            setFailed(true);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? t("loading") : t("downloadPackage")}
+      </button>
+      {failed && <p role="alert">{t("error")}</p>}
+    </div>
   );
 }
 function History({
@@ -1851,6 +2020,7 @@ function History({
             {selected.referenceCount > 0 && (
               <Notice>{t("referenceLinks")}</Notice>
             )}
+            <PackageDownload batch={selected} />
             <pre className="prompt-preview">{selected.prompt}</pre>
             <button
               className="primary"
@@ -2113,6 +2283,7 @@ function Pins({
                 {selected.referenceCount > 0 && (
                   <Notice>{t("referenceLinks")}</Notice>
                 )}
+                <PackageDownload batch={selected} />
                 <pre className="prompt-preview">{selected.prompt}</pre>
                 <button
                   className="primary"
@@ -2165,7 +2336,8 @@ function Members() {
                 <bdi>{m.email}</bdi>
               </span>
               <small>
-                {m.automations} · {t("automations")} ·{" "}
+                {m.automations} · {t("automations")} · {m.accounts}{" "}
+                {t("accounts")} · {m.deployed} {t("deployedLabel")} ·{" "}
                 {new Date(m.last_active * 1000).toLocaleString(language)}
               </small>
             </div>

@@ -151,3 +151,11 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 - Added the guided Telegram Start link and one test message, with an encrypted bot setup, private-chat challenge and repeat protection. Changing the selected bot requires a new verification. The deployment takes the confirmed chat from the server; it never guesses the newest person who messaged the bot.
 - Added engine support for applying an explicitly verified Telegram chat. Existing flows are not changed until imported. Proof: 28 runtime tests, four flow-builder tests (including the saved Sheet recipient), all 40 engine tests and the production build pass. Telegram service calls in these tests are simulated; a live website Telegram message has not been sent.
 - Half-done: limited Cloudflare deployment credential. The owner keeps the existing Chrome login. The reduced token form now contains D1 Edit and Pages Edit; final review and creation remain pending. Next: finish CI deployment, then remaining acceptance checks.
+
+## 19 October 2026 — saved styles and accurate content handoff
+
+- Finished picture-style restoration and immutable batch image sets, the prompt-and-images download, notification and login settings, clearer run recovery and phone button wrapping. Saved setup progress resumes after returning to the site.
+- Removed fixed free-download promises from the website prompt. Page facts and offers require evidence, new references override outdated style notes, and the required number of visual formats fits small batches. Existing saved batches retain their original content.
+- Visually checked the 320px Arabic settings viewport and replaced an incorrectly cropped full-page capture. The real viewport has matching 320px body/main bounds and no page overflow. Corrected the dark page background below short pages. This does not substitute for unassisted beginner acceptance.
+- The explicit attachment ZIP and original-flow boundary checks are saved in docs/proof/. Private Chrome screenshots are excluded from the public source. Latest known-secret history scan checked 229 blobs with no matches.
+- Done: checked local content/setup changes. Half-done: Cloudflare final key approval and automatic deployment proof. Next: save the approved limited key to GitHub production, push and verify both CI jobs and the live site.

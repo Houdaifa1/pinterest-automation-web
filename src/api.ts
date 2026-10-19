@@ -25,12 +25,10 @@ export async function api<T = any>(
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data: any = await response
-    .json()
-    .catch(() => ({
-      error: "unavailable",
-      message: "This action could not finish. Please try again.",
-    }));
+  const data: any = await response.json().catch(() => ({
+    error: "unavailable",
+    message: "This action could not finish. Please try again.",
+  }));
   if (!response.ok)
     throw new ApiError(data.error, data.message, response.status);
   return data;

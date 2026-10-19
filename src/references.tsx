@@ -44,13 +44,17 @@ export function References({
   const { id } = useParams();
   const [items, setItems] = useState<Reference[]>([]),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(false);
+    [error, setError] = useState(false),
+    [styles, setStyles] = useState<any[]>([]),
+    [restoreId, setRestoreId] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const base = `/api/automations/${id}`;
   const load = async () => {
     await flush();
     const result = await api(`${base}/accounts/${accountId}/media`);
     setItems(result.media);
+    const history = await api(`${base}/accounts/${accountId}/styles`);
+    setStyles(history.styles);
   };
   useEffect(() => {
     void load().catch(() => setError(true));
@@ -94,6 +98,45 @@ export function References({
           </button>
         )}
       </div>
+      {styles.length > 1 && (
+        <details>
+          <summary>{t("styleHistory")}</summary>
+          <label className="field">
+            <span>{t("styleHistory")}</span>
+            <select
+              value={restoreId}
+              onChange={(e) => setRestoreId(e.target.value)}
+            >
+              <option value="">{t("select")}</option>
+              {styles.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {new Date(s.createdAt * 1000).toLocaleString()} · {s.count}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            disabled={busy || !restoreId}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api(
+                  `${base}/accounts/${accountId}/styles/${restoreId}/restore`,
+                  "POST",
+                  {},
+                );
+                await load();
+              } catch {
+                setError(true);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {t("restore")}
+          </button>
+        </details>
+      )}
       <input
         className="sr-only"
         ref={input}
