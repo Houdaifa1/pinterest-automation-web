@@ -1,8 +1,7 @@
 # Pinterest Autopilot Web — complete handoff
 
 Read this whole file before doing anything. It contains every decision the owner already made, what already exists and
-works, and exactly what to build next. Status at handoff (19 Oct 2026): **planning finished, nothing of the website is
-built yet.**
+works, and exactly what to build next. Status updated 19 Oct 2026: **design research complete, clearer Geist home approved; app implementation has not started.**
 
 ---
 
@@ -61,12 +60,12 @@ Vercel: you sign in, see your **Autopilots**, click one, see everything, change 
 |---|---|
 | Hosting | **Cloudflare** (Pages for the app, Workers/Pages Functions for the API). Free tier. `hudaifa.dev` DNS must be on Cloudflare (check; moving DNS is free). |
 | Sign-in | **Open sign-up with Google** ("Continue with Google", own OAuth/OIDC in the Worker, scopes `openid email profile` only — no Google review needed). No invite list. Needs a short privacy page. Optionally email one-time code. |
-| Admin | An **Admin** page only for `houdaifadrahm@gmail.com`: all users (email, name, sign-up, last active, autopilots, accounts, deployed or not), totals, **block / unblock**. Admin never sees API keys or tokens. |
+| Admin | An **Admin** page only for `houdaifadrahm@gmail.com`: all users (email, name, sign-up, last active, autopilots, accounts, deployed or not), totals, **block / unblock / remove website access** with confirmation. Blocking revokes website sessions and website actions. Removing website access never deletes Google or Pinterest accounts. Admin never sees API keys or tokens. |
 | Data | **Cloudflare D1** (SQLite). Everything keyed by the signed-in user; server checks ownership on every request. Autosave; setup versions (restore); no file save/open ever again. Rate limits against abuse. "Delete my account". |
 | Activepieces | Each user pastes an **Activepieces API key** once. Stored **encrypted** (AES-GCM, key in a Worker secret), never returned to the browser. With it the server does everything: list connections (by name/email — **no connection IDs shown anywhere**), create the **Telegram** connection from the bot token, create/update/publish the flow, pause/resume, "Run now", read runs. |
 | Telegram | User pastes the **bot token** on our site → we verify with Telegram `getMe`, create the Activepieces connection ourselves, open his bot (t.me link), detect "Start", send a test message. |
 | Cost | $0 (Cloudflare free plans; only the domains he already pays). |
-| Style | **Vercel's own design system "Geist"** — exactly like the Vercel dashboard (see `docs/design-references/7-vercel-style-home.png` and `approved-home-vercel-style.html`, which the owner approved). Geist + Geist Mono fonts, Vercel greys, black primary buttons, status dots, top bar with "/" breadcrumb, tabs with black underline, search + "Add New…", cards. Own small logo (never Vercel's triangle). Automatic dark mode. Recommended implementation: **shadcn/ui-style components themed with Geist tokens** (Radix primitives + Tailwind) — but see 3.4: first research better options. |
+| Style | **Vercel's own design system "Geist"** — exactly like the Vercel dashboard (see `docs/design-references/7-vercel-style-home.png` and `approved-home-vercel-style.html`, which the owner approved). On 19 Oct the owner approved the clearer Geist refinement: `docs/design-references/21-home-geist-clearer.jpg` and `home-study-geist.html`. Use that as the current home direction. Geist + Geist Mono fonts, Vercel greys, black primary buttons, status dots, top bar with "/" breadcrumb, tabs with black underline, search + "Add New…", cards. Own small logo (never Vercel's triangle). Automatic dark mode. Recommended implementation: **shadcn/ui-style components themed with Geist tokens** (Radix primitives + Tailwind) — but see 3.4: first research better options. |
 | Languages | English, Arabic (proper right-to-left), French — one language at a time, never mixed. |
 | Users | Built for people like the owner's 60-year-old father: impossible to get wrong. |
 
@@ -80,7 +79,8 @@ Needs pins / Setup step n of 6 / Stopped, last post, category).
 - Overview: status in plain words + Today numbers + big buttons **Run now · Pause/Resume · New pins**.
 - Accounts: one card per Pinterest account — posting times (click hours or "N a day, spread evenly"), pins per day,
   category, pins come from (niche / my website + pins per product, default 6), niche, picture style, on/off.
-  Changes autosave; a bar "You have unsaved changes → **Apply**" (like Vercel's Redeploy) = update flow + publish +
+  Pin style: optional uploaded example pins, thumbnail previews and simple removal; each account owns its references and style version. Keep recognizable identity while varying scenes, layouts, crops and headlines; trend research must cite current evidence. Copied prompts must identify the correct references and verify image access; plain text copying alone does not attach image files. See `docs/PRODUCT-REQUIREMENTS.md` for the proposed handoff and proof gates.
+  Changes autosave as drafts; a bar "Changes ready → **Apply**" (like Vercel's Redeploy) = update flow + publish +
   run once + show "Applied. Next post 15:00". New Pinterest connections in Activepieces appear by themselves.
 - New pins: today's batch builder (account, page links × counts, pins without link, website "next rounds × pins per
   round"), total + days, **Copy Codex prompt**. History: copying the **same** batch again updates the same entry
@@ -182,3 +182,13 @@ Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the 
 - **Google Cloud:** the Google sign-in client (OAuth consent screen with `openid email profile`, authorised redirect
   `https://autopilot.hudaifa.dev/auth/callback` plus the local dev URL). Walk him through any step only he can click.
 - Ask before: deploying to the live domain the first time, changing his live Activepieces flows, deleting anything.
+
+## 8. Latest session requirements and live-test scope — 19 Oct 2026
+
+- Home option B is approved; do not ask the owner to compare the research options again.
+- Open Google sign-up, no invites. Owner moderation controls, fast guided screens and pin-style image references are required.
+- The current content workflow is: copy a prompt into Codex → create images/rows → Activepieces publishes queued pins. Style-reference generation belongs to the creation workflow.
+- Latest live-test authorization: **Hdrahm’s Platform → @stunningcrochet only**, verified in Chrome and explicitly confirmed by the owner. This replaces the earlier hdrahm target. **Never publish test pins to Crochet Simplified.**
+- Owner allowed live posting tests on the chosen test account. Do not run a shared production flow that could publish on excluded accounts. Prefer an isolated test flow with a verified single-account allowlist.
+- User authorization is recorded; routine tests within this scope do not need another permission question. New security-sensitive browser grants still follow tool policy.
+- Next: use the verified @stunningcrochet test setup, run the API-key proof and reference-delivery feasibility checks, then build the full clickable prototype for approval.

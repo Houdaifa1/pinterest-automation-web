@@ -107,7 +107,7 @@ All files are under `docs/design-references/`. New browser captures use a 1440×
 
 ## Review status
 
-Research, source captures and home studies are complete and ready for the owner's choice. No app implementation or live API proof has started.
+Research, source captures and home studies are complete. The owner approved the single recommended B screen on 19 October 2026. App implementation has not started; the separately authorized API proof is next.
 
 ### Rendered options
 
@@ -129,4 +129,21 @@ C is an alternative to assess, not a claim that a sidebar is proven better. B is
 - Source pages, live component demos and official imagery were inspected visually. Raycast's saved promotional image is not counted as an app UI screenshot.
 - Engine build and all 40 existing engine tests passed (0 failed). No engine source files changed.
 - Not tested here: functional navigation, API requests, usability with older participants, Arabic/French, complete keyboard behavior, complete contrast audit, dark mode or all responsive sizes. These belong to the permissioned API proof and later approved prototype/build stages.
-- Next: wait for A, B or C (or requested changes). After the owner chooses, ask for permission and agree the exact live Activepieces proof actions before accessing either account. Then build the clickable prototype and wait for approval before app implementation.
+- Owner chose B and authorized live tests on the current Hdrahm's Platform → @stunningcrochet setup. Crochet Simplified is excluded. Next: API-key proof, then the full clickable prototype and its separate approval.
+
+## Pin-style references and API proof preparation — 19 October 2026
+
+### Confirmed locally
+
+- `engine/panel/panel.html:726` calls `navigator.clipboard.writeText(text)`. This copies text, not image files; see [Clipboard writeText documentation](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText). A reference link only helps if the receiving session can open the actual image.
+- `engine/panel/generator.js` stores `brand` as text and inserts it as `BRAND_STYLE`. There is no reference-image list in `emptyAccount` or the generated prompt values.
+- `engine/panel/codex-prompt.md` already includes a per-account Style guide, existing-pin review, trend research and format/layout variety. Add image-reference inspection to that workflow rather than replacing it. Its generic requirement of at least five formats also needs to scale to small batches.
+- `engine/panel/panel.html` currently appends a history entry on every copy. Do not carry that behavior into the website; the existing decision requires recopying to update the original entry.
+- Requirements and acceptance criteria: [PRODUCT-REQUIREMENTS.md](PRODUCT-REQUIREMENTS.md). Image handoff and storage are unproven; no working upload feature or automatic image attachment is claimed.
+
+### Live proof scope and current evidence
+
+- The owner confirmed the currently open Chrome account: Hdrahm's Platform, Pinterest connection and profile @stunningcrochet. Testing/posting there is authorized. @crochet_simplified is excluded.
+- Chrome inspection showed the Pinterest, Gmail, Google Sheets and Telegram Bot connections marked Active. This is UI evidence only; it does not prove API-key access.
+- Current official [List Connections](https://www.activepieces.com/docs/endpoints/connections/list) and [List Flow Runs](https://www.activepieces.com/docs/endpoints/flow-runs/list) documentation describe API-key authorization. These are documented claims; live key-authenticated results must still be recorded separately.
+- Start with metadata and read-only calls, then use a separate identifiable test flow/connection to prove import, publish, pause/resume, run and outputs. Use harmless sample output for flow controls; a live pin is only needed for the later publishing acceptance test. Never substitute a browser session token for the API-key proof.
