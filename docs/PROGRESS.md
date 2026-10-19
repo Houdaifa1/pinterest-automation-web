@@ -83,3 +83,12 @@ Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded
 - Global Automations and local Summary are distinct. A named breadcrumb and All automations link return home.
 - Verified visible phone pin-mode changes kept scroll at 44px and retained focus on the selected control. Five focused browser checks passed: docs/prototype/terminology-navigation-results.json. Screenshot: 21-automation-hierarchy.jpg.
 - Done: requested corrections. Next: real backend and UI. Prototype is approved; no repeated approval question. Backend dependencies are being installed. Engine source unchanged; last full engine run passed 40/40.
+
+## 19 October 2026 — private backend foundation
+
+- Added the real Pages Functions/Hono backend and D1 migration: Google identity sign-in with state, PKCE and nonce checks; opaque sessions; server ownership checks; session-bound request protection; request limits; draft versions; owner moderation.
+- API-key encryption uses AES-GCM with the member identity as authenticated context. Provider errors and database details are not returned to the browser.
+- Proof: seven security tests passed in Cloudflare's local runtime; TypeScript passed. Tests cover cross-member reads/edits, request forgery, owner-bound encryption, blocked-session revocation, replayed callbacks and safe errors. Google sign-in still needs real client configuration and a browser check.
+- Dependencies installed from the registry; audit reported zero vulnerabilities after replacing the deprecated Cloudflare test package.
+- Cloudflare's existing command-line login has expired. The owner authorized using the open Chrome account and creating the needed deployment access. Cloudflare contains houdaifa.dev; the documented hudaifa.dev uses another DNS provider. Address choice is pending.
+- Done: backend foundation. Half-done: live account setup and application screens. Next: connect Activepieces, configure Google sign-in and Cloudflare, then complete the real journey. No claim of production readiness or successful deployment yet.

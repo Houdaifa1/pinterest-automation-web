@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pinterest-automations",
+  "pages_build_output_dir": "dist",
+  "compatibility_date": "2026-10-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{
+    "binding": "DB", "database_name": "pinterest-automations",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "migrations_dir": "migrations"
+  }],
+  "vars": {"APP_ORIGIN": "https://autopilot.hudaifa.dev", "OWNER_EMAIL": "houdaifadrahm@gmail.com"}
+}
