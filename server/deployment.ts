@@ -17,6 +17,7 @@ import {
 } from "./security";
 import type { AppEnv, Automation, Env } from "./types";
 interface DeployAutomation extends Automation {
+  applied_config: string | null;
   target_revision: number | null;
   deploy_config: string | null;
   flow_version_id: string | null;
@@ -167,42 +168,46 @@ async function install(
   return publish(key, a.flow_id!);
 }
 export async function deploy(env: Env, userId: string, raw: Automation) {
-  const a = raw as DeployAutomation;
-  if (["starting", "applying"].includes(a.status)) return { pending: true };
-  const { integration, key } = await getIntegration(env, userId, a);
-  await resolveConfig(env, userId, a, a.config);
-  const config = JSON.parse(a.config);
-  if (!config.accounts?.length)
-    throw new PublicError(
-      "accounts",
-      "Connect a Pinterest account before starting.",
-    );
-  const others = (
-    await env.DB.prepare(
-      "SELECT id,config FROM automations WHERE user_id=? AND id<>? AND flow_id IS NOT NULL",
-    )
-      .bind(userId, a.id)
-      .all<{ id: string; config: string }>()
-  ).results;
-  if (
-    others.some((other) =>
-      JSON.parse(other.config).accounts?.some((account: any) =>
-        config.accounts.some(
-          (selected: any) =>
-            selected.connection === account.connection &&
-            selected.on &&
-            account.on,
-        ),
-      ),
-    )
-  )
-    throw new PublicError(
-      "duplicate_profile",
-      "This Pinterest profile is already active in another automation. Pause its posting there first.",
-      409,
-    );
+  let a = raw as DeployAutomation;
   const operation = await lock(env, a);
   try {
+    a = (await env.DB.prepare(
+      "SELECT * FROM automations WHERE id=? AND user_id=?",
+    )
+      .bind(a.id, userId)
+      .first<DeployAutomation>())!;
+    if (["starting", "applying"].includes(a.status)) return { pending: true };
+    const { integration, key } = await getIntegration(env, userId, a);
+    await resolveConfig(env, userId, a, a.config);
+    const config = JSON.parse(a.config);
+    if (!config.accounts?.length)
+      throw new PublicError(
+        "accounts",
+        "Connect a Pinterest account before starting.",
+      );
+    const selected = JSON.stringify(
+      config.accounts.filter((x: any) => x.on).map((x: any) => x.connection),
+    );
+    await env.DB.prepare(
+      `INSERT INTO profile_claims(user_id,connection_id,automation_id)
+      SELECT ?,value,? FROM json_each(?) WHERE NOT EXISTS(
+        SELECT 1 FROM profile_claims WHERE user_id=? AND automation_id<>?
+        AND connection_id IN (SELECT value FROM json_each(?)))
+      ON CONFLICT(user_id,connection_id) DO NOTHING`,
+    )
+      .bind(userId, a.id, selected, userId, a.id, selected)
+      .run();
+    const claimed = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM profile_claims WHERE user_id=? AND automation_id=? AND connection_id IN(SELECT value FROM json_each(?))`,
+    )
+      .bind(userId, a.id, selected)
+      .first<{ n: number }>();
+    if (claimed!.n !== JSON.parse(selected).length)
+      throw new PublicError(
+        "duplicate_profile",
+        "This Pinterest profile belongs to another automation. Turn posting off there and apply that change first.",
+        409,
+      );
     if (!a.flow_id) {
       const remoteName = `${a.name} · ${a.id.slice(0, 8)}`;
       const listed = await ap(
@@ -369,9 +374,17 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
         502,
       );
     await env.DB.prepare(
-      "UPDATE automations SET status='running',bootstrap=0,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,error_code=NULL WHERE id=?",
+      "UPDATE automations SET status='running',bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,error_code=NULL WHERE id=?",
     )
       .bind(a.target_revision, run.id, sheet, a.id)
+      .run();
+    const selected = JSON.parse(a.deploy_config!)
+      .accounts.filter((x: any) => x.on)
+      .map((x: any) => x.connection);
+    await env.DB.prepare(
+      "DELETE FROM profile_claims WHERE automation_id=? AND connection_id NOT IN(SELECT value FROM json_each(?))",
+    )
+      .bind(a.id, JSON.stringify(selected))
       .run();
     return { status: "running", sheetUrl: sheet };
   } finally {
@@ -391,10 +404,13 @@ for (const action of ["pause", "resume"] as const)
   deployment.post(`/:id/${action}`, async (c) => {
     const a = await owned(c);
     if (!a.flow_id) throw new PublicError("deploy", "Finish setup first.", 409);
-    if (action === "resume" && (a as DeployAutomation).bootstrap)
+    if (
+      (a as DeployAutomation).bootstrap ||
+      ["starting", "applying"].includes(a.status)
+    )
       throw new PublicError(
         "setup",
-        "Finish the first-run check before resuming.",
+        "Wait for the current setup check to finish before changing the schedule.",
         409,
       );
     const { key } = await getIntegration(c.env, c.get("user").id, a),

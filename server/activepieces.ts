@@ -132,6 +132,19 @@ export async function connect(
     list.find((p: any) => p.id === projectId) || (!projectId && list[0]);
   if (!project)
     throw new PublicError("project", "Choose one of the available projects.");
+  if (automation.flow_id && automation.integration_id) {
+    const current = await env.DB.prepare(
+      "SELECT project_id FROM integrations WHERE id=? AND user_id=?",
+    )
+      .bind(automation.integration_id, userId)
+      .first<{ project_id: string }>();
+    if (current?.project_id !== project.id)
+      throw new PublicError(
+        "project_locked",
+        "This automation already belongs to another project. Create a new automation for this project.",
+        409,
+      );
+  }
   const existing = await env.DB.prepare(
     "SELECT id FROM integrations WHERE user_id=? AND project_id=?",
   )

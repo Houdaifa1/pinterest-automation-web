@@ -137,7 +137,7 @@ async function prepareBatch(env: Env, origin: string, batch: Batch) {
   return { ...batch, prompt, capability_expires: now() + 86400 };
 }
 function publicBatch(b: Batch) {
-  const snapshot=JSON.parse(b.snapshot);
+  const snapshot = JSON.parse(b.snapshot);
   return {
     id: b.id,
     accountId: b.account_id,
@@ -147,8 +147,8 @@ function publicBatch(b: Batch) {
     createdAt: b.created_at,
     referenceCount: JSON.parse(b.reference_ids).length,
     referenceExpires: b.capability_expires,
-    username:snapshot.account.username,
-    input:snapshot.batch,
+    username: snapshot.account.username,
+    input: snapshot.batch,
   };
 }
 export const content = new Hono<AppEnv>();
@@ -185,16 +185,23 @@ content.post("/:id/accounts/:accountId/media", async (c) => {
   }
   const contentHash = await hashBytes(clean.bytes);
   const existing = await c.env.DB.prepare(
-    "SELECT id FROM media WHERE user_id=? AND automation_id=? AND account_id=? AND content_hash=?",
+    "SELECT id,active FROM media WHERE user_id=? AND automation_id=? AND account_id=? AND content_hash=?",
   )
     .bind(c.get("user").id, a.id, accountId, contentHash)
-    .first<{ id: string }>();
+    .first<{ id: string; active: number }>();
   if (existing) {
-    await c.env.DB.prepare(
-      "UPDATE media SET active=1 WHERE id=? AND (SELECT COUNT(*) FROM media WHERE user_id=? AND automation_id=? AND account_id=? AND active=1)<6",
+    if (existing.active) return c.json({ id: existing.id });
+    const activated = await c.env.DB.prepare(
+      "UPDATE media SET active=1 WHERE id=? AND (SELECT COUNT(*) FROM media WHERE user_id=? AND automation_id=? AND account_id=? AND active=1)<6 RETURNING id",
     )
       .bind(existing.id, c.get("user").id, a.id, accountId)
-      .run();
+      .first();
+    if (!activated)
+      throw new PublicError(
+        "storage_limit",
+        "Keep up to 6 reference images per account. Remove one before adding another.",
+        409,
+      );
     return c.json({ id: existing.id });
   }
   const mediaId = id();
@@ -202,7 +209,7 @@ content.post("/:id/accounts/:accountId/media", async (c) => {
     `INSERT INTO media(id,user_id,automation_id,account_id,content_hash,content,bytes,width,height,active,created_at)
  SELECT ?,?,?,?,?,?,?,?,?,1,? WHERE (SELECT COUNT(*) FROM media WHERE user_id=? AND automation_id=? AND account_id=? AND active=1)<6
  AND (SELECT COALESCE(SUM(bytes),0) FROM media WHERE user_id=?)+?<=10000000
- AND (SELECT COALESCE(SUM(bytes),0) FROM media)+?<=400000000 RETURNING id`,
+ AND (SELECT COALESCE(SUM(bytes),0) FROM media)+?<=250000000 RETURNING id`,
   )
     .bind(
       mediaId,

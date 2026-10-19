@@ -114,3 +114,11 @@ Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded
 - Added real batch history, recopy counts, sent marking, setup restoration and account settings. Account deletion explains that separately hosted posting flows keep running.
 - Proof: 21 runtime tests and three flow-builder tests pass; the production build passes. Original engine baseline remains 40/40. No new live flow or Sheet writes in this step.
 - Google sign-in branding is prepared in a separate project. Its required policy acceptance and new-client approval are pending at the final review. Next: complete identity configuration, deployment and the live setup acceptance checks.
+
+## 19 October 2026 — repeat-safe deployment checks
+
+- Deployment now re-reads its saved stage after taking the action lock. Pinterest connection reservations prevent two website automations from enabling the same profile, including during overlapping setup. Applied settings are saved separately from drafts. Existing deployed automations cannot silently switch Activepieces projects.
+- Bounded reference storage now leaves more room for database metadata; restoring a removed image correctly reports the six-image limit.
+- Proof: 25 runtime tests and three flow-builder tests pass; production build passes. New deployment tests cover a repeated stale request, an interrupted import, a failed first run and duplicate-profile protection.
+- Read one successful run from the approved test platform: step_3.output.spreadsheet matches the allowlisted Sheet format. Only field names and a format boolean were displayed; raw output stayed in private temporary storage. No live flow/Sheet changes.
+- Next: deploy the website, finish Google sign-in after the pending policy/client approval, then prove the isolated full setup against @stunningcrochet.
