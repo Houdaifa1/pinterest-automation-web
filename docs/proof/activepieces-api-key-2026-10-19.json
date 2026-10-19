@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-19",
+  "platform": "Hdrahm’s Platform",
+  "pinterest": "stunningcrochet",
+  "authentication": "platform API key only",
+  "checks": {
+    "listConnections": {
+      "http": 200,
+      "originalConnections": 4,
+      "labelsAvailable": true,
+      "accountIdentityAvailable": true
+    },
+    "createTelegramConnection": {
+      "http": 201,
+      "type": "SECRET_TEXT",
+      "status": "ACTIVE",
+      "credentialReturned": false,
+      "messagesSent": 0
+    },
+    "import": {
+      "http": 200,
+      "valid": true
+    },
+    "publish": {
+      "http": 200
+    },
+    "pause": {
+      "http": 200,
+      "status": "DISABLED"
+    },
+    "resume": {
+      "http": 200,
+      "status": "ENABLED"
+    },
+    "runNow": {
+      "http": 200,
+      "status": "SUCCEEDED",
+      "environment": "PRODUCTION",
+      "newRun": true,
+      "latestVersion": true,
+      "output": {
+        "fullFlow": true,
+        "revision": 3,
+        "writes": 0
+      },
+      "stepCount": 3
+    },
+    "readRuns": {
+      "http": 200,
+      "stepOutputsAvailable": true
+    }
+  },
+  "safety": {
+    "originalFlowUnchanged": true,
+    "proofFlowFinalStatus": "DISABLED",
+    "pinsPosted": 0,
+    "spreadsheetWrites": 0,
+    "messagesSent": 0
+  },
+  "limitations": [
+    "Run now uses ON_LATEST_VERSION retry of a retained schedule run; first deployment needs a successful schedule run before this route is ready.",
+    "The test-step endpoint returned HTTP 500 with an API-key principal.",
+    "Run outputs can contain login credentials. Return only allowlisted summaries to the website.",
+    "One publish request failed with a temporary worker cache error; recheck and retry succeeded."
+  ]
+}

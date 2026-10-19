@@ -21,3 +21,9 @@
 ## Approval boundary
 
 The home style is approved. The full clickable prototype has not been built or approved. Build order remains decision 9. Reference-image delivery and storage require proof before promising a one-copy handoff.
+
+## API proof implementation findings — 19 October 2026
+
+- For schedule-trigger Run now, use ON_LATEST_VERSION retry of a retained scheduled run; never resume only the failed step. Deployment must obtain a seed before exposing the action. This route was proved with a new successful run and changed version. No broad architecture change is made.
+- Website responses must use allowlisted summaries because Activepieces run outputs can contain credentials. Admin does not receive raw run outputs.
+- Owner approved reusing the selected test platform's existing Telegram bot credential from a prior run output for one separately named test connection. That connection is ACTIVE and unused; no message was sent.

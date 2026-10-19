@@ -191,4 +191,6 @@ Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the 
 - Latest live-test authorization: **Hdrahm’s Platform → @stunningcrochet only**, verified in Chrome and explicitly confirmed by the owner. This replaces the earlier hdrahm target. **Never publish test pins to Crochet Simplified.**
 - Owner allowed live posting tests on the chosen test account. Do not run a shared production flow that could publish on excluded accounts. Prefer an isolated test flow with a verified single-account allowlist.
 - User authorization is recorded; routine tests within this scope do not need another permission question. New security-sensitive browser grants still follow tool policy.
-- Next: use the verified @stunningcrochet test setup, run the API-key proof and reference-delivery feasibility checks, then build the full clickable prototype for approval.
+- API-key proof completed: docs/proof/activepieces-api-key-2026-10-19.json and docs/RESEARCH.md. Run now works through ON_LATEST_VERSION retry of a retained scheduled seed; bootstrap and retention recovery are required. The original flow is unchanged and the separate proof flow is paused.
+- Activepieces run outputs can contain credentials. The website must expose allowlisted summaries only.
+- Next: full local clickable prototype in approved Geist style, including style references and moderation; owner approval before app implementation. Reference delivery/storage remains unproved and must be labeled accordingly.

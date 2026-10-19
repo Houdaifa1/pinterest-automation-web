@@ -147,3 +147,38 @@ C is an alternative to assess, not a claim that a sidebar is proven better. B is
 - Chrome inspection showed the Pinterest, Gmail, Google Sheets and Telegram Bot connections marked Active. This is UI evidence only; it does not prove API-key access.
 - Current official [List Connections](https://www.activepieces.com/docs/endpoints/connections/list) and [List Flow Runs](https://www.activepieces.com/docs/endpoints/flow-runs/list) documentation describe API-key authorization. These are documented claims; live key-authenticated results must still be recorded separately.
 - Start with metadata and read-only calls, then use a separate identifiable test flow/connection to prove import, publish, pause/resume, run and outputs. Use harmless sample output for flow controls; a live pin is only needed for the later publishing acceptance test. Never substitute a browser session token for the API-key proof.
+
+## Live API-key proof — 19 October 2026
+
+**Result:** all five HANDOFF 3.3 capabilities were exercised using the platform API key, without a browser session token. Credential-free machine-readable evidence: [proof report](proof/activepieces-api-key-2026-10-19.json). Raw responses remain in private temporary storage and are not repository artifacts.
+
+| Check | Observed result |
+|---|---|
+| List connections | HTTP 200; four original connections, display names and account identifiers available; Pinterest identity matched the approved @stunningcrochet target |
+| Create Telegram SECRET_TEXT connection | HTTP 201, ACTIVE; separately named Autopilot Website Telegram Proof; credential absent from response; no message sent |
+| Import, publish, pause and resume | HTTP 200 for each; imported flow valid; status changed to ENABLED and DISABLED as requested |
+| Run now | HTTP 200 from retry with ON_LATEST_VERSION; distinct production run succeeded using revision 3 instead of the seed's revision 2; downstream output confirmed fullFlow=true, revision=3, writes=0 |
+| Read runs and outputs | HTTP 200 for run listing and details; completed sample steps and outputs available |
+
+The isolated Autopilot Website API Proof flow contains only a schedule and two sample code steps, with no app connections. A temporary minute schedule supplied the initial successful run. It was paused in a finally block, then replaced with an annual schedule; final state is DISABLED. The existing posting flow's complete version, published version and status matched the before-test fingerprint. No pins, spreadsheet rows or messages were written. The test connection remains clearly named and unused.
+
+### Run-now constraint
+
+The cloud test-step endpoint returned HTTP 500: its API-key principal was used as a user foreign key. The UI's full Test Flow route uses a user-authenticated socket, so it is not a substitute for this API-key proof. The supported retry endpoint with ON_LATEST_VERSION starts the whole latest flow from the beginning with the retained seed's trigger data. It is suitable for this schedule-trigger flow, whose trigger data does not select an account or content batch. Do not use FROM_FAILED_STEP for Run now.
+
+Deployment must obtain and retain a successful scheduled run before enabling Run now. A missing or expired seed requires another scheduled bootstrap. The first schedule can take several minutes; show actual progress and keep Run now unavailable until confirmed. Check retention and plan behavior in the real backend stage. This proof does not establish zero-wait initial deployment or permanent seed availability.
+
+Primary sources: official [flow-run service and retry implementation](https://github.com/activepieces/activepieces/blob/main/packages/server/api/src/app/flows/flow-run/flow-run-service.ts), [web run client](https://github.com/activepieces/activepieces/blob/main/packages/web/src/features/flow-runs/api/flow-runs-api.ts), [sample-data controller](https://github.com/activepieces/activepieces/blob/main/packages/server/api/src/app/flows/step-run/sample-data.controller.ts). Live responses, rather than source alone, establish the results above. Source paths can change upstream.
+
+### Reliability and credential handling
+
+- One publish attempt failed with a worker-cache file-rename error. Re-reading state and retrying succeeded. Later publish requests succeeded. The backend needs bounded retries and state reconciliation rather than showing success on the first request.
+- Existing run outputs included plaintext login credentials. **Never proxy raw step outputs to the browser, admin, logs or error reports.** Build explicit allowlisted summaries for posting counts, stages and safe messages. API response metadata also needs filtering.
+- Telegram creation reused the chosen test platform's existing bot credential from a prior run output. Automatic approval review initially rejected that reuse; the owner then explicitly approved this exact credential source and duplication. The subsequent approved request succeeded. No other credential reuse is authorized by this specific exception.
+- API key is kept only in ignored local configuration with restrictive file permissions. Proof documents contain no keys, bot tokens, connection identifiers or private emails.
+
+Primary sources: official [connection list](https://www.activepieces.com/docs/endpoints/connections/list), [connection upsert](https://www.activepieces.com/docs/endpoints/connections/upsert), [flow update](https://www.activepieces.com/docs/endpoints/flows/update), [run list](https://www.activepieces.com/docs/endpoints/flow-runs/list).
+
+### What this does not prove
+
+No production-grade website, Google sign-in, encryption service, account isolation, live Pinterest posting, reference-image delivery or end-user Telegram notification was implemented or accepted by these tests. Those need their own later evidence. Next is the local clickable prototype with sample data; its approval precedes app implementation.
