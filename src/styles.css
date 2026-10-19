@@ -1139,3 +1139,26 @@ footer {
   color: var(--red);
   border-color: var(--red);
 }
+
+.pin-link-row {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+.pin-link-row .field:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.pin-link-row .field:nth-child(2) {
+  width: 90px;
+}
+.pin-link-row > button {
+  margin-bottom: 20px;
+}
+.reference-grid > img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  background: var(--background);
+  border-radius: 8px;
+}

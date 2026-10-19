@@ -8,15 +8,13 @@
 | 0b. Render home comparisons and present research | approved | 2026-10-19 | engineer | docs/design-references/20–26; home-comparison.html; sidebar-comparison.html; docs/RESEARCH.md |
 | 1. Activepieces API-key proof (HANDOFF 3.3) | done; run-now bootstrap constraint documented | 2026-10-19 | engineer | docs/proof/activepieces-api-key-2026-10-19.json; docs/RESEARCH.md; full run SUCCEEDED, revision 3, writes 0; original flow unchanged; test flow paused |
 | 2. Clickable prototype of all screens | approved; final navigation corrections in progress | 2026-10-19 | engineer | docs/prototype/; baseline 14 checks; latest clarity review 13 checks + 18 layouts; screenshots 14–20; revised package proof |
-| 3. Backend (D1, Google sign-in, ownership, encryption, admin) | starting; owner approved build and live deployment | 2026-10-19 | engineer | explicit owner request to go live |
-| 4. Setup wizard + Deploy | todo | | | |
-| 5. Autopilot pages (Apply, Run now, Pause, Runs, New pins, History, Settings) | todo | | | |
-| 6. Live on autopilot.hudaifa.dev + move his autopilots + friends | todo | | | |
+| 3. Backend (D1, Google sign-in, ownership, encryption, admin) | implemented; live login verification in progress | 2026-10-19 | engineer | 25 runtime tests; production Google client configured |
+| 4. Setup wizard + Deploy | implemented; isolated live first-run check pending | 2026-10-19 | engineer | real connection discovery, four deployment recovery tests |
+| 5. Automation pages | implemented; acceptance checks in progress | 2026-10-19 | engineer | runtime tests and production build |
+| 6. Live website, migration and beginner acceptance | website deployed; existing-flow migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-Finish the owner’s terminology, hierarchy, navigation and scroll corrections, then build the real backend and site.
-The owner explicitly approved the prototype and requested live deployment on 19 October 2026. No further prototype approval is needed.
-Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded.
+Finish the public GitHub repository and checked automatic deployment, verify a real Google login and the isolated first run, then complete the remaining usability and content-handoff acceptance checks. Existing production flows stay unchanged until their import/migration is reviewed. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -122,3 +120,12 @@ Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded
 - Proof: 25 runtime tests and three flow-builder tests pass; production build passes. New deployment tests cover a repeated stale request, an interrupted import, a failed first run and duplicate-profile protection.
 - Read one successful run from the approved test platform: step_3.output.spreadsheet matches the allowlisted Sheet format. Only field names and a format boolean were displayed; raw output stayed in private temporary storage. No live flow/Sheet changes.
 - Next: deploy the website, finish Google sign-in after the pending policy/client approval, then prove the isolated full setup against @stunningcrochet.
+
+## 19 October 2026 — live hosting, Google sign-up and public repository request
+
+- Website deployed to Cloudflare Pages. Added automation.houdaifa.dev as its custom domain and created its CNAME. Live checks pass: health 200, unauthenticated member data 401, production local=false, development-login route 404. Database migration 0004 applied remotely after a transient authorization error.
+- Owner approved the Google data-policy agreement and new identity-only client. Created the separate client, saved its credentials privately and uploaded the three production secrets. Google audience now shows External / In production, without test-user invitations. Real website login still needs a browser check.
+- New isolated test flow created by the website on the approved platform, with only @stunningcrochet and Pinterest posting disabled. Its required email channel is enabled. First scheduled run is pending; no success or Sheet claim yet. Original flow was not modified.
+- Added multiple page-link rows, total counts, saved-style thumbnails, explicit missing-website/Sheet recovery, Make similar and batch deletion. Corrected rename/autosave ordering. Production build passes.
+- Owner now explicitly requests a PUBLIC GitHub repository and automatic Cloudflare deployment on push. This replaces the former private-repository preference. Prepared README and a pinned-action workflow: tests/build on pull requests, deployment only from main after checks. Deployment credential setup and first pipeline proof are pending.
+- Scanned 205 historical blobs for the known live secrets and credential patterns: no matches. Ignored secret files remain outside Git. Next: verify the public push, the workflow and live identity/setup journey. No production-readiness claim.

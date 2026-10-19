@@ -54,7 +54,21 @@ async function resolveConfig(
       );
     return c;
   };
-  config.google = resolve(config.google, "google").external_id;
+  const google = resolve(config.google, "google");
+  if (config.notifyEmail) {
+    const gmail = resolve(config.gmail, "gmail");
+    if (
+      google.identity &&
+      gmail.identity &&
+      google.identity.toLowerCase() !== gmail.identity.toLowerCase()
+    )
+      throw new PublicError(
+        "email_mismatch",
+        "Google Sheets and Gmail use different accounts. Choose matching logins before starting.",
+        409,
+      );
+  }
+  config.google = google.external_id;
   if (config.notifyEmail)
     config.gmail = resolve(config.gmail, "gmail").external_id;
   if (config.notifyTelegram)
@@ -72,6 +86,15 @@ async function resolveConfig(
       );
     return { ...account, connection: connection.external_id };
   });
+  try {
+    buildWebsiteFlow(template, config, a.id, a.name, "check", null);
+  } catch {
+    throw new PublicError(
+      "setup_incomplete",
+      "Choose at least one notification channel and finish your account settings before starting.",
+      409,
+    );
+  }
   return config;
 }
 async function lock(env: Env, a: Automation) {

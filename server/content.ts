@@ -269,6 +269,7 @@ content.post("/:id/batches", async (c) => {
   const input = z
     .object({
       accountId: z.string().max(80),
+      variant: z.uuid().optional(),
       lines: z
         .array(
           z.object({
@@ -306,6 +307,7 @@ content.post("/:id/batches", async (c) => {
   };
   const fingerprint = await hash(
     canonical({
+      variant: input.variant,
       account: selected,
       batch: batchInput,
       sheetUrl: a.sheet_url,

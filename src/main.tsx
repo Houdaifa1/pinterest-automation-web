@@ -899,6 +899,16 @@ function AutomationPage() {
                 edit={edit}
                 automation={automation}
                 load={load}
+                rename={async (name: string) => {
+                  await flush();
+                  const r = await api(`/api/automations/${id}`, "PUT", {
+                    name,
+                    revision: current.current!.revision,
+                    config: current.current!.config,
+                  });
+                  current.current = r.automation;
+                  setAutomation(r.automation);
+                }}
               />
             ) : tab === "runs" ? (
               <Runs id={id!} />
@@ -1057,6 +1067,7 @@ function Setup({
     }
   };
   const ready = Boolean(
+    (draft.notifyEmail || draft.notifyTelegram) &&
     draft.google &&
     (!draft.notifyEmail || draft.gmail) &&
     (!draft.notifyTelegram || draft.telegram) &&
@@ -1148,6 +1159,9 @@ function Setup({
             />
             {t("telegramOptional")}
           </label>
+          {!draft.notifyEmail && !draft.notifyTelegram && (
+            <Notice>{t("needNotification")}</Notice>
+          )}
           {draft.notifyTelegram && (
             <>
               <Field label={t("botToken")}>
@@ -1550,7 +1564,7 @@ function AccountCard({
     </article>
   );
 }
-function Settings({ draft, edit, automation, load }: any) {
+function Settings({ draft, edit, automation, rename }: any) {
   const { t } = useWorkspace();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false),
@@ -1571,12 +1585,7 @@ function Settings({ draft, edit, automation, load }: any) {
         disabled={!name.trim() || name === automation.name}
         onClick={async () => {
           try {
-            await api(`/api/automations/${automation.id}`, "PUT", {
-              name,
-              revision: automation.revision,
-              config: draft,
-            });
-            await load();
+            await rename(name);
           } catch (e) {
             setError(e);
           }
@@ -1700,6 +1709,7 @@ function History({
   load: () => Promise<void>;
 }) {
   const { t, language, notify } = useWorkspace();
+  const navigate = useNavigate();
   const [versions, setVersions] = useState<any[]>([]),
     [batches, setBatches] = useState<any[]>([]),
     [selected, setSelected] = useState<any>(null),
@@ -1749,6 +1759,35 @@ function History({
               }}
             >
               {t("copy")}
+            </button>
+            <button
+              onClick={() =>
+                navigate(`/automations/${id}/pins`, {
+                  state: {
+                    accountId: batch.accountId,
+                    lines: batch.input.lines,
+                    variant: crypto.randomUUID(),
+                  },
+                })
+              }
+            >
+              {t("similar")}
+            </button>
+            <button
+              onClick={async () => {
+                if (!window.confirm(t("confirmDeleteBatch"))) return;
+                try {
+                  await api(
+                    `/api/automations/${id}/batches/${batch.id}`,
+                    "DELETE",
+                  );
+                  await refresh();
+                } catch (e) {
+                  setError(e);
+                }
+              }}
+            >
+              {t("remove")}
             </button>
             <button
               onClick={async () => {
@@ -1847,15 +1886,42 @@ function Pins({
   draft: Config;
   flush: () => Promise<void>;
 }) {
-  const { t, notify } = useWorkspace();
-  const [accountId, setAccountId] = useState(draft.accounts[0]?.id || ""),
-    [mode, setMode] = useState("free"),
-    [count, setCount] = useState(10),
-    [url, setUrl] = useState(""),
-    [prompt, setPrompt] = useState(""),
-    [batchId, setBatchId] = useState(""),
+  const { t, notify } = useWorkspace(),
+    location = useLocation();
+  const preset = location.state as {
+    accountId?: string;
+    lines?: any[];
+    variant?: string;
+  } | null;
+  const [accountId, setAccountId] = useState(
+      preset?.accountId || draft.accounts[0]?.id || "",
+    ),
+    [mode, setMode] = useState(preset?.lines?.[0]?.kind || "free"),
+    [count, setCount] = useState(preset?.lines?.[0]?.count || 10),
+    [links, setLinks] = useState<{ id: string; url: string; count: number }[]>(
+      preset?.lines
+        ?.filter((x) => x.kind === "link")
+        .map((x) => ({ ...x, id: crypto.randomUUID() })) || [],
+    ),
+    [selected, setSelected] = useState<any>(null),
+    [refs, setRefs] = useState<any[]>([]),
     [error, setError] = useState<unknown>(null),
     [busy, setBusy] = useState(false);
+  const variant = useRef(preset?.variant);
+  const account = draft.accounts.find((a) => a.id === accountId);
+  useEffect(() => {
+    if (!accountId) return;
+    api(`/api/automations/${automation.id}/accounts/${accountId}/media`)
+      .then((r) => setRefs(r.media))
+      .catch(setError);
+  }, [accountId, automation.id]);
+  const rows = links.length ? links : [{ id: "first", url: "", count: 5 }];
+  const total =
+    mode === "link"
+      ? rows.reduce((n, r) => n + r.count, 0)
+      : mode === "next"
+        ? count * (account?.pinsPerProduct || 6)
+        : count;
   return (
     <section className="readable">
       <h2>{t("newPins")}</h2>
@@ -1883,38 +1949,121 @@ function Pins({
                 onClick={() => {
                   setMode(m);
                   if (m === "next") setCount(1);
+                  else if (mode === "next") setCount(10);
                 }}
               >
                 {t((["pageLinks", "withoutLinks", "website"] as const)[i])}
               </button>
             ))}
           </div>
-          {mode === "link" && (
-            <Field label={t("url")}>
+          {mode === "link" ? (
+            <>
+              {rows.map((row) => (
+                <div className="pin-link-row" key={row.id}>
+                  <Field label={t("url")}>
+                    <input
+                      type="url"
+                      value={row.url}
+                      placeholder="https://"
+                      onChange={(e) =>
+                        setLinks(
+                          rows.map((x) =>
+                            x.id === row.id ? { ...x, url: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                  <Field label={t("count")}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={row.count}
+                      onChange={(e) =>
+                        setLinks(
+                          rows.map((x) =>
+                            x.id === row.id
+                              ? { ...x, count: Number(e.target.value) }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                  {rows.length > 1 && (
+                    <button
+                      aria-label={t("remove")}
+                      onClick={() =>
+                        setLinks(rows.filter((x) => x.id !== row.id))
+                      }
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                disabled={rows.length >= 20}
+                onClick={() =>
+                  setLinks([
+                    ...rows,
+                    { id: crypto.randomUUID(), url: "", count: 5 },
+                  ])
+                }
+              >
+                <Plus size={18} />
+                {t("addLink")}
+              </button>
+            </>
+          ) : (
+            <Field label={t(mode === "next" ? "rounds" : "count")}>
               <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://"
+                type="number"
+                min={1}
+                max={mode === "next" ? 5 : 30}
+                value={count}
+                onChange={(e) => setCount(Number(e.target.value))}
               />
             </Field>
           )}
-          <Field label={t(mode === "next" ? "rounds" : "count")}>
-            <input
-              type="number"
-              min={1}
-              max={mode === "next" ? 5 : 30}
-              value={count}
-              onChange={(e) => setCount(Number(e.target.value))}
-            />
-          </Field>
+          {mode === "next" && account?.source !== "website" && (
+            <Notice>
+              {t("websiteSetup")}{" "}
+              <Link to={`/automations/${automation.id}/accounts`}>
+                {t("accounts")}
+              </Link>
+            </Notice>
+          )}
+          <p>
+            <strong>
+              {total} {t("pinsLabel")}
+            </strong>
+          </p>
+          {refs.length > 0 && (
+            <div>
+              <p>{t("usesStyle")}</p>
+              <div className="reference-grid">
+                {refs.map((r) => (
+                  <img key={r.id} src={r.url} alt={t("style")} />
+                ))}
+              </div>
+            </div>
+          )}
           <p className="muted">{t("promptHelp")}</p>
           {error != null && <ErrorBox error={error} />}
           <button
             className="primary"
-            disabled={busy}
+            disabled={
+              busy ||
+              !automation.sheetUrl ||
+              total < 1 ||
+              total > 40 ||
+              (mode === "next" && account?.source !== "website")
+            }
             onClick={async () => {
               setBusy(true);
+              setError(null);
               try {
                 await flush();
                 const r = await api(
@@ -1922,13 +2071,18 @@ function Pins({
                   "POST",
                   {
                     accountId,
-                    lines: [
-                      { kind: mode, count, url: mode === "link" ? url : "" },
-                    ],
+                    variant: variant.current,
+                    lines:
+                      mode === "link"
+                        ? rows.map((x) => ({
+                            kind: "link",
+                            url: x.url,
+                            count: x.count,
+                          }))
+                        : [{ kind: mode, count, url: "" }],
                   },
                 );
-                setPrompt(r.batch.prompt);
-                setBatchId(r.batch.id);
+                setSelected(r.batch);
               } catch (e) {
                 setError(e);
               } finally {
@@ -1938,29 +2092,48 @@ function Pins({
           >
             {busy ? t("loading") : t("getPrompt")}
           </button>
+          {!automation.sheetUrl && (
+            <Notice>
+              {t("firstSheet")}{" "}
+              <Link to={`/automations/${automation.id}/setup`}>
+                {t("draft")}
+              </Link>
+            </Notice>
+          )}
           <Modal
             title={t("getPrompt")}
-            open={Boolean(prompt)}
+            open={Boolean(selected)}
             onOpenChange={(open) => {
-              if (!open) setPrompt("");
+              if (!open) setSelected(null);
             }}
           >
-            <p>{t("promptHelp")}</p>
-            <pre className="prompt-preview">{prompt}</pre>
-            <button
-              className="primary"
-              onClick={async () => {
-                await navigator.clipboard.writeText(prompt);
-                await api(
-                  `/api/automations/${automation.id}/batches/${batchId}/copy`,
-                  "POST",
-                  {},
-                );
-                notify(t("copied"));
-              }}
-            >
-              {t("copy")}
-            </button>
+            {selected && (
+              <>
+                <p>{t("promptHelp")}</p>
+                {selected.referenceCount > 0 && (
+                  <Notice>{t("referenceLinks")}</Notice>
+                )}
+                <pre className="prompt-preview">{selected.prompt}</pre>
+                <button
+                  className="primary"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(selected.prompt);
+                      await api(
+                        `/api/automations/${automation.id}/batches/${selected.id}/copy`,
+                        "POST",
+                        {},
+                      );
+                      notify(t("copied"));
+                    } catch (e) {
+                      setError(e);
+                    }
+                  }}
+                >
+                  {t("copy")}
+                </button>
+              </>
+            )}
           </Modal>
         </>
       )}
