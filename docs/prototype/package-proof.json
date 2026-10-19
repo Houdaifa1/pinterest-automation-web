@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-19",
+  "zipIntegrity": "passed",
+  "files": [
+    "prompt.txt",
+    "manifest.json",
+    "example-pin-1.svg",
+    "example-pin-2.svg",
+    "example-pin-3.svg"
+  ],
+  "totalPins": 8,
+  "styleVersion": 1,
+  "referencesMatchSourceAssets": true,
+  "promptIncludesReferenceAccessCheck": true,
+  "scope": "Local example package only. No private cloud delivery or image generation tested."
+}

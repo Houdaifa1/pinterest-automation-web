@@ -27,3 +27,7 @@ The home style is approved. The full clickable prototype has not been built or a
 - For schedule-trigger Run now, use ON_LATEST_VERSION retry of a retained scheduled run; never resume only the failed step. Deployment must obtain a seed before exposing the action. This route was proved with a new successful run and changed version. No broad architecture change is made.
 - Website responses must use allowlisted summaries because Activepieces run outputs can contain credentials. Admin does not receive raw run outputs.
 - Owner approved reusing the selected test platform's existing Telegram bot credential from a prior run output for one separately named test connection. That connection is ACTIVE and unused; no message was sent.
+
+## Prototype review boundary — 19 October 2026
+
+The English clickable prototype is ready for review; it is not approved yet. Sign-in/setup shows a focused header, with dashboard tabs reserved for the workspace. A local prompt-and-images download demonstrates an explicit attachment handoff while private automatic delivery remains unproved. Example references are clearly labeled. Production architecture, reference storage and localization decisions are unchanged.

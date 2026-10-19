@@ -7,16 +7,16 @@
 | 0a. Design research and official source captures | done | 2026-10-19 | engineer | docs/RESEARCH.md; 12 new browser captures in docs/design-references/08–19; engine build and 40/40 tests passed |
 | 0b. Render home comparisons and present research | approved | 2026-10-19 | engineer | docs/design-references/20–26; home-comparison.html; sidebar-comparison.html; docs/RESEARCH.md |
 | 1. Activepieces API-key proof (HANDOFF 3.3) | done; run-now bootstrap constraint documented | 2026-10-19 | engineer | docs/proof/activepieces-api-key-2026-10-19.json; docs/RESEARCH.md; full run SUCCEEDED, revision 3, writes 0; original flow unchanged; test flow paused |
-| 2. Clickable prototype of all screens | todo | | | |
+| 2. Clickable prototype of all screens | ready for review; approval pending | 2026-10-19 | engineer | docs/prototype/; 14 interaction checks; 20 routes at 3 widths; 13 real screenshots; package integrity proof |
 | 3. Backend (D1, Google sign-in, ownership, encryption, admin) | todo | | | |
 | 4. Setup wizard + Deploy | todo | | | |
 | 5. Autopilot pages (Apply, Run now, Pause, Runs, New pins, History, Settings) | todo | | | |
 | 6. Live on autopilot.hudaifa.dev + move his autopilots + friends | todo | | | |
 
 ## Next step
-Build the full local clickable prototype in approved option B, including pin-style uploads and owner moderation.
-Wait for prototype approval before app implementation. The API proof is complete with a scheduled-seed constraint for Run now.
-Never publish test pins to @crochet_simplified.
+Owner reviews http://127.0.0.1:8766/ and approves or corrects the clickable prototype.
+Then build the backend, followed by the real setup and autopilot pages in HANDOFF order.
+Do not treat the earlier home approval as full prototype approval. Never publish test pins to @crochet_simplified.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -29,7 +29,7 @@ Never publish test pins to @crochet_simplified.
 - No app implementation or live-account access. Original approved references unchanged. Next step: authorized API proof on the confirmed test setup.
 
 ## Open problems
-- Full clickable prototype approval remains pending. Home option B is approved.
+- Full clickable prototype is ready for review; approval remains pending. Home option B is approved.
 - Reference-image storage and delivery into the content-creation session need proof; current copy action carries text only.
 - Confirm `hudaifa.dev` DNS is on Cloudflare.
 - Run now requires a retained successful scheduled seed; first deployment and seed expiry need a guided bootstrap.
@@ -48,3 +48,13 @@ Never publish test pins to @crochet_simplified.
 - Full run returned SUCCEEDED, new run identity, latest revision 3, downstream fullFlow=true and writes=0. Run now uses ON_LATEST_VERSION retry from a scheduled seed; the direct test-step route failed with an upstream foreign-key error.
 - Original posting flow fingerprint unchanged; isolated test flow final status DISABLED. No pins, spreadsheet writes or messages. Test key and raw responses kept out of git.
 - Done: API-key feasibility proof. Half-done: none in that bounded proof; bootstrap/retention and output filtering remain production implementation requirements. Next: full clickable prototype, then owner approval.
+
+## Clickable prototype ready — 2026-10-19
+- Built docs/prototype/ in the approved clearer Geist direction. Includes open Google entry, all six setup steps, login recovery, home/empty home, account settings/style uploads, all batch modes, runs/recovery, histories/restore, settings and owner member review/block/unblock/removal.
+- All service operations are explicitly simulated. Local image previews, clipboard copy, duplicate-free history and prompt-and-images ZIP download are functional local interactions. French/Arabic and production integrations remain unimplemented.
+- Browser proof: docs/prototype/qa-results.json, 14 interaction checks passed; 20 routes at 1440, 390 and 320px. Fixed the one 320px Runs overflow by positioning its table container. No page overflow remained in recorded checks. Body text 16px. No browser console errors observed.
+- ZIP proof: docs/prototype/package-proof.json; integrity passed, prompt and manifest plus three reference images; bytes matched the source example assets. This does not prove automatic access to private cloud references.
+- Saved 13 real browser screenshots under docs/prototype/screenshots/. Reviewed home, signup, pin styles, phone and dark appearance visually.
+- Syntax check passed. Engine unchanged; existing 40/40 test baseline from this session remains applicable. No backend, live-domain deployment or production posting acceptance claimed.
+- Done: API proof and English clickable prototype for review. Half-done: none in that bounded preview; translation, security, private image delivery and production acceptance remain future build work.
+- End of session: waiting for prototype approval. Local preview server retained on port 8766 for review; browser viewport override cleared; sample state reset. Next: owner corrections/approval, then backend.

@@ -182,3 +182,15 @@ Primary sources: official [connection list](https://www.activepieces.com/docs/en
 ### What this does not prove
 
 No production-grade website, Google sign-in, encryption service, account isolation, live Pinterest posting, reference-image delivery or end-user Telegram notification was implemented or accepted by these tests. Those need their own later evidence. Next is the local clickable prototype with sample data; its approval precedes app implementation.
+
+## Clickable prototype evidence — 19 October 2026
+
+Implemented a local review artifact in [prototype/](prototype/README.md), using the approved Geist direction and the setup/recovery principles above. It contains the English journeys and sample service states, not an application backend. All live-account and service actions are simulations.
+
+Observed browser checks: 14 interactions passed, including a blocked setup step, mismatched-login recovery, full setup preview, pause/resume/run, draft/apply, local image upload, repeat-copy history, restoring as a draft, member controls and appearance. Twenty routes were measured at 1440px, 390px and 320px. One Runs overflow at 320px came from an absolutely positioned screen-reader label inside the scrolling table; positioning the table container fixed it. Final measurements have no document overflow. Evidence and limitations: [qa-results.json](prototype/qa-results.json). This is not a complete accessibility or performance audit.
+
+The downloaded example ZIP passed integrity checks and contained prompt.txt, manifest.json and three reference SVG files whose bytes matched the local example assets. The prompt names references and requires stopping if they cannot be opened. [Package proof](prototype/package-proof.json). This proves a local attachment-package path, not automatic private reference delivery or the receiving session's ability to inspect a user's cloud files.
+
+Thirteen actual browser screenshots are saved in [prototype/screenshots/](prototype/screenshots/). The illustrated pin layouts are interface examples, not real client generation output. English only: French/Arabic and RTL acceptance remain future work, as do real Google sign-in, ownership, encryption, moderation enforcement, deployment and live publishing.
+
+Prototype review is now the approval gate. Do not re-open the approved home-style choice or start the backend before that review.

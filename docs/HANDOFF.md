@@ -1,7 +1,7 @@
 # Pinterest Autopilot Web — complete handoff
 
 Read this whole file before doing anything. It contains every decision the owner already made, what already exists and
-works, and exactly what to build next. Status updated 19 Oct 2026: **design research complete, clearer Geist home approved; app implementation has not started.**
+works, and exactly what to build next. Status updated 19 Oct 2026: **design research and API proof complete; English clickable prototype ready for review; its approval is pending. App implementation has not started.**
 
 ---
 
@@ -193,4 +193,5 @@ Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the 
 - User authorization is recorded; routine tests within this scope do not need another permission question. New security-sensitive browser grants still follow tool policy.
 - API-key proof completed: docs/proof/activepieces-api-key-2026-10-19.json and docs/RESEARCH.md. Run now works through ON_LATEST_VERSION retry of a retained scheduled seed; bootstrap and retention recovery are required. The original flow is unchanged and the separate proof flow is paused.
 - Activepieces run outputs can contain credentials. The website must expose allowlisted summaries only.
-- Next: full local clickable prototype in approved Geist style, including style references and moderation; owner approval before app implementation. Reference delivery/storage remains unproved and must be labeled accordingly.
+- Clickable prototype ready: docs/prototype/README.md and http://127.0.0.1:8766/. All service operations are simulated. Local uploads, copy counts and prompt-and-images ZIP are demonstrated. Owner approval is pending; no app implementation before it.
+- Next: owner prototype review, then backend in build order. French/Arabic, private reference delivery/storage and production acceptance remain build work. Test evidence: docs/prototype/qa-results.json and package-proof.json.

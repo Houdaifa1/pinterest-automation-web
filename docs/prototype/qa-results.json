@@ -1,0 +1,493 @@
+{
+  "date": "2026-10-19",
+  "scope": "Local English prototype with sample data",
+  "interactionChecks": [
+    {
+      "check": "setup waits for logins",
+      "passed": true
+    },
+    {
+      "check": "matching logins unlock continue",
+      "passed": true
+    },
+    {
+      "check": "six-step setup reaches completed preview",
+      "passed": true
+    },
+    {
+      "check": "pause resume and full-run preview",
+      "passed": true
+    },
+    {
+      "check": "account edits save as draft then apply",
+      "passed": true
+    },
+    {
+      "check": "local image upload creates fourth reference",
+      "passed": true
+    },
+    {
+      "check": "copying same batch twice creates one entry with copied 2×",
+      "passed": true
+    },
+    {
+      "check": "failed run has one recovery action",
+      "passed": true
+    },
+    {
+      "check": "restoring setup creates a draft before apply",
+      "passed": true
+    },
+    {
+      "check": "admin block changes member access",
+      "passed": true
+    },
+    {
+      "check": "admin remove access removes fictional member",
+      "passed": true
+    },
+    {
+      "check": "member search hides unmatched rows",
+      "passed": true
+    },
+    {
+      "check": "320px runs overflow corrected",
+      "passed": true
+    },
+    {
+      "check": "dark appearance persists across navigation",
+      "passed": true
+    }
+  ],
+  "layoutChecks": [
+    {
+      "route": "overview",
+      "bodyFont": "16px",
+      "heading": "Your autopilots",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "empty",
+      "bodyFont": "16px",
+      "heading": "Your autopilots",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/1",
+      "bodyFont": "16px",
+      "heading": "Your pins.On autopilot.",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/2",
+      "bodyFont": "16px",
+      "heading": "Connect Activepieces",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/3",
+      "bodyFont": "16px",
+      "heading": "Stay in the loop",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/4",
+      "bodyFont": "16px",
+      "heading": "Connect your logins",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/5",
+      "bodyFont": "16px",
+      "heading": "Your Pinterest account",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/6",
+      "bodyFont": "16px",
+      "heading": "Ready to go live?",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/overview",
+      "bodyFont": "16px",
+      "heading": "Stunning Crochet",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/accounts",
+      "bodyFont": "16px",
+      "heading": "Pinterest accounts",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/new-pins",
+      "bodyFont": "16px",
+      "heading": "Make new pins",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/runs",
+      "bodyFont": "16px",
+      "heading": "Runs",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/history",
+      "bodyFont": "16px",
+      "heading": "History",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/settings",
+      "bodyFont": "16px",
+      "heading": "Autopilot settings",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "new-pins",
+      "bodyFont": "16px",
+      "heading": "Make new pins",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "history",
+      "bodyFont": "16px",
+      "heading": "History",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "settings",
+      "bodyFont": "16px",
+      "heading": "Your settings",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "admin",
+      "bodyFont": "16px",
+      "heading": "Members",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "style/stunning",
+      "bodyFont": "16px",
+      "heading": "Your pin style",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "privacy",
+      "bodyFont": "16px",
+      "heading": "Your privacy",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "overview",
+      "bodyFont": "16px",
+      "heading": "Your autopilots",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "empty",
+      "bodyFont": "16px",
+      "heading": "Your autopilots",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/1",
+      "bodyFont": "16px",
+      "heading": "Your pins.On autopilot.",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/2",
+      "bodyFont": "16px",
+      "heading": "Connect Activepieces",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/3",
+      "bodyFont": "16px",
+      "heading": "Stay in the loop",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/4",
+      "bodyFont": "16px",
+      "heading": "Connect your logins",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/5",
+      "bodyFont": "16px",
+      "heading": "Your Pinterest account",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/6",
+      "bodyFont": "16px",
+      "heading": "Ready to go live?",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/overview",
+      "bodyFont": "16px",
+      "heading": "Stunning Crochet",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/accounts",
+      "bodyFont": "16px",
+      "heading": "Pinterest accounts",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/new-pins",
+      "bodyFont": "16px",
+      "heading": "Make new pins",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/runs",
+      "bodyFont": "16px",
+      "heading": "Runs",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/history",
+      "bodyFont": "16px",
+      "heading": "History",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/settings",
+      "bodyFont": "16px",
+      "heading": "Autopilot settings",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "new-pins",
+      "bodyFont": "16px",
+      "heading": "Make new pins",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "history",
+      "bodyFont": "16px",
+      "heading": "History",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "settings",
+      "bodyFont": "16px",
+      "heading": "Your settings",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "admin",
+      "bodyFont": "16px",
+      "heading": "Members",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "style/stunning",
+      "bodyFont": "16px",
+      "heading": "Your pin style",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "privacy",
+      "bodyFont": "16px",
+      "heading": "Your privacy",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "overview",
+      "bodyFont": "16px",
+      "heading": "Your autopilots",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "empty",
+      "bodyFont": "16px",
+      "heading": "Your autopilots",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/1",
+      "bodyFont": "16px",
+      "heading": "Your pins.On autopilot.",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/2",
+      "bodyFont": "16px",
+      "heading": "Connect Activepieces",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/3",
+      "bodyFont": "16px",
+      "heading": "Stay in the loop",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/4",
+      "bodyFont": "16px",
+      "heading": "Connect your logins",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/5",
+      "bodyFont": "16px",
+      "heading": "Your Pinterest account",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/6",
+      "bodyFont": "16px",
+      "heading": "Ready to go live?",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/overview",
+      "bodyFont": "16px",
+      "heading": "Stunning Crochet",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/accounts",
+      "bodyFont": "16px",
+      "heading": "Pinterest accounts",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/new-pins",
+      "bodyFont": "16px",
+      "heading": "Make new pins",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/runs",
+      "bodyFont": "16px",
+      "heading": "Runs",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/history",
+      "bodyFont": "16px",
+      "heading": "History",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/settings",
+      "bodyFont": "16px",
+      "heading": "Autopilot settings",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "new-pins",
+      "bodyFont": "16px",
+      "heading": "Make new pins",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "history",
+      "bodyFont": "16px",
+      "heading": "History",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "settings",
+      "bodyFont": "16px",
+      "heading": "Your settings",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "admin",
+      "bodyFont": "16px",
+      "heading": "Members",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "style/stunning",
+      "bodyFont": "16px",
+      "heading": "Your pin style",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "privacy",
+      "bodyFont": "16px",
+      "heading": "Your privacy",
+      "page": 320,
+      "viewport": 320
+    }
+  ],
+  "consoleErrors": [],
+  "limitations": [
+    "Service operations, Google sign-in, deployment and moderation are simulated.",
+    "No real backend, access-control, encryption or production performance acceptance.",
+    "French and Arabic are planned; this prototype is English only.",
+    "Illustrated pin references are examples, not a generated client batch.",
+    "Private reference storage and automatic receiving-session access remain unproved.",
+    "No full contrast, keyboard, zoom or assistive-technology audit."
+  ]
+}
