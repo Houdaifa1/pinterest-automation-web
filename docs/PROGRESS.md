@@ -7,14 +7,14 @@
 | 0a. Design research and official source captures | done | 2026-10-19 | engineer | docs/RESEARCH.md; 12 new browser captures in docs/design-references/08–19; engine build and 40/40 tests passed |
 | 0b. Render home comparisons and present research | approved | 2026-10-19 | engineer | docs/design-references/20–26; home-comparison.html; sidebar-comparison.html; docs/RESEARCH.md |
 | 1. Activepieces API-key proof (HANDOFF 3.3) | done; run-now bootstrap constraint documented | 2026-10-19 | engineer | docs/proof/activepieces-api-key-2026-10-19.json; docs/RESEARCH.md; full run SUCCEEDED, revision 3, writes 0; original flow unchanged; test flow paused |
-| 2. Clickable prototype of all screens | approved; final navigation corrections in progress | 2026-10-19 | engineer | docs/prototype/; baseline 14 checks; latest clarity review 13 checks + 18 layouts; screenshots 14–20; revised package proof |
-| 3. Backend (D1, Google sign-in, ownership, encryption, admin) | implemented; live login verification in progress | 2026-10-19 | engineer | 25 runtime tests; production Google client configured |
-| 4. Setup wizard + Deploy | implemented; isolated live first-run check pending | 2026-10-19 | engineer | real connection discovery, four deployment recovery tests |
+| 2. Clickable prototype of all screens | approved; navigation corrections verified | 2026-10-19 | engineer | docs/prototype/; baseline 14 checks; latest clarity review 13 checks + 18 layouts; screenshots 14–20; revised package proof |
+| 3. Backend (D1, Google sign-in, ownership, encryption, admin) | implemented; real Google login verified | 2026-10-19 | engineer | 28 runtime tests; real Google login on the live domain |
+| 4. Setup wizard + Deploy | implemented; isolated live setup and controls verified | 2026-10-19 | engineer | successful isolated first run and Run now; pause/resume checked |
 | 5. Automation pages | implemented; acceptance checks in progress | 2026-10-19 | engineer | runtime tests and production build |
 | 6. Live website, migration and beginner acceptance | website deployed; existing-flow migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-Finish the public GitHub repository and checked automatic deployment, verify a real Google login and the isolated first run, then complete the remaining usability and content-handoff acceptance checks. Existing production flows stay unchanged until their import/migration is reviewed. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
+Finish the Cloudflare deployment credential in the owner’s existing Chrome session, prove automatic deployment, then complete the remaining usability and content-handoff acceptance checks. Existing production flows stay unchanged until their import/migration is reviewed. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -129,3 +129,25 @@ Finish the public GitHub repository and checked automatic deployment, verify a r
 - Added multiple page-link rows, total counts, saved-style thumbnails, explicit missing-website/Sheet recovery, Make similar and batch deletion. Corrected rename/autosave ordering. Production build passes.
 - Owner now explicitly requests a PUBLIC GitHub repository and automatic Cloudflare deployment on push. This replaces the former private-repository preference. Prepared README and a pinned-action workflow: tests/build on pull requests, deployment only from main after checks. Deployment credential setup and first pipeline proof are pending.
 - Scanned 205 historical blobs for the known live secrets and credential patterns: no matches. Ignored secret files remain outside Git. Next: verify the public push, the workflow and live identity/setup journey. No production-readiness claim.
+
+## 19 October 2026 — live setup and responsive proof
+
+- Real Google sign-in passed on automation.houdaifa.dev: the owner’s Google identity reached the authenticated home and owner Members navigation. Screenshot retained locally: docs/proof/screenshots/live-google-login.jpg (excluded from public Git because browser tabs and bookmarks are personal). An expired earlier sign-in returned to the retry screen correctly.
+- The website’s isolated test flow completed its first run and confirmed a new Sheet. Run now then completed on the latest published flow version. Pause/resume controls were checked and the test flow was left paused. Pinterest posting stayed disabled in its account configuration; this is not a fresh pin-publication test.
+- Added saved setup progress, picture-style versions and restoration, explicit notification settings and expired-seed recovery. Batch snapshots keep their original image set. Added a prompt-and-images download fallback. Its final download integrity check is still pending.
+- Corrected page-offer instructions: no automatic claim that every crochet page is free. Current research needs sources and dates. Proof: 27 runtime tests and three flow-builder tests pass; production build passes; engine’s latest full check passed 40/40.
+- Checked six loaded application screens at 390px in English, French and Arabic, with correct right-to-left Arabic. Found one 320px account-card overflow, corrected button wrapping, and rechecked it without page overflow. Evidence: docs/proof/website-layout-checks.json and the real phone screenshots. This is not a beginner acceptance session.
+- Public GitHub repository exists and main was pushed. Its first Build and test job passed every step. Deploy production stopped because its Cloudflare token had not yet been configured; no false green deployment claim. The production environment is restricted to main, and its account identifier is set. Limited token setup is in progress.
+- Next: finish the limited CI credential and prove a push-driven deployment, check the image package and remaining end-to-end acceptance. Existing posting flows remain unchanged. Production deployment currently has migration 0004; migration 0005 and the latest screens are checked locally and await the next deployment.
+
+## 19 October 2026 — image package and live boundaries checked
+
+- The real browser downloaded a batch package. ZIP integrity passed; prompt.txt, README.txt and reference-1.jpg are present, with a valid JPEG container. The prompt names its attached image and contains no local image-capability links. Evidence: docs/proof/website-package-check.json. This verifies the explicit attachment fallback, not automatic private-image access in another session.
+- Runtime checks passed 28/28 and flow-builder checks passed 3/3. Read-back proof confirms the original live flow’s status, published version and trigger are unchanged, and the isolated website test flow is disabled. Evidence: docs/proof/website-live-flow-boundary.json.
+- Owner requested Chrome instead of signing into the separate in-app browser. Cloudflare token creation is still pending because native permission controls are not responding reliably. No token has been created or sent to GitHub yet. Continue the approved deployment work without widening permissions.
+
+## 19 October 2026 — verified Telegram recipient
+
+- Added the guided Telegram Start link and one test message, with an encrypted bot setup, private-chat challenge and repeat protection. Changing the selected bot requires a new verification. The deployment takes the confirmed chat from the server; it never guesses the newest person who messaged the bot.
+- Added engine support for applying an explicitly verified Telegram chat. Existing flows are not changed until imported. Proof: 28 runtime tests, four flow-builder tests (including the saved Sheet recipient), all 40 engine tests and the production build pass. Telegram service calls in these tests are simulated; a live website Telegram message has not been sent.
+- Half-done: limited Cloudflare deployment credential. The owner keeps the existing Chrome login. The reduced token form now contains D1 Edit and Pages Edit; final review and creation remain pending. Next: finish CI deployment, then remaining acceptance checks.

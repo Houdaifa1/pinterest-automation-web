@@ -4,6 +4,7 @@ import { template } from "../.build/engine";
 import { buildWebsiteFlow } from "./flow-builder.mjs";
 import { defaultState } from "../engine/panel/generator.js";
 import { owned } from "./access";
+import { verifiedBotChat } from "./telegram";
 import { ap, getIntegration, safeSheet, type Connection } from "./activepieces";
 import {
   decrypt,
@@ -69,10 +70,18 @@ async function resolveConfig(
       );
   }
   config.google = google.external_id;
+  delete config.telegramChat;
   if (config.notifyEmail)
     config.gmail = resolve(config.gmail, "gmail").external_id;
-  if (config.notifyTelegram)
+  if (config.notifyTelegram) {
+    config.telegramChat = await verifiedBotChat(
+      env,
+      userId,
+      a.id,
+      config.telegram,
+    );
     config.telegram = resolve(config.telegram, "telegram").external_id;
+  }
   config.accounts = config.accounts.map((account: any) => {
     const connection = resolve(account.connection, "pinterest");
     if (
@@ -484,12 +493,29 @@ deployment.post("/:id/run", async (c) => {
     await c.env.DB.prepare("INSERT INTO operations VALUES(?,?,?,?,?,?,?)")
       .bind(requestId, c.get("user").id, a.id, "run", "pending", null, now())
       .run();
-    const run = await ap(
-      key,
-      `/flow-runs/${encodeURIComponent(a.seed_run_id)}/retry`,
-      "POST",
-      { projectId: integration.project_id, strategy: "ON_LATEST_VERSION" },
-    );
+    let run;
+    try {
+      run = await ap(
+        key,
+        `/flow-runs/${encodeURIComponent(a.seed_run_id)}/retry`,
+        "POST",
+        { projectId: integration.project_id, strategy: "ON_LATEST_VERSION" },
+      );
+    } catch (e) {
+      if (e instanceof PublicError && e.code === "service_not_found") {
+        await c.env.DB.prepare(
+          "UPDATE automations SET seed_run_id=NULL,status='problem',error_code='seed_expired' WHERE id=?",
+        )
+          .bind(a.id)
+          .run();
+        throw new PublicError(
+          "seed_expired",
+          "The first-run record expired. Open Summary and retry setup to restore Run now.",
+          409,
+        );
+      }
+      throw e;
+    }
     if (!run?.id)
       throw new PublicError(
         "run_unknown",
@@ -533,7 +559,7 @@ deployment.delete("/:id", async (c) => {
 });
 callbacks.post("/:id/:token", async (c) => {
   const a = await c.env.DB.prepare(
-    "SELECT * FROM automations WHERE id=? AND callback_hash=?",
+    "SELECT * FROM automations WHERE id=? AND callback_hash=? AND user_id IN(SELECT id FROM users WHERE status='active')",
   )
     .bind(c.req.param("id"), await hash(c.req.param("token")))
     .first<Automation>();

@@ -181,6 +181,7 @@ async function applyConfig(gTok, ws, config, settingRows, accountRows) {
   if (Number.isFinite(s.reportHour)) setRow('reportTime', formatHours([s.reportHour]));
   if (s.notifyEmail !== undefined) setRow('notifyEmail', s.notifyEmail ? 'Yes' : 'No');
   if (s.notifyTelegram !== undefined) setRow('notifyTelegram', s.notifyTelegram ? 'Yes' : 'No');
+  if (s.telegramChat && /^\d+$/.test(String(s.telegramChat))) setRow('telegramChat', String(s.telegramChat));
   setRow('configApplied', [config.version, ...appliedVersions(current.configApplied).filter((v) => v !== config.version)].slice(0, 10).join(', '));
 
   const head = headerMap(accountRows[0], ACCOUNT_COLUMNS);

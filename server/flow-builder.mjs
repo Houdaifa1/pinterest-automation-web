@@ -36,6 +36,13 @@ export function buildWebsiteFlow(
   const flow = JSON.parse(buildImportFile(template, state, version)).flows[0];
   const visit = (step) => {
     for (; step; step = step.nextAction) {
+      if (step.name === "step_3" && state.notifyTelegram) {
+        if (!/^\d+$/.test(state.telegramChat || ""))
+          throw new Error("Confirm your Telegram chat before starting.");
+        const config = JSON.parse(step.settings.input.config);
+        config.settings.telegramChat = state.telegramChat;
+        step.settings.input.config = JSON.stringify(config);
+      }
       const source = step.settings?.sourceCode;
       if (source?.code) {
         source.code = source.code

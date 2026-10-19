@@ -11,6 +11,7 @@ import {
   syncConnections,
 } from "./activepieces";
 import { PublicError, rateLimit } from "./security";
+import { rememberBot } from "./telegram";
 export const integrations = new Hono<AppEnv>();
 integrations.post("/:id/connect", async (c) => {
   const automation = await owned(c);
@@ -121,9 +122,13 @@ integrations.post("/:id/telegram", async (c) => {
   )
     .bind(integration.id, externalId, c.get("user").id)
     .first<{ id: string }>();
-  return c.json({
-    connection: saved?.id,
-    botUrl: `https://t.me/${bot.result.username}`,
-    connections,
-  });
+  const start = await rememberBot(
+    c.env,
+    c.get("user").id,
+    automation.id,
+    token,
+    bot.result.username,
+    saved!.id,
+  );
+  return c.json({ connection: saved?.id, ...start, connections });
 });

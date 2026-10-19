@@ -9,3 +9,7 @@ __pycache__/
 *.pyc
 .build/
 docs/proof/screenshots/cloudflare-permissions.jpg
+docs/proof/screenshots/google-signin-review.jpg
+docs/proof/screenshots/google-signup-production.jpg
+docs/proof/screenshots/live-google-login.jpg
+docs/proof/screenshots/cloudflare-token-review.jpg

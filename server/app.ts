@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth, requireSession } from "./auth";
 import { owned } from "./access";
 import { integrations } from "./integrations";
+import { telegramChecks } from "./telegram";
 import { callbacks, deployment } from "./deployment";
 import { bodyLimit } from "hono/body-limit";
 import { content, referenceAccess } from "./content";
@@ -94,6 +95,8 @@ function publicAutomation(a: Automation) {
     revision: a.revision,
     appliedRevision: a.applied_revision,
     status: a.status,
+    setupStep: (a as any).setup_step,
+    errorCode: (a as any).error_code,
     sheetUrl: a.sheet_url,
     connected: Boolean(a.integration_id),
     createdAt: a.created_at,
@@ -299,6 +302,18 @@ app.put("/api/automations/:id", async (c) => {
     );
   return c.json({ automation: publicAutomation(updated) });
 });
+app.post("/api/automations/:id/setup-step", async (c) => {
+  const a = await owned(c),
+    { step } = z
+      .object({ step: z.number().int().min(0).max(3) })
+      .parse(await c.req.json());
+  await c.env.DB.prepare(
+    "UPDATE automations SET setup_step=? WHERE id=? AND user_id=?",
+  )
+    .bind(step, a.id, c.get("user").id)
+    .run();
+  return c.json({ ok: true });
+});
 app.get("/api/automations/:id/versions", async (c) => {
   const a = await owned(c);
   const rows = await c.env.DB.prepare(
@@ -314,7 +329,8 @@ app.get("/api/admin/users", async (c) => {
   const users = await c.env.DB.prepare(
     `SELECT u.id,u.email,u.name,u.status,u.created_at,u.last_active,
  (SELECT count(*) FROM automations a WHERE a.user_id=u.id) AS automations,
- (SELECT count(*) FROM automations a WHERE a.user_id=u.id AND a.flow_id IS NOT NULL) AS deployed
+ (SELECT count(*) FROM automations a WHERE a.user_id=u.id AND a.flow_id IS NOT NULL) AS deployed,
+ (SELECT coalesce(sum(json_array_length(a.config,'$.accounts')),0) FROM automations a WHERE a.user_id=u.id) AS accounts
  FROM users u ORDER BY u.created_at DESC LIMIT 500`,
   ).all();
   return c.json({ users: users.results });
@@ -368,6 +384,7 @@ app.delete("/api/me", async (c) => {
   return c.json({ ok: confirm });
 });
 app.route("/api/automations", integrations);
+app.route("/api/automations", telegramChecks);
 app.route("/api/automations", deployment);
 app.route("/api/automations", content);
 export default app;

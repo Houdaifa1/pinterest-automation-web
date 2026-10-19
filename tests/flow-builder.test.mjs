@@ -119,3 +119,53 @@ test("a flow cannot be built with missing accounts or invalid connections", () =
     buildWebsiteFlow(template, state(), "unsafe-code", "Posting", "v1", null),
   );
 });
+test("the website flow keeps the verified Telegram recipient even when another chat is newer", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const flow = buildWebsiteFlow(
+      template,
+      {
+        ...state(),
+        notifyTelegram: true,
+        telegram: "telegram-connection",
+        telegramChat: "123",
+      },
+      "33333333-3333-4333-8333-333333333333",
+      "Verified bot",
+      "v1",
+      null,
+    );
+    const step = codeStep(flow, "step_3");
+    const module = await import(
+      "data:text/javascript;base64," +
+        Buffer.from(step.settings.sourceCode.code).toString("base64")
+    );
+    await module.code({
+      google: { access_token: w.tokens.google },
+      gmail: { access_token: w.tokens.gmail },
+      telegram: { secret_text: "test-bot-token" },
+      config: step.settings.input.config,
+    });
+    assert.equal(
+      w.rows("Settings").find((row) => row[0] === "Telegram chat ID")[1],
+      "123",
+    );
+    assert.equal(w.pins.length, 0);
+    assert.throws(
+      () =>
+        buildWebsiteFlow(
+          template,
+          { ...state(), notifyTelegram: true, telegram: "telegram-connection" },
+          "33333333-3333-4333-8333-333333333333",
+          "Missing chat",
+          "v1",
+          null,
+        ),
+      /Confirm your Telegram chat/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
