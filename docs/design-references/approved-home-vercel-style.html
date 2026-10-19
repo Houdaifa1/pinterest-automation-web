@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autopilots</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#fff;--bg2:#fafafa;--g100:#f2f2f2;--g200:#ebebeb;--g400:#eaeaea;--g500:#c9c9c9;--g700:#8f8f8f;--g900:#666;--g1000:#171717;--blue:#0070f3;--green:#16a34a;--amber:#f5a524;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Geist,system-ui,sans-serif;background:var(--bg2);color:var(--g1000);font-size:14px;-webkit-font-smoothing:antialiased}
+.mono{font-family:'Geist Mono',ui-monospace,monospace}
+header{background:var(--bg1);border-bottom:1px solid var(--g400)}
+.top{height:64px;display:flex;align-items:center;padding:0 24px;gap:10px}
+.logo{width:24px;height:24px}
+.slash{color:var(--g500);font-size:22px;font-weight:300;margin:0 2px}
+.team{display:flex;align-items:center;gap:8px;font-weight:500}
+.av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a1c4fd,#c2e9fb)}
+.badge{font-size:12px;font-weight:500;border:1px solid var(--g400);border-radius:9999px;padding:1px 8px;color:var(--g900);background:var(--bg2)}
+.chev{color:var(--g700);font-size:11px}
+.right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn{height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--g400);background:var(--bg1);font:500 14px Geist;color:var(--g1000);display:inline-flex;align-items:center;gap:6px}
+.btn.dark{background:var(--g1000);color:#fff;border-color:var(--g1000)}
+.me{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ff9a9e,#fecfef)}
+nav{display:flex;gap:4px;padding:0 16px;height:46px;align-items:flex-end}
+nav a{padding:0 12px 12px;color:var(--g900);text-decoration:none;position:relative}
+nav a.on{color:var(--g1000)}
+nav a.on:after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--g1000)}
+main{max-width:1200px;margin:0 auto;padding:32px 24px}
+.bar{display:flex;gap:8px;margin-bottom:24px}
+.search{flex:1;height:40px;border:1px solid var(--g400);border-radius:6px;background:var(--bg1);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--g700)}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:24px}
+.box{background:var(--bg1);border:1px solid var(--g400);border-radius:8px}
+.box h3{font-size:14px;font-weight:600;padding:16px 16px 0}
+.row{display:flex;justify-content:space-between;padding:10px 16px;color:var(--g900)}
+.row b{font-weight:500;color:var(--g1000)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--bg1);border:1px solid var(--g400);border-radius:8px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card:hover{border-color:var(--g500)}
+.ch{display:flex;align-items:center;gap:12px}
+.ic{width:32px;height:32px;border-radius:50%;border:1px solid var(--g400);display:grid;place-items:center;font-size:15px;background:var(--bg2)}
+.name{font-weight:600}
+.sub{color:var(--g900);font-size:13px}
+.dots{margin-left:auto;color:var(--g700);font-size:18px;line-height:1}
+.pill{display:inline-flex;align-items:center;gap:6px;margin-top:16px;border:1px solid var(--g400);border-radius:9999px;padding:3px 10px;font-size:13px;color:var(--g1000);background:var(--bg2)}
+.sd{width:8px;height:8px;border-radius:50%}
+.meta{margin-top:12px;color:var(--g900);font-size:13px;display:flex;gap:6px;align-items:center}
+.sep{color:var(--g500)}
+.label{font-size:13px;color:var(--g900);margin-bottom:8px;font-weight:500}
+</style></head>
+<body>
+<header>
+  <div class="top">
+    <svg class="logo" viewBox="0 0 24 24"><path d="M12 3l9 16H3z" fill="#171717"/></svg>
+    <span class="slash">/</span>
+    <span class="team"><span class="av"></span>Houdaifa's autopilots <span class="badge">Free</span> <span class="chev">⌃⌄</span></span>
+    <div class="right">
+      <button class="btn">Feedback</button>
+      <span style="color:var(--g900)">Docs</span>
+      <span class="me"></span>
+    </div>
+  </div>
+  <nav><a class="on">Overview</a><a>New pins</a><a>History</a><a>Settings</a></nav>
+</header>
+<main>
+  <div class="bar">
+    <div class="search"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Search autopilots…</div>
+    <button class="btn" style="height:40px">▦</button>
+    <button class="btn dark" style="height:40px">Add New… <span style="font-size:10px">⌄</span></button>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="label">Today</div>
+      <div class="box" style="padding-bottom:6px">
+        <h3>Last 24 hours</h3>
+        <div class="row" style="margin-top:6px"><span>Pins posted</span><b class="mono">9</b></div>
+        <div class="row"><span>Pins waiting</span><b class="mono">13</b></div>
+        <div class="row"><span>Next post</span><b class="mono">15:00</b></div>
+        <div class="row"><span>Errors</span><b class="mono">0</b></div>
+      </div>
+      <div class="label" style="margin-top:24px">Needs you</div>
+      <div class="box" style="padding:14px 16px;color:var(--g900);line-height:1.5"><b style="color:var(--g1000);font-weight:500">hdrahm</b> and <b style="color:var(--g1000);font-weight:500">crochet</b> have no pins left.<div style="margin-top:12px"><button class="btn dark">Make new pins</button></div></div>
+    </div>
+    <div>
+      <div class="label">Autopilots</div>
+      <div class="cards">
+        <div class="card">
+          <div class="ch"><div class="ic">🧶</div><div><div class="name">Main</div><div class="sub">hdrahm · crochet</div></div><div class="dots">⋯</div></div>
+          <div class="pill"><span class="sd" style="background:var(--amber)"></span>Needs pins</div>
+          <div class="meta">Last post <span class="mono">12:03</span><span class="sep">·</span>Crochet &amp; knitting</div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ic">🧸</div><div><div class="name">Stunning Crochet</div><div class="sub">stunningcrochet</div></div><div class="dots">⋯</div></div>
+          <div class="pill"><span class="sd" style="background:var(--green)"></span>Running <span class="sep">·</span><span class="mono">13</span> waiting</div>
+          <div class="meta">Last post <span class="mono">12:01</span><span class="sep">·</span>Crochet &amp; knitting</div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ic">🍲</div><div><div class="name">Moroccan Kitchen</div><div class="sub">moroccankitchen</div></div><div class="dots">⋯</div></div>
+          <div class="pill"><span class="sd" style="background:var(--g500)"></span>Setup · step 4 of 6</div>
+          <div class="meta">Not live yet<span class="sep">·</span>Food &amp; recipes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body></html>

@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinterest Autopilot Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: step list on the left (top on phones), one form column on the right with Back / Continue at its foot.
+   One deliberate light look: white form on a light grey page, near-black text, one blue accent. */
+:root {
+  --page: #f6f6f4; --surface: #ffffff; --ink: #16171a; --text: #3b3d43; --muted: #73767e; --line: #e2e2de; --line-strong: #cfcfca;
+  --accent: #1f4c9c; --accent-hover: #183d7e; --accent-soft: #eef2fa;
+  --ok: #157347; --error: #b42318; --error-soft: #fef3f2;
+  --font: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 8px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--text); font: 15px/1.55 var(--font); padding-inline: 16px; padding-block: 40px 64px; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; }
+svg { width: 16px; height: 16px; flex: none; }
+
+.app { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 56px; align-items: start; }
+
+/* Side */
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 40px); display: grid; gap: 28px; }
+.brand { font-weight: 700; color: var(--ink); font-size: 16px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+.brand .mark { width: 28px; height: 28px; border-radius: 7px; background: var(--ink); color: #fff; display: grid; place-items: center; font-size: 14px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.steps button { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; padding: 10px 12px; border-radius: var(--radius); cursor: pointer; color: var(--muted); }
+.steps button:hover { background: #ededea; }
+.steps button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.steps button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dot { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--surface); }
+[aria-current="step"] .dot { border-color: var(--accent); color: var(--accent); }
+.dot.done { background: var(--ink); border-color: var(--ink); color: #fff; }
+.dot.done svg { width: 12px; height: 12px; }
+.dot.needs { border-color: var(--error); color: var(--error); }
+.step-name { font-weight: 600; font-size: 14px; display: block; }
+.step-desc { font-size: 13px; color: var(--muted); display: block; }
+.saved { font-size: 12.5px; color: var(--muted); margin: 0 0 4px; }
+.setup-tools { display: grid; justify-items: start; gap: 2px; padding-top: 16px; border-top: 1px solid var(--line); }
+.setup-tools .textbtn { font-size: 13px; font-weight: 500; }
+
+/* Main */
+.main { min-width: 0; max-width: 620px; display: grid; gap: 28px; }
+.eyebrow { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+h1 { margin: 0; font-size: 28px; line-height: 1.15; color: var(--ink); letter-spacing: -0.02em; font-weight: 700; text-wrap: balance; }
+.lead { margin: 8px 0 0; color: var(--muted); max-width: 52ch; }
+.form { display: grid; gap: 22px; }
+.group { display: grid; gap: 16px; padding-top: 22px; border-top: 1px solid var(--line); }
+.group:first-child { padding-top: 0; border-top: 0; }
+.group-title { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+
+/* Fields */
+.field { display: grid; gap: 6px; min-width: 0; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+label, .label { font-size: 14px; font-weight: 600; color: var(--ink); }
+.optional { font-weight: 400; color: var(--muted); }
+.help { font-size: 13px; color: var(--muted); margin: 0; }
+.input { position: relative; }
+.input input, .input select, textarea {
+  width: 100%; height: 42px; padding: 0 36px 0 12px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink); transition: border-color .12s, box-shadow .12s;
+}
+textarea { height: auto; min-height: 84px; padding: 10px 12px; resize: vertical; line-height: 1.45; }
+.input select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2373767e' stroke-width='1.6'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 14px; }
+.input input.mono { font-family: var(--mono); font-size: 13.5px; letter-spacing: .02em; }
+input::placeholder, textarea::placeholder { color: #a3a5ab; }
+.input input:hover, .input select:hover, textarea:hover { border-color: #b9b9b3; }
+.input input:focus, .input select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tick { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ok); display: none; }
+.field.valid .tick { display: block; }
+.field.invalid .input input, .field.invalid .input select { border-color: var(--error); }
+.field.invalid .input input:focus { box-shadow: 0 0 0 3px var(--error-soft); }
+.msg { display: none; align-items: center; gap: 6px; font-size: 13px; color: var(--error); margin: 0; }
+.field.invalid .msg { display: flex; }
+.field.invalid .help { display: none; }
+
+/* Controls */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.toggle-row .t { display: grid; gap: 2px; }
+.toggle-row .t b { color: var(--ink); font-weight: 600; font-size: 14px; }
+.toggle-row .t span { color: var(--muted); font-size: 13px; }
+.switch { appearance: none; width: 38px; height: 22px; border-radius: 99px; background: #d3d3cd; position: relative; cursor: pointer; transition: background .15s; flex: none; margin: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(16px); }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choice { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--surface); justify-self: start; }
+.choice button { border: 0; background: transparent; padding: 9px 14px; cursor: pointer; color: var(--text); font-weight: 500; }
+.choice button + button { border-left: 1px solid var(--line-strong); }
+.choice button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.choice button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); justify-self: start; }
+.stepper button { border: 0; background: transparent; width: 38px; height: 38px; cursor: pointer; color: var(--ink); display: grid; place-items: center; }
+.stepper button:disabled { color: #c9c9c4; cursor: default; }
+.stepper output { min-width: 34px; text-align: center; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stepper button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 500; color: var(--text); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.blines { display: grid; gap: 10px; }
+.bline { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: start; }
+.bline .field { margin: 0; }
+.bline .free { border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 10px 12px; color: var(--muted); }
+.bline .rm { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius); width: 40px; height: 40px; cursor: pointer; color: var(--muted); display: grid; place-items: center; }
+.btotal { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.btotal .n { font-size: 22px; font-weight: 600; color: var(--ink); }
+.steps .group-label { padding: 14px 12px 4px; font-size: 12px; color: var(--muted); }
+.inline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.hours { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.hour { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 6px; height: 34px; cursor: pointer; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--text); }
+.hour:hover:not(:disabled) { border-color: var(--ink); }
+.hour[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+.hour:disabled { color: #c3c3be; background: #fafaf8; cursor: default; }
+.hour:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sched-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.count.ok { color: var(--ok); }
+.textbtn { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; padding: 4px 0; }
+.textbtn:hover { color: var(--accent-hover); text-decoration: underline; }
+.textbtn.danger { color: var(--error); }
+
+/* Accounts */
+.accounts { display: grid; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.acc + .acc { border-top: 1px solid var(--line); }
+.acc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; }
+.acc-name { font-weight: 600; color: var(--ink); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.acc-name .user { font-weight: 400; color: var(--muted); font-size: 13px; }
+.acc-meta { font-size: 13px; color: var(--muted); }
+.acc-meta .warn { color: var(--error); }
+.acc-edit { border-top: 1px solid var(--line); padding: 20px 16px; display: grid; gap: 20px; background: #fcfcfb; }
+.acc-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+.add { justify-self: start; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn:hover { border-color: #b4b4ae; background: #fafaf8; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 22px; border-top: 1px solid var(--line); }
+
+/* Logins helper */
+.how { margin: 0; padding: 16px 16px 16px 36px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: grid; gap: 8px; font-size: 14px; }
+.how li::marker { color: var(--muted); font-variant-numeric: tabular-nums; }
+.bookmark { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 6px 10px; border: 1px dashed var(--accent); border-radius: 6px; color: var(--accent); font-weight: 600; font-size: 13px; text-decoration: none; cursor: grab; background: var(--accent-soft); }
+kbd { font-family: var(--mono); font-size: 12px; padding: 1px 5px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+
+/* Files */
+.summary { margin: 0; display: grid; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.summary div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 12px; padding: 12px 16px; }
+.summary div + div { border-top: 1px solid var(--line); }
+.summary dt { color: var(--muted); font-size: 13.5px; }
+.summary dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.todo { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; counter-reset: todo; }
+.todo > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
+.todo > li::before { counter-increment: todo; content: counter(todo); width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; font-weight: 600; font-size: 13px; color: var(--ink); background: var(--surface); }
+.todo h3 { margin: 3px 0 4px; font-size: 15px; color: var(--ink); }
+.todo p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.prompts { display: grid; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.prompts div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; }
+.prompts div + div { border-top: 1px solid var(--line); }
+.blocked { padding: 14px 16px; border: 1px solid #f3c7c2; background: var(--error-soft); border-radius: var(--radius); color: var(--error); display: grid; gap: 8px; font-size: 14px; }
+.blocked .textbtn { justify-self: start; color: var(--error); }
+
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: var(--radius); font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-width: calc(100vw - 32px); }
+
+@media (max-width: 820px) {
+  body { padding-block: 20px 48px; }
+  .app { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .side { position: static; gap: 16px; }
+  .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .steps button { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 8px 4px; gap: 6px; }
+  .step-desc, .saved { display: none; }
+  .setup-tools { grid-auto-flow: column; justify-content: start; gap: 16px; border-top: 0; padding-top: 0; }
+  .step-name { font-size: 12px; }
+  .row2 { grid-template-columns: minmax(0, 1fr); }
+  .summary div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .hours { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  h1 { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mark">P</span>Pinterest Autopilot</div>
+    <ol class="steps" id="steps"></ol>
+    <div class="setup-tools">
+      <p class="saved">Your answers are saved on this computer.</p>
+      <button type="button" class="textbtn" data-export>Save these answers</button>
+      <button type="button" class="textbtn" data-import>Open saved answers</button>
+      <button type="button" class="textbtn danger" data-reset>Start a new setup</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/*__GENERATOR__*/
+
+const POSTER_TEMPLATE = "__POSTER_TEMPLATE__";
+const CODEX_PROMPT = "__CODEX_PROMPT__";
+const STORE_KEY = 'pinterest-autopilot-panel-v1';
+
+const MSG = {
+  email: 'Enter a valid email address.',
+  id: 'Paste the full ID: 21 letters and numbers.',
+  idDup: 'This ID is already used for another login.',
+  idSame: 'This is the Google Sheets ID. Paste the Gmail one.',
+  name: 'Use 1–30 letters, numbers, spaces, - or _.',
+  nameDup: 'Another account already has this name.',
+  niche: 'Describe the niche, or choose General.',
+  link: 'Enter a full address starting with https://',
+  hours: 'Choose {n} posting time{s}.',
+  perDay: 'Choose 1 to 18 pins a day.',
+  perRun: 'Choose 1 to 40.',
+  accounts: 'Add at least one Pinterest account.',
+  channel: 'Turn on email, Telegram or both.',
+  pickAccount: 'Choose an account.',
+  lines: 'Add at least one line.',
+  pageUrl: 'Paste the full page address, starting with https://',
+  urlDup: 'This page is already in this batch.',
+  lineCount: 'Choose 1 to 30 pins.',
+  batchTotal: 'Up to 40 pins per batch. Make a second batch for more.',
+  perProduct: 'Choose 3 to 15 pins per product.',
+  nextNeedsWebsite: 'This account takes pins from a niche. Set it to “My website” first.',
+};
+const msgFor = (e) => (e ? MSG[e.code].replace('{n}', e.n).replace('{s}', e.n === 1 ? '' : 's') : '');
+
+const ICON = {
+  check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7"/></svg>',
+  alert: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v3.6M8 11v.2"/></svg>',
+  minus: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 8h9"/></svg>',
+  plus: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>',
+  back: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 8h-9M7.5 4l-4 4 4 4"/></svg>',
+  next: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8h9M8.5 4l4 4-4 4"/></svg>',
+  download: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>',
+};
+
+const STEPS = [
+  { id: 'notify', name: 'Notifications', desc: 'Where messages go', title: 'How should we reach you?', lead: 'Every published pin, every problem and a daily report are sent to you.', owns: (k) => ['channels', 'emailTo', 'botEmail'].includes(k) },
+  { id: 'logins', name: 'Logins', desc: 'IDs from Activepieces', title: 'Connect your logins', lead: 'Copy the connection IDs from Activepieces and paste them here.', owns: (k) => ['google', 'gmail', 'telegram'].includes(k) },
+  { id: 'accounts', name: 'Pinterest accounts', desc: 'Niches and posting times', title: 'Your Pinterest accounts', lead: 'Add each account, what it posts about and when it posts.', owns: (k) => k === 'accounts' || k.startsWith('account:') || k.startsWith('shared') },
+  { id: 'files', name: 'Automation file', desc: 'Import into Activepieces', title: 'Get the automation file', lead: 'Put the file in Activepieces and run it once. Do this again only when you change the setup.', owns: () => false },
+  { id: 'pins', name: 'New pins', desc: 'Every time you want pins', title: 'New pins', lead: 'Choose the account, add the pages the pins link to and how many pins each, then copy the Codex prompt.', owns: (k) => k.startsWith('batch'), every: true },
+];
+const SETUP_STEPS = STEPS.filter((x) => !x.every);
+
+// ---------------------------------------------------------------- state
+let state = load();
+let step = 'notify';
+let openId = null;
+// Validation timing (reward early, punish late):
+const left = new Set();       // fields the person has left at least once with something typed
+const submitted = new Set();  // steps where Continue was pressed
+const editingValid = new Set(); // fields that were valid when focused: no error until they are left again
+const checkedAccounts = new Set(); // accounts where Done was pressed: show all their problems
+
+function load() {
+  let s = defaultState();
+  try { const raw = localStorage.getItem(STORE_KEY); if (raw) s = Object.assign(defaultState(), JSON.parse(raw)); } catch (e) { /* start fresh */ }
+  s.accounts = (s.accounts || []).map((a) => {
+    const m = Object.assign(emptyAccount(), a);
+    if (!a.pinsPerDay) m.pinsPerDay = (a.hours || []).length || 5;
+    m.on = true;
+    return m;
+  });
+  return fixBatch(s);
+}
+function fixBatch(s) {
+  if (!s.batch || !Array.isArray(s.batch.lines)) s.batch = { accountId: '', lines: [newLine('link')] };
+  if (!Array.isArray(s.batches)) s.batches = [];
+  if (!s.accounts.some((a) => a.id === s.batch.accountId)) s.batch.accountId = s.accounts.length === 1 ? s.accounts[0].id : '';
+  return s;
+}
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* not saved */ } }
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const acc = (id) => state.accounts.find((a) => a.id === id);
+const stepOf = (key) => STEPS.find((s) => s.owns(key));
+const errorsIn = (id, errors) => Object.keys(errors).filter(STEPS.find((s) => s.id === id).owns);
+const accErrors = (a, errors) => Object.keys(errors).filter((k) => k.startsWith(`account:${a.id}:`));
+function toast(text) {
+  const el = document.getElementById('toast');
+  el.textContent = text; el.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 2800);
+}
+
+function errorVisible(key, errors) {
+  if (!errors[key] || editingValid.has(key)) return false;
+  if (key.startsWith('account:') && checkedAccounts.has(key.split(':')[1])) return true;
+  const s = stepOf(key);
+  return left.has(key) || Boolean(s && submitted.has(s.id));
+}
+
+// Shows every problem of the open account and moves to the first one. Returns true when the account is complete.
+function finishOpenAccount() {
+  if (!openId || !acc(openId)) return true;
+  const errors = validate(state);
+  if (!accErrors(acc(openId), errors).length) return true;
+  checkedAccounts.add(openId);
+  editingValid.clear();
+  paint();
+  const first = document.querySelector(`[data-acc="${openId}"] .field.invalid input, [data-acc="${openId}"] .field.invalid .hour`);
+  if (first) { first.focus({ preventScroll: true }); first.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  return false;
+}
+
+// ---------------------------------------------------------------- pieces
+function field(key, label, control, { help, optional } = {}) {
+  return `<div class="field" data-field="${esc(key)}">
+    <label for="${esc(key)}">${label}${optional ? ' <span class="optional">(optional)</span>' : ''}</label>
+    <div class="input">${control}<span class="tick">${ICON.check}</span></div>
+    ${help ? `<p class="help">${help}</p>` : ''}
+    <p class="msg" role="alert">${ICON.alert}<span data-msg="${esc(key)}"></span></p>
+  </div>`;
+}
+const input = (key, value, attrs = '') => `<input id="${esc(key)}" data-key="${esc(key)}" value="${esc(value)}" ${attrs}>`;
+function stepper(key, value, min, max, label) {
+  return `<div class="stepper" role="group" aria-label="${esc(label)}">
+    <button type="button" data-inc="${esc(key)}" data-by="-1" aria-label="Less" ${value <= min ? 'disabled' : ''}>${ICON.minus}</button>
+    <output>${value}</output>
+    <button type="button" data-inc="${esc(key)}" data-by="1" aria-label="More" ${value >= max ? 'disabled' : ''}>${ICON.plus}</button></div>`;
+}
+const choice = (key, options, current) => `<div class="choice" role="group">${options.map(([v, l]) => `<button type="button" data-choice="${esc(key)}" data-val="${v}" aria-pressed="${String(current) === String(v)}">${l}</button>`).join('')}</div>`;
+const toggle = (key, title, sub, on) => `<label class="toggle-row" for="${esc(key)}"><span class="t"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span><input type="checkbox" class="switch" id="${esc(key)}" data-key="${esc(key)}" ${on ? 'checked' : ''}></label>`;
+
+function schedule(prefix, perDay, hours) {
+  const set = new Set(hours);
+  const full = set.size >= perDay;
+  const errKey = prefix === 'shared' ? 'sharedHours' : `account:${prefix}:hours`;
+  const perDayKey = prefix === 'shared' ? 'sharedPinsPerDay' : `account:${prefix}:pinsPerDay`;
+  let chips = '';
+  for (let h = FIRST_HOUR; h <= LAST_HOUR; h++) {
+    const on = set.has(h);
+    chips += `<button type="button" class="hour" data-hour="${h}" data-sched="${prefix}" aria-pressed="${on}" ${!on && full ? 'disabled' : ''}>${hourLabel(h)}</button>`;
+  }
+  return `<div class="field" data-field="${errKey}">
+    <div class="inline"><span class="label">Pins per day</span>${stepper(perDayKey, perDay, 1, MAX_PER_DAY, 'Pins per day')}</div>
+    <div class="sched-head"><span class="label">Posting times</span>
+      <span class="inline"><span class="count ${set.size === perDay ? 'ok' : ''}">${set.size} of ${perDay} chosen</span><button type="button" class="textbtn" data-spread="${prefix}">Spread evenly</button></span></div>
+    <div class="hours" role="group" aria-label="Posting times">${chips}</div>
+    <p class="help">${esc(state.timeZone)} · one pin at each time</p>
+    <p class="msg" role="alert">${ICON.alert}<span data-msg="${errKey}"></span></p>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- steps
+function viewNotify() {
+  let zones;
+  try { zones = Intl.supportedValuesOf('timeZone'); } catch (e) { zones = ['Africa/Casablanca', 'Europe/London', 'Europe/Paris', 'America/New_York', 'America/Los_Angeles']; }
+  if (!zones.includes(state.timeZone)) zones.unshift(state.timeZone);
+  let reportHours = '';
+  for (let h = FIRST_HOUR; h <= LAST_HOUR; h++) reportHours += `<option value="${h}" ${h === state.reportHour ? 'selected' : ''}>${hourLabel(h)}</option>`;
+  const email = state.notifyEmail !== false;
+  return `
+    <div class="group">
+      ${toggle('notifyEmail', 'Email', 'Sent from your bot Gmail', email)}
+      ${toggle('notifyTelegram', 'Telegram', 'Sent by your own Telegram bot', Boolean(state.notifyTelegram))}
+      <div class="field" data-field="channels"><p class="msg" role="alert">${ICON.alert}<span data-msg="channels"></span></p></div>
+    </div>
+    <div class="group">
+      ${email ? field('emailTo', 'Your email', input('emailTo', state.emailTo, 'type="email" autocomplete="email" placeholder="you@gmail.com"'), { help: 'Where the messages arrive.' }) : ''}
+      ${field('botEmail', 'Bot Gmail', input('botEmail', state.botEmail, 'type="email" placeholder="yourbot@gmail.com"'), { help: 'The Gmail you connected in Activepieces. Codex also works in its Google Drive.' })}
+    </div>
+    <div class="group">
+      <div class="row2">
+        ${field('timeZone', 'Time zone', `<select id="timeZone" data-key="timeZone">${zones.map((z) => `<option ${z === state.timeZone ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select>`)}
+        ${field('reportHour', 'Daily report', `<select id="reportHour" data-key="reportHour" data-num>${reportHours}</select>`)}
+      </div>
+      ${toggle('emailEveryPin', 'A message for every published pin', 'With the picture and a link', state.emailEveryPin)}
+      <div class="inline"><span class="label">Warn me when an account has</span>${stepper('lowQueue', state.lowQueue, 0, 100, 'Pins left')}<span>pins left</span></div>
+    </div>`;
+}
+
+function viewLogins() {
+  const email = state.notifyEmail !== false;
+  return `
+    <div class="group">
+      <ol class="how">
+        <li>Drag this button to your bookmarks bar (<kbd>⌘</kbd><kbd>⇧</kbd><kbd>B</kbd> on Mac, <kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>B</kbd> on Windows shows the bar):<br><a class="bookmark" id="idFinder" href="#">Show connection IDs</a></li>
+        <li>Open Activepieces → Connections and click the bookmark.</li>
+        <li>Click an ID to copy it, then paste it below.</li>
+      </ol>
+      ${field('google', 'Google Sheets', input('google', state.google, 'class="mono" spellcheck="false" autocomplete="off" placeholder="21 letters and numbers"'))}
+      ${email ? field('gmail', 'Gmail', input('gmail', state.gmail, 'class="mono" spellcheck="false" autocomplete="off" placeholder="21 letters and numbers"')) : ''}
+    </div>
+    ${state.notifyTelegram ? `<div class="group">
+      <p class="group-title">Telegram</p>
+      <ol class="how">
+        <li>In Telegram, open <b>@BotFather</b>, send <kbd>/newbot</kbd> and follow the steps. Copy the token it sends.</li>
+        <li>Activepieces → Connections → New Connection → <b>Telegram Bot</b> → paste the token → Save.</li>
+        <li>Open your new bot in Telegram and press <b>Start</b>. The automation finds you by itself.</li>
+      </ol>
+      ${field('telegram', 'Telegram Bot', input('telegram', state.telegram, 'class="mono" spellcheck="false" autocomplete="off" placeholder="21 letters and numbers"'))}
+    </div>` : ''}`;
+}
+
+const NICHE_EXAMPLES = { crochet: 'e.g. crochet flower bouquets', food: 'e.g. Moroccan food recipes', home: 'e.g. cozy boho living rooms', printables: 'e.g. free planner printables', diy: 'e.g. paper flower crafts', other: 'e.g. what the account is about' };
+function accountMeta(a, errors) {
+  const s = scheduleOf(state, a);
+  const bits = [`${s.perDay} a day`, categoryOf(a).name.split(' (')[0], a.source === 'website' ? `Website: ${String(a.website || '…').replace(/^https:\/\//, '')}` : (a.general ? 'General' : (a.niche || 'No niche yet'))];
+  const n = accErrors(a, errors).length;
+  return `${esc(bits.join(' · '))}${n && (submitted.has('accounts') || checkedAccounts.has(a.id) || accErrors(a, errors).some((k) => left.has(k))) ? ` · <span class="warn">${n} to fix</span>` : ''}`;
+}
+
+function accountEditor(a) {
+  const p = `account:${a.id}:`;
+  const s = scheduleOf(state, a);
+  return `<div class="acc-edit">
+    <div class="row2">
+      ${field(`${p}name`, 'Short name', input(`${p}name`, a.name, 'placeholder="florals" autocomplete="off"'), { help: a.name ? `Tab “Pins – ${esc(a.name)}”, folder “Media – ${esc(a.name)}”.` : 'Names its tab and picture folder.' })}
+      ${field(`${p}username`, 'Pinterest username', input(`${p}username`, a.username, 'placeholder="@yourname" autocomplete="off"'), { optional: true })}
+    </div>
+    ${field(`${p}connection`, 'Pinterest connection ID', input(`${p}connection`, a.connection, 'class="mono" spellcheck="false" autocomplete="off" placeholder="21 letters and numbers"'), { help: 'From the “Show connection IDs” bookmark.' })}
+    ${field(`${p}category`, 'Category', `<select id="${p}category" data-key="${p}category">${Object.entries(CATEGORIES).map(([k, c]) => `<option value="${k}" ${k === (a.category || 'crochet') ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>`, { help: 'Sets how Codex researches, photographs and writes the pins.' })}
+    <div class="field"><span class="label">Pins come from</span>${choice(`${p}source`, [['niche', 'A niche'], ['website', 'My website']], a.source || 'niche')}</div>
+    ${a.source === 'website' ? `${field(`${p}website`, 'Website', input(`${p}website`, a.website, 'type="url" placeholder="https://yoursite.com" autocomplete="off"'), { help: 'Codex goes through every product on it, one product at a time, and counts the pins you already made.' })}
+    <div class="inline" data-field="${p}pinsPerProduct"><span class="label">Pins per product</span>${stepper(`${p}pinsPerProduct`, a.pinsPerProduct || 6, 3, 15, 'Pins per product')}<span class="help">6 is the sweet spot: winners get more rounds automatically</span></div>` : `<div class="field"><span class="label">Niche</span>${choice(`${p}general`, [['false', 'Specific'], ['true', 'General · trending']], a.general)}</div>
+    ${field(`${p}niche`, a.general ? 'Focus' : 'Describe the niche', input(`${p}niche`, a.niche, `placeholder="${a.general ? 'e.g. easy weeknight dinners' : (NICHE_EXAMPLES[a.category] || 'e.g. crochet flower bouquets')}"`), { optional: a.general })}`}
+    ${state.sameSchedule ? '<p class="help">Uses the shared schedule above.</p>' : schedule(a.id, a.pinsPerDay, a.hours)}
+    ${field(`${p}brand`, 'Picture style', `<textarea id="${p}brand" data-key="${p}brand" placeholder="Leave empty and Codex designs a look for this account">${esc(a.brand)}</textarea>`, { optional: true })}
+    <div class="acc-actions"><button type="button" class="textbtn danger" data-remove="${a.id}">Remove account</button><button type="button" class="btn primary" data-done="${a.id}">Save account</button></div>
+  </div>`;
+}
+
+function viewAccounts(errors) {
+  const list = state.accounts.map((a) => `<div class="acc" data-acc="${a.id}">
+      <div class="acc-row"><div><div class="acc-name"><span data-name="${a.id}">${esc(a.name || 'New account')}</span>${a.username ? `<span class="user">@${esc(String(a.username).replace(/^@/, ''))}</span>` : ''}</div>
+        <div class="acc-meta" data-meta="${a.id}">${accountMeta(a, errors)}</div></div>
+        ${openId === a.id ? '' : `<button type="button" class="btn" data-toggle="${a.id}">Edit</button>`}</div>
+      ${openId === a.id ? accountEditor(a) : ''}
+    </div>`).join('');
+  return `
+    <div class="group">
+      ${toggle('sameSchedule', 'Same schedule for every account', 'Set the posting times once for all accounts', state.sameSchedule)}
+      ${state.sameSchedule ? schedule('shared', state.sharedPinsPerDay, state.sharedHours) : ''}
+    </div>
+    <div class="group">
+      <div class="accounts">${list || '<p class="empty">No accounts yet.</p>'}</div>
+      <button type="button" class="btn add" data-add>${ICON.plus} Add an account</button>
+      <div class="field" data-field="accounts"><p class="msg" role="alert">${ICON.alert}<span data-msg="accounts"></span></p></div>
+    </div>`;
+}
+
+function viewFiles(errors) {
+  const ready = Object.keys(errors).length === 0;
+  const blocked = SETUP_STEPS.filter((s) => s.id !== 'files').map((s) => ({ s, n: errorsIn(s.id, errors).length })).filter((x) => x.n);
+  const channels = [state.notifyEmail !== false ? esc(state.emailTo || 'Email') : '', state.notifyTelegram ? 'Telegram' : ''].filter(Boolean).join(' and ');
+  const accounts = state.accounts.map((a) => `${esc(a.name || 'New account')} (${scheduleOf(state, a).perDay} a day)`).join(', ');
+  return `
+    ${blocked.length ? `<div class="blocked">${blocked.map(({ s, n }) => `<span>${s.name}: ${n} thing${n === 1 ? '' : 's'} to fix. <button type="button" class="textbtn" data-go="${s.id}">Fix it</button></span>`).join('')}</div>` : ''}
+    <dl class="summary">
+      <div><dt>Messages go to</dt><dd>${channels || '—'}</dd></div>
+      <div><dt>Time zone</dt><dd>${esc(state.timeZone)} · report at ${hourLabel(state.reportHour)}</dd></div>
+      <div><dt>Accounts</dt><dd>${accounts || '—'}</dd></div>
+    </dl>
+    <ol class="todo">
+      <li><div><h3>Put the automation in Activepieces</h3>
+        <p><b>First time:</b> Activepieces → Automations → <b>Import</b> → choose the file → <b>Publish</b>.<br>
+        <b>Changing settings later:</b> open your “Pinterest Autopilot” automation → click the arrow next to its name → <b>Import</b> → choose the new file → <b>Publish</b>. This replaces it, so you never have two.</p>
+        <button type="button" class="btn primary" data-download ${ready ? '' : 'disabled'}>${ICON.download} Download Pinterest Autopilot.json</button></div></li>
+      <li><div><h3>Run it once now</h3>
+        <p>In the automation: <b>Edit flow</b> → click the first box (“Every hour”) → <b>Test Trigger</b> → <b>Test Flow</b>.
+        Within a minute you get “Pinterest Autopilot is set up” with the links to your spreadsheet and picture folders.
+        After that it runs by itself every hour.</p></div></li>
+      <li><div><h3>Make pins</h3><p>Every time you want pins, open <b>New pins</b>. Nothing needs to be imported again for that.</p>
+        <button type="button" class="btn" data-go="pins">Open New pins ${ICON.next}</button></div></li>
+    </ol>`;
+}
+
+function viewPins() {
+  const setupErrors = Object.keys(validate(state)).length;
+  if (!state.accounts.length) return '<p class="empty">Add a Pinterest account first.</p><button type="button" class="btn" data-go="accounts">Add an account</button>';
+  const b = state.batch;
+  const a = acc(b.accountId);
+  const total = batchTotal(b, a);
+  const perDay = a ? (scheduleOf(state, a).perDay || 1) : 5;
+  const days = Math.max(1, Math.ceil(total / perDay));
+  const chips = state.accounts.map((x) => `<button type="button" class="chip" data-batch-acc="${x.id}" aria-pressed="${x.id === b.accountId}">${esc(x.name || 'New account')}</button>`).join('');
+  const lines = b.lines.map((l) => {
+    const k = `batch:line:${l.id}:`;
+    if (l.kind === 'next') {
+      return `<div class="bline" data-field="${k}count"><div class="free">Next round${l.count === 1 ? '' : 's'} of your website plan · Codex picks product, category or winner<div class="inline" style="margin-top:8px">Pins per round ${stepper(`${k}perRound`, l.perRound || (a && a.pinsPerProduct) || 6, 3, 15, 'Pins per round')}</div></div>${stepper(`${k}count`, l.count, 1, 5, 'Rounds')}<button type="button" class="rm" data-rm-line="${l.id}" aria-label="Remove line">×</button></div>`;
+    }
+    const left = l.kind === 'link'
+      ? field(`${k}url`, '', input(`${k}url`, l.url, 'type="url" placeholder="https://yoursite.com/your-page" autocomplete="off" aria-label="Page link"'))
+      : '<div class="free">No link · same micro-niche as this batch</div>';
+    return `<div class="bline" data-field="${k}count">${left}${stepper(`${k}count`, l.count, 1, 30, 'Pins')}<button type="button" class="rm" data-rm-line="${l.id}" aria-label="Remove line">×</button></div>`;
+  }).join('');
+  const history = state.batches.filter((h) => h.accountId === b.accountId).slice(-3).reverse()
+    .map((h) => `<li>${esc(h.date)} · ${h.total} pins (${h.lines.map((l) => `${l.kind === 'link' ? esc(l.url.replace(/^https:\/\//, '')) : (l.kind === 'next' ? 'next product' : 'no link')} ${l.count}`).join(', ')})</li>`).join('');
+  return `
+    ${setupErrors ? `<div class="blocked"><span>The setup has ${setupErrors} thing${setupErrors === 1 ? '' : 's'} to fix first. <button type="button" class="textbtn" data-go="${(SETUP_STEPS.find((x) => errorsIn(x.id, validate(state)).length) || STEPS[0]).id}">Fix it</button></span></div>` : ''}
+    <div class="group">
+      <div class="field" data-field="batch:account"><span class="label">Account</span><div class="chips">${chips}</div>
+        <p class="msg" role="alert">${ICON.alert}<span data-msg="batch:account"></span></p></div>
+      ${a ? `<p class="help">${a.source === 'website' ? `Codex goes through ${esc(String(a.website || 'your website').replace(/^https:\/\//, ''))} product by product, skips what already has pins (yours too) and makes ${a.pinsPerProduct || 6} pins per product.` : `Codex follows its growth plan for ${esc(a.name)} (Plan tab in your spreadsheet) and decides the focus itself: one micro-niche per batch.`}</p>` : ''}
+    </div>
+    <div class="group">
+      <span class="label">Pins in this batch</span>
+      <div class="blines">${lines || '<p class="empty">No lines yet.</p>'}</div>
+      <div class="inline">${a && a.source === 'website' ? `<button type="button" class="btn" data-add-line="next">${ICON.plus} Next round from my website</button>` : ''}<button type="button" class="btn" data-add-line="link">${ICON.plus} Add a page link</button><button type="button" class="btn" data-add-line="free">${ICON.plus} Pins without link</button></div>
+      <div class="field" data-field="batch:lines"><p class="msg" role="alert">${ICON.alert}<span data-msg="batch:lines"></span></p></div>
+      <p class="help">Codex opens each page (and its free PDF if it has one) and makes that many pins with a big call to action, like “FREE PATTERN” or “GET THE RECIPE”. Pins post in this order.</p>
+    </div>
+    <div class="btotal" data-field="batch:total">
+      <span><span class="n">${total}</span> pins · ${days} day${days === 1 ? '' : 's'} at ${perDay} a day</span>
+      <span class="inline"><button type="button" class="textbtn" data-batch-save>Save as file</button><button type="button" class="btn primary" data-batch-copy>Copy Codex prompt</button></span>
+      <p class="msg" role="alert">${ICON.alert}<span data-msg="batch:total"></span></p>
+    </div>
+    ${history ? `<div class="group"><span class="label">Last batches</span><ul class="help">${history}</ul></div>` : ''}`;
+}
+
+// ---------------------------------------------------------------- render
+function render(focusId) {
+  const errors = validate(state);
+  const s = STEPS.find((x) => x.id === step);
+  const i = STEPS.indexOf(s);
+  const views = { notify: viewNotify, logins: viewLogins, accounts: viewAccounts, files: viewFiles, pins: viewPins };
+  document.getElementById('main').innerHTML = `
+    <header><p class="eyebrow">${s.every ? 'Every time you want pins' : `Setup · step ${i + 1} of ${SETUP_STEPS.length}`}</p><h1>${s.title}</h1><p class="lead">${s.lead}</p></header>
+    <div class="form">${views[step](errors)}</div>
+    <div class="nav">
+      ${i > 0 ? `<button type="button" class="btn" data-go="${STEPS[i - 1].id}">${ICON.back} Back</button>` : '<span></span>'}
+      ${i < SETUP_STEPS.length - 1 ? '<button type="button" class="btn primary" data-continue>Continue ' + ICON.next + '</button>' : '<span></span>'}
+    </div>`;
+  const finder = document.getElementById('idFinder');
+  if (finder) {
+    finder.href = 'javascript:' + encodeURIComponent(ID_FINDER);
+    finder.addEventListener('click', (ev) => { ev.preventDefault(); toast('Drag this button to your bookmarks bar, then click it on the Activepieces Connections page.'); });
+  }
+  paint();
+  if (focusId) { const el = document.getElementById(focusId) || document.querySelector(focusId); if (el && !el.disabled) el.focus({ preventScroll: true }); }
+}
+
+// Updates error/valid marks, the step list and account summaries without rebuilding inputs, so typing is never interrupted.
+function paint() {
+  const errors = { ...validate(state), ...validateBatch(state) };
+  document.querySelectorAll('[data-field]').forEach((el) => {
+    const key = el.dataset.field;
+    const show = errorVisible(key, errors);
+    const ctl = el.querySelector('input:not([type=checkbox]), select');
+    const filled = ctl && String(ctl.value || '').trim() !== '';
+    el.classList.toggle('invalid', show);
+    el.classList.toggle('valid', !errors[key] && filled && ctl.tagName === 'INPUT' && left.has(key));
+    const m = el.querySelector(`[data-msg="${CSS.escape(key)}"]`);
+    if (m) m.textContent = show ? msgFor(errors[key]) : '';
+  });
+  state.accounts.forEach((a) => {
+    const m = document.querySelector(`[data-meta="${a.id}"]`);
+    if (m) m.innerHTML = accountMeta(a, errors);
+  });
+  const cur = STEPS.findIndex((x) => x.id === step);
+  document.getElementById('steps').innerHTML = STEPS.map((x, i) => {
+    if (x.every) return `<li class="group-label">Every time</li><li><button type="button" data-go="${x.id}" ${x.id === step ? 'aria-current="step"' : ''}><span class="dot">+</span><span><span class="step-name">${x.name}</span><span class="step-desc">${x.desc}</span></span></button></li>`;
+    const n = errorsIn(x.id, errors).length;
+    const seen = i < cur || submitted.has(x.id);
+    const dot = x.id === step ? `<span class="dot">${i + 1}</span>`
+      : (x.id !== 'files' && seen && !n ? `<span class="dot done">${ICON.check}</span>`
+        : (seen && n ? `<span class="dot needs">!</span>` : `<span class="dot">${i + 1}</span>`));
+    return `${i === 0 ? '<li class="group-label">Setup (once)</li>' : ''}<li><button type="button" data-go="${x.id}" ${x.id === step ? 'aria-current="step"' : ''}>${dot}<span><span class="step-name">${x.name}</span><span class="step-desc">${x.desc}</span></span></button></li>`;
+  }).join('');
+  save();
+}
+
+// ---------------------------------------------------------------- actions
+function lineOf(key) { return state.batch.lines.find((l) => l.id === key.split(':')[2]); }
+function setKey(key, value) {
+  if (key.startsWith('batch:line:')) { const l = lineOf(key); if (l) l[key.split(':')[3]] = value; return; }
+  if (key.startsWith('account:')) { const [, id, f] = key.split(':'); const a = acc(id); if (a) a[f] = value; }
+  else state[key] = value;
+}
+function getKey(key) {
+  if (key.startsWith('batch:line:')) { const l = lineOf(key); return l ? l[key.split(':')[3]] : undefined; }
+  if (key.startsWith('account:')) { const [, id, f] = key.split(':'); return (acc(id) || {})[f]; }
+  return state[key];
+}
+function sched(prefix) {
+  return prefix === 'shared'
+    ? { get: () => state.sharedHours, set: (h) => { state.sharedHours = h; }, perDay: () => state.sharedPinsPerDay }
+    : { get: () => acc(prefix).hours, set: (h) => { acc(prefix).hours = h; }, perDay: () => acc(prefix).pinsPerDay };
+}
+function download(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type: type || 'application/json' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+function go(id) { step = id; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button');
+  if (!b || b.disabled) return;
+  if (b.dataset.go) { go(b.dataset.go); return; }
+  if (b.hasAttribute('data-export')) {
+    const who = String(state.emailTo || state.botEmail || 'setup').replace(/[^a-z0-9@._-]+/gi, '-');
+    download(`Pinterest Autopilot answers – ${who}.json`, JSON.stringify({ kind: 'pinterest-autopilot-answers', saved: new Date().toISOString(), state }, null, 1));
+    toast('Answers saved as a file. Open it here anytime with "Open saved answers".');
+    return;
+  }
+  if (b.hasAttribute('data-import')) { document.getElementById('importFile').click(); return; }
+  if (b.hasAttribute('data-reset')) {
+    if (b.dataset.armed !== 'yes') {
+      b.dataset.armed = 'yes'; b.textContent = 'Click again to clear everything';
+      setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Start a new setup'; } }, 4000);
+      return;
+    }
+    state = fixBatch(defaultState()); step = 'notify'; openId = null;
+    left.clear(); submitted.clear(); editingValid.clear(); checkedAccounts.clear();
+    b.dataset.armed = ''; b.textContent = 'Start a new setup';
+    render(); window.scrollTo({ top: 0 }); toast('New setup started. The previous answers are cleared.');
+    return;
+  }
+  if (b.hasAttribute('data-continue')) {
+    const errors = validate(state);
+    submitted.add(step);
+    editingValid.clear();
+    if (errorsIn(step, errors).length) {
+      if (step === 'accounts') { const bad = state.accounts.find((a) => accErrors(a, errors).length); if (bad) { openId = bad.id; checkedAccounts.add(bad.id); } }
+      render();
+      const first = document.querySelector('.field.invalid input, .field.invalid select, .field.invalid .hour');
+      if (first) { first.focus({ preventScroll: true }); first.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      return;
+    }
+    go(STEPS[STEPS.findIndex((x) => x.id === step) + 1].id);
+    return;
+  }
+  if (b.dataset.inc) {
+    const key = b.dataset.inc;
+    const [min, max] = key === 'lowQueue' ? [0, 100] : (key.endsWith(':pinsPerProduct') || key.endsWith(':perRound') ? [3, 15] : key.startsWith('batch:') ? [1, (lineOf(key) || {}).kind === 'next' ? 5 : 30] : (key.endsWith('pinsPerRun') ? [1, 40] : [1, MAX_PER_DAY]));
+    const v = Math.min(max, Math.max(min, (Number(getKey(key)) || 0) + Number(b.dataset.by)));
+    setKey(key, v);
+    if (key === 'sharedPinsPerDay') state.sharedHours = spreadHours(v);
+    if (key.endsWith(':pinsPerDay')) acc(key.split(':')[1]).hours = spreadHours(v);
+    render(`[data-inc="${CSS.escape(key)}"][data-by="${b.dataset.by}"]`);
+    return;
+  }
+  if (b.dataset.spread) { const s = sched(b.dataset.spread); s.set(spreadHours(s.perDay())); render(); return; }
+  if (b.dataset.hour) {
+    const s = sched(b.dataset.sched);
+    const h = Number(b.dataset.hour);
+    const cur = s.get() || [];
+    s.set(cur.includes(h) ? cur.filter((x) => x !== h) : [...cur, h].sort((x, y) => x - y));
+    render(`[data-sched="${b.dataset.sched}"][data-hour="${h}"]`);
+    return;
+  }
+  if (b.dataset.choice) { setKey(b.dataset.choice, b.dataset.choice.endsWith(':source') ? b.dataset.val : b.dataset.val === 'true'); render(`[data-choice="${CSS.escape(b.dataset.choice)}"][data-val="${b.dataset.val}"]`); return; }
+  if (b.dataset.done) {
+    if (!finishOpenAccount()) return;
+    openId = null; render(); toast('Account saved.');
+    return;
+  }
+  if (b.dataset.toggle) {
+    if (openId && openId !== b.dataset.toggle && !finishOpenAccount()) { toast('Finish this account first.'); return; }
+    openId = b.dataset.toggle; render();
+    return;
+  }
+  if (b.hasAttribute('data-add')) {
+    if (!finishOpenAccount()) { toast('Finish this account first.'); return; }
+    const a = emptyAccount();
+    state.accounts.push(a);
+    openId = a.id;
+    render(`account:${a.id}:name`);
+    return;
+  }
+  if (b.dataset.remove) {
+    if (b.dataset.armed !== 'yes') { b.dataset.armed = 'yes'; b.textContent = 'Click again to remove'; return; }
+    state.accounts = state.accounts.filter((x) => x.id !== b.dataset.remove);
+    openId = null; render(); toast('Account removed');
+    return;
+  }
+  if (b.hasAttribute('data-download')) {
+    try { download('Pinterest Autopilot.json', buildImportFile(POSTER_TEMPLATE, state, newVersion())); toast('Downloaded. Import it in Activepieces, then click Publish.'); }
+    catch (e) { toast(e.message); }
+    return;
+  }
+  if (b.dataset.batchAcc) {
+    state.batch.accountId = b.dataset.batchAcc;
+    const a = acc(b.dataset.batchAcc);
+    const untouched = state.batch.lines.every((l) => (l.kind === 'link' && !String(l.url || '').trim()) || l.kind === 'next');
+    if (untouched) state.batch.lines = [a && a.source === 'website' ? newLine('next', 1) : newLine('link')];
+    render(); return;
+  }
+  if (b.dataset.addLine) {
+    const existing = b.dataset.addLine === 'next' && state.batch.lines.find((x) => x.kind === 'next');
+    if (existing) { existing.count = Math.min(5, existing.count + 1); render(); return; }
+    const l = newLine(b.dataset.addLine, b.dataset.addLine === 'next' ? 1 : 5);
+    state.batch.lines.push(l);
+    render(b.dataset.addLine === 'link' ? `batch:line:${l.id}:url` : undefined);
+    return;
+  }
+  if (b.dataset.rmLine) { state.batch.lines = state.batch.lines.filter((l) => l.id !== b.dataset.rmLine); render(); return; }
+  if (b.hasAttribute('data-batch-copy') || b.hasAttribute('data-batch-save')) {
+    const errors = { ...validateBatch(state) };
+    submitted.add('pins');
+    editingValid.clear();
+    const setup = Object.keys(validate(state)).length;
+    if (Object.keys(errors).length || setup) {
+      render();
+      if (setup && !Object.keys(errors).length) toast('Fix the setup first (see the message at the top).');
+      const first = document.querySelector('.field.invalid input');
+      if (first) first.focus();
+      return;
+    }
+    const a = acc(state.batch.accountId);
+    const text = buildCodexPrompt(CODEX_PROMPT, state, a, state.batch);
+    const name = `Codex prompt – ${a.name} – ${new Date().toISOString().slice(0, 10)}.txt`;
+    let copied = false;
+    if (b.hasAttribute('data-batch-copy')) {
+      try { await navigator.clipboard.writeText(text); copied = true; } catch (e) { copied = false; }
+    }
+    if (!copied) download(name, text, 'text/plain');
+    state.batches.push({ accountId: a.id, date: new Date().toISOString().slice(0, 10), total: batchTotal(state.batch, a), lines: state.batch.lines.map((l) => ({ kind: l.kind, url: String(l.url || '').trim(), count: l.count })) });
+    state.batches = state.batches.slice(-30);
+    state.batch.lines = [a.source === 'website' ? newLine('next', 1) : newLine('link')];
+    submitted.delete('pins');
+    render();
+    toast(copied ? `Copied. Paste it into a new Codex chat for ${a.name}.` : (b.hasAttribute('data-batch-copy') ? 'Copying is blocked here, so the prompt was saved as a file.' : 'Prompt saved as a file.'));
+  }
+});
+
+document.getElementById('importFile').addEventListener('change', async (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || data.kind !== 'pinterest-autopilot-answers' || !data.state) throw new Error('not a saved-answers file');
+    state = Object.assign(defaultState(), data.state);
+    state.accounts = (state.accounts || []).map((a) => Object.assign(emptyAccount(), a));
+    fixBatch(state);
+    step = 'notify'; openId = null; left.clear(); submitted.clear(); editingValid.clear(); checkedAccounts.clear();
+    render(); toast('Saved answers opened.');
+  } catch (e) {
+    toast('This file is not a saved-answers file from this panel.');
+  }
+});
+
+document.addEventListener('focusin', (ev) => {
+  const key = ev.target.dataset && ev.target.dataset.key;
+  if (!key || ev.target.type === 'checkbox') return;
+  // A field that is correct now does not turn red while it is being edited (only when it is left).
+  if (!{ ...validate(state), ...validateBatch(state) }[key]) editingValid.add(key);
+});
+
+document.addEventListener('input', (ev) => {
+  const el = ev.target;
+  const key = el.dataset && el.dataset.key;
+  if (!key) return;
+  let value = el.type === 'checkbox' ? el.checked : el.value;
+  if (el.hasAttribute('data-num')) value = Number(value);
+  setKey(key, value);
+  if (el.type === 'checkbox' || el.tagName === 'SELECT') { render(el.id); return; }
+  if (key.endsWith(':name')) { const n = document.querySelector(`[data-name="${key.split(':')[1]}"]`); if (n) n.textContent = value || 'New account'; }
+  paint();
+});
+
+document.addEventListener('focusout', (ev) => {
+  const el = ev.target;
+  const key = el.dataset && el.dataset.key;
+  if (!key || el.type === 'checkbox') return;
+  editingValid.delete(key);
+  if (String(el.value || '').trim()) left.add(key);
+  paint();
+});
+
+// Reads the connection IDs on the Activepieces Connections page (runs there as a bookmark).
+const ID_FINDER = "(async()=>{const esc=(s)=>String(s).replace(/[&<>\"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));try{const m=[null,(location.pathname.split('/projects/')[1]||'').split('/')[0]];if(!location.hostname.includes('activepieces')||!m[1]){alert('Open Activepieces, go to Connections, then click this bookmark again.');return}const r=await fetch('/api/v1/app-connections?projectId='+m[1]+'&limit=100',{headers:{Authorization:'Bearer '+localStorage.getItem('token')}});const j=await r.json();const old=document.getElementById('ap-id-finder');if(old)old.remove();const d=document.createElement('div');d.id='ap-id-finder';d.style.cssText='position:fixed;z-index:2147483647;top:16px;right:16px;width:min(440px,calc(100vw - 32px));max-height:80vh;overflow:auto;background:#fff;color:#111;border:1px solid #ccd;border-radius:12px;padding:16px;font:14px system-ui,sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.25)';d.innerHTML='<div style=\"display:flex;justify-content:space-between;align-items:center\"><b>Connection IDs</b><button id=\"ap-id-x\" style=\"border:0;background:none;font-size:20px;cursor:pointer\">×</button></div><p style=\"margin:6px 0 0;color:#555\">Click an ID to copy it.</p>'+(j.data||[]).map((c)=>'<div style=\"margin-top:12px\"><div><b>'+esc(c.displayName)+'</b> <span style=\"color:#666\">'+esc(c.pieceName.replace('@activepieces/piece-',''))+(c.metadata&&c.metadata.email?' · '+esc(c.metadata.email):'')+'</span></div><input readonly value=\"'+esc(c.externalId)+'\" style=\"width:100%;box-sizing:border-box;margin-top:4px;padding:8px;font:13px ui-monospace,monospace;border:1px solid #ccd;border-radius:8px;cursor:pointer\"></div>').join('');document.body.appendChild(d);d.querySelector('#ap-id-x').onclick=()=>d.remove();d.querySelectorAll('input').forEach((i)=>i.onclick=()=>{i.select();if(navigator.clipboard)navigator.clipboard.writeText(i.value);i.style.background='#e6f4ea'})}catch(e){alert('Could not read the connections: '+e.message)}})()";
+
+render();
+</script>
+</body>
+</html>
