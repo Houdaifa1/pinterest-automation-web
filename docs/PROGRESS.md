@@ -7,16 +7,16 @@
 | 0a. Design research and official source captures | done | 2026-10-19 | engineer | docs/RESEARCH.md; 12 new browser captures in docs/design-references/08–19; engine build and 40/40 tests passed |
 | 0b. Render home comparisons and present research | approved | 2026-10-19 | engineer | docs/design-references/20–26; home-comparison.html; sidebar-comparison.html; docs/RESEARCH.md |
 | 1. Activepieces API-key proof (HANDOFF 3.3) | done; run-now bootstrap constraint documented | 2026-10-19 | engineer | docs/proof/activepieces-api-key-2026-10-19.json; docs/RESEARCH.md; full run SUCCEEDED, revision 3, writes 0; original flow unchanged; test flow paused |
-| 2. Clickable prototype of all screens | ready for review; approval pending | 2026-10-19 | engineer | docs/prototype/; baseline 14 checks; latest clarity review 13 checks + 18 layouts; screenshots 14–20; revised package proof |
-| 3. Backend (D1, Google sign-in, ownership, encryption, admin) | todo | | | |
+| 2. Clickable prototype of all screens | approved; final navigation corrections in progress | 2026-10-19 | engineer | docs/prototype/; baseline 14 checks; latest clarity review 13 checks + 18 layouts; screenshots 14–20; revised package proof |
+| 3. Backend (D1, Google sign-in, ownership, encryption, admin) | starting; owner approved build and live deployment | 2026-10-19 | engineer | explicit owner request to go live |
 | 4. Setup wizard + Deploy | todo | | | |
 | 5. Autopilot pages (Apply, Run now, Pause, Runs, New pins, History, Settings) | todo | | | |
 | 6. Live on autopilot.hudaifa.dev + move his autopilots + friends | todo | | | |
 
 ## Next step
-Owner reviews http://127.0.0.1:8766/ and approves or corrects the clickable prototype.
-Then build the backend, followed by the real setup and autopilot pages in HANDOFF order.
-Do not treat the earlier home approval as full prototype approval. Never publish test pins to @crochet_simplified.
+Finish the owner’s terminology, hierarchy, navigation and scroll corrections, then build the real backend and site.
+The owner explicitly approved the prototype and requested live deployment on 19 October 2026. No further prototype approval is needed.
+Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -70,3 +70,16 @@ Do not treat the earlier home approval as full prototype approval. Never publish
 - End of session: preview reset and left open for review, local server retained, temporary viewport override cleared. Next: owner review/approval, then backend in HANDOFF order. Live account scope remains @stunningcrochet only; no live account changes made in this correction step.
 
 - Additional accuracy fixes from the walkthrough: first-account entry from the empty home now goes directly to setup; selected category and posting amount now carry into the sample account, including matching posting hours. Checked 6 pins/day, DIY & crafts and six selected hours after setup. Latest clarity report totals 13 passing checks.
+
+## Prototype approved and production build authorized — 2026-10-19
+- Owner explicitly approved the prototype and requested the real build and live deployment. This satisfies the former prototype and first-deployment approval gates.
+- Required corrections: Automation replaces Autopilot in the interface; show Pinterest accounts inside each automation card; remove the unrelated recipe sample; Add Pinterest account belongs inside an automation; distinguish global Automations navigation from local Summary; preserve scroll and focus when editing or switching pin modes.
+- Working on those corrections before backend work. No live flow or Pinterest changes made in this step.
+- Additional live API proof: GET /projects with the approved test key returned HTTP 200 and the expected single workspace. Technical project IDs can be discovered without asking users to find them.
+
+## Hierarchy, navigation and scroll corrections verified — 2026-10-19
+- Interface objects now use Automation/Automations. The owner preview has two sample automations, each listing its Pinterest profiles and account count. Removed the unrelated recipe fixture. Existing preview data and old links migrate to the new vocabulary.
+- Home creates automations; account-add buttons are inside each automation card and its Pinterest accounts page. A card action is already scoped and does not ask the owner to choose the same automation again.
+- Global Automations and local Summary are distinct. A named breadcrumb and All automations link return home.
+- Verified visible phone pin-mode changes kept scroll at 44px and retained focus on the selected control. Five focused browser checks passed: docs/prototype/terminology-navigation-results.json. Screenshot: 21-automation-hierarchy.jpg.
+- Done: requested corrections. Next: real backend and UI. Prototype is approved; no repeated approval question. Backend dependencies are being installed. Engine source unchanged; last full engine run passed 40/40.

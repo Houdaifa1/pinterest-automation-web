@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-19",
+  "scope": "Approved prototype hierarchy and navigation corrections",
+  "checks": [
+    {
+      "check": "visible pin-mode changes preserve scroll and focus",
+      "passed": true,
+      "measurements": {
+        "stableBefore": {
+          "modeY": 402,
+          "y": 44
+        },
+        "stableWithout": {
+          "focused": "no-link",
+          "y": 44
+        },
+        "stableWebsite": {
+          "focused": "website",
+          "y": 44
+        }
+      }
+    },
+    {
+      "check": "breadcrumb returns from an automation to all automations",
+      "passed": true
+    },
+    {
+      "check": "two clearly labeled automations replace three mixed examples",
+      "passed": true
+    },
+    {
+      "check": "home creates automations and account addition lives inside cards",
+      "passed": true
+    },
+    {
+      "check": "card account addition is already scoped to that automation",
+      "passed": true
+    }
+  ]
+}

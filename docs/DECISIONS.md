@@ -38,3 +38,11 @@ The English clickable prototype is ready for review; it is not approved yet. Sig
 - Make **Add Pinterest account** the visible home and Accounts action. Keep service identifiers hidden; guide external login and Save, detect the connection, fill defaults, then activate. Reconnecting an existing account must not duplicate it.
 - Rename **Prepare batch** to **Get Codex prompt**. Show the distinction between a ready-to-paste prompt, creating pins in Codex, and scheduled publishing from the Sheet. Without-link topics use the account's niche automatically.
 - Explain the final setup result: automation + Sheet, then first content creation. Owner requested a complete walkthrough and production accuracy, not ease alone. The local walkthrough and 40 engine tests passed; real website integration and unassisted beginner acceptance remain pending. These corrections are not full prototype approval.
+
+## Prototype approval and interface vocabulary — 19 October 2026
+
+- Owner approved the prototype and explicitly requested the real build and live deployment. Continue without asking for prototype approval again.
+- Call the product objects **Automations**. Each automation contains clearly labeled **Pinterest accounts**. Cards list those profiles; the unrelated Moroccan Kitchen sample is removed from the owner preview.
+- Home action creates an automation. Add Pinterest account is scoped to an automation card or its Pinterest accounts page.
+- Global navigation is Automations; the automation’s local first tab is Summary. A visible Automations breadcrumb returns home.
+- In-place edits and pin-source changes preserve scroll position and control focus. Only page navigation resets scroll.

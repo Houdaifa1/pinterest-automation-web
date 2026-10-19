@@ -45,7 +45,7 @@ English only in this review. French, Arabic/RTL, real security boundaries, cloud
 
 ## Approval boundary
 
-This prototype is ready for owner review. Its approval is pending. HANDOFF 3.4 requires that approval before app implementation.
+The owner approved the prototype and authorized the real build/live deployment on 19 October 2026. The terminology/navigation correction report records the final review changes.
 
 ## Latest clarity revision
 
@@ -53,6 +53,10 @@ Home and Accounts now offer Add Pinterest account. Its local walkthrough demonst
 
 “Get Codex prompt” replaces “Prepare batch.” The output is instructions plus reference images, followed by creation in Codex and scheduled publishing from the Sheet. No written style brief; no-link topics use the account niche.
 
-Latest evidence: [clarity-review-results.json](clarity-review-results.json), [revised-package-proof.json](revised-package-proof.json), screenshots 14–20. Thirteen checks and 18 affected layouts passed. Engine build and 40/40 tests passed again. Older screenshots and qa-results.json preserve the first review baseline. Real integration and beginner acceptance remain unproved; approval is still pending.
+Latest evidence: [clarity-review-results.json](clarity-review-results.json), [revised-package-proof.json](revised-package-proof.json), screenshots 14–20. Thirteen checks and 18 affected layouts passed. Engine build and 40/40 tests passed again. Older screenshots and qa-results.json preserve the first review baseline. Real integration and beginner acceptance remain unproved; approval was subsequently given.
 
 The revised walkthrough also caught and fixed setup choices not carrying into the sample account. A changed setting of 6 pins/day and DIY & crafts was checked after setup, with six matching posting hours. Empty-home Add Pinterest account now enters setup directly.
+
+## Final approved navigation corrections
+
+Automation cards list Pinterest accounts explicitly. Account addition belongs inside its automation; home creates an automation. Global Automations and local Summary are distinct. In-place mode changes keep scroll and focus. Five focused checks passed in terminology-navigation-results.json; screenshot 21 records the new hierarchy. Earlier screenshots and reports preserve their original wording as historical evidence.

@@ -1,7 +1,7 @@
 # Pinterest Autopilot Web — complete handoff
 
 Read this whole file before doing anything. It contains every decision the owner already made, what already exists and
-works, and exactly what to build next. Status updated 19 Oct 2026: **design research and API proof complete; English clickable prototype ready for review; its approval is pending. App implementation has not started.**
+works, and exactly what to build next. Status updated 19 Oct 2026: **design research and API proof complete; prototype approved and real build/live deployment authorized. Final navigation corrections precede implementation.**
 
 ---
 
@@ -203,3 +203,11 @@ Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the 
 - **Get Codex prompt** clearly describes the deliverable. Intended completed-product sequence: setup creates the automation + Sheet → Codex creates and reviews pins using references → Codex fills the Sheet → scheduled posting.
 - Latest evidence: docs/prototype/clarity-review-results.json (13 focused checks and 18 layout measurements), revised-package-proof.json, screenshots 14–20. Engine build and all 40 tests passed again.
 - Real Google/Pinterest website connection, media delivery, image generation acceptance, security and production performance are not proved by the preview. Full prototype approval remains pending. Continue the owner's review before backend implementation.
+
+## 10. Current approval and terminology — 19 October 2026
+
+The owner explicitly approved the prototype and requested going live. This is authorization to implement and deploy the website; do not ask for prototype approval or first-deployment permission again. The protected live-account scope remains unchanged.
+
+Use **Automation** throughout the interface. One automation contains one or more **Pinterest accounts**. Show account handles and their count inside each automation card. Remove unrelated friend examples from the owner’s workspace. Create automation is the home action; Add Pinterest account belongs to its automation. Use global Automations navigation, local Summary, and a visible breadcrumb home. In-place edits and pin-mode changes must preserve scroll and focus.
+
+Next: verify those corrections, then backend and real UI, live integration tests and deployment. Passing preview tests does not establish production readiness.

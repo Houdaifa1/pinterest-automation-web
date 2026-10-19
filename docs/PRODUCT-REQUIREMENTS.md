@@ -51,7 +51,7 @@ Creation must stop with one useful recovery action if required references cannot
 
 ## Clear account addition and creation outcome
 
-- Home and Accounts both expose **Add Pinterest account**. An existing workspace is selected by name only; skip that choice when there is only one.
+- Home creates an **Automation**. Each automation card and its **Pinterest accounts** page expose **Add Pinterest account**, already scoped to that automation. Show the account handles and count inside the card.
 - Guide the user to Activepieces Connections → New Connection → Pinterest → sign in → Save. Detect the saved connection, fill sensible settings and offer Review & activate. A repeated connection must lead to the existing account, not create a duplicate.
 - The direct connection deep link and real OAuth return/detection still need end-to-end proof in the real build. Do not claim the local sign-in simulation proves them.
 - Replace “Prepare batch” with **Get Codex prompt**. Describe its output as ready-to-paste instructions plus the selected account's reference images, never finished pins.
@@ -71,3 +71,7 @@ Creation must stop with one useful recovery action if required references cannot
 ## Current test authorization
 
 The owner confirmed the account currently open in Chrome: **Hdrahm's Platform → @stunningcrochet**. Earlier spoken “Ash Dreams” referred to this setup and was clarified explicitly. Tests and posting are authorized there. **@crochet_simplified is excluded.** Do not switch back to the earlier hdrahm target or run a shared flow that could publish to an excluded account. A shared spreadsheet still requires exact account scoping for any write.
+
+## Approved vocabulary and navigation
+
+Use Automation throughout the interface. One automation posts for its connected Pinterest accounts. Do not mix unrelated friend examples into a user's workspace. Global Automations returns to the collection; local Summary stays within the selected automation. Keep a clear named breadcrumb and preserve scroll/focus during in-place edits. Owner approved the prototype and real build/live deployment on 19 October 2026.
