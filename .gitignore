@@ -6,3 +6,5 @@ dist/
 .DS_Store
 __pycache__/
 *.pyc
+.build/
+docs/proof/screenshots/cloudflare-permissions.jpg

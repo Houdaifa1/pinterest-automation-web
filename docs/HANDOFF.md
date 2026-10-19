@@ -52,7 +52,7 @@ sends messages by email/Telegram, daily report. Its full source is copied into `
   15 Oct 2026). This is the foundation of the new website.
 
 ## 3. What to build: the website
-A private web app at **`autopilot.hudaifa.dev`** that replaces the HTML Control Panel. Like entering Activepieces or
+A private web app at **`automation.houdaifa.dev`** that replaces the HTML Control Panel. Like entering Activepieces or
 Vercel: you sign in, see your **Autopilots**, click one, see everything, change things, apply them, run them.
 
 ### 3.1 Decisions already made (do not re-open unless you find something clearly better — then propose it)
@@ -127,7 +127,7 @@ results to `docs/RESEARCH.md`. If something is impossible, propose the simplest 
    (including "user A cannot read user B").
 4. Setup wizard with live detection + Deploy (reusing `engine/` to build the flow and the Codex prompts).
 5. Autopilot pages: Apply / Run now / Pause, Runs, New pins (no duplicate history), History + Restore, Settings.
-6. Deploy to `autopilot.hudaifa.dev`, move his two autopilots in, his friends sign up and go through the wizard alone.
+6. Deploy to `automation.houdaifa.dev`, move his two autopilots in, his friends sign up and go through the wizard alone.
 
 ## 4. Repository rules
 - **Tracking files** (keep them current, they are how Codex and Claude hand work to each other):
@@ -175,12 +175,12 @@ Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the 
 ## 7. Access the owner gives you
 - **GitHub:** create a **private** repository (suggested name `pinterest-autopilot-web` on his account Houdaifa1), add it
   as `origin`, push `main`. Commits keep his style and author; never add AI co-author lines. Ask before making anything public.
-- **Cloudflare:** you may create the Pages/Workers project, the D1 database, DNS for `autopilot.hudaifa.dev` and any
+- **Cloudflare:** you may create the Pages/Workers project, the D1 database, DNS for `automation.houdaifa.dev` and any
   API token you need (least privilege, named clearly, e.g. "autopilot-web deploy"). Store every secret only as a
   Worker/Pages secret or in a local `.dev.vars` (git-ignored): Google OAuth client id/secret, session secret,
   encryption key for the Activepieces API keys. Never print secrets in chat, logs or commits.
 - **Google Cloud:** the Google sign-in client (OAuth consent screen with `openid email profile`, authorised redirect
-  `https://autopilot.hudaifa.dev/auth/callback` plus the local dev URL). Walk him through any step only he can click.
+  `https://automation.houdaifa.dev/auth/callback` plus the local dev URL). Walk him through any step only he can click.
 - Ask before: deploying to the live domain the first time, changing his live Activepieces flows, deleting anything.
 
 ## 8. Latest session requirements and live-test scope — 19 Oct 2026

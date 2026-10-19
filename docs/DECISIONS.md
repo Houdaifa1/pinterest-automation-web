@@ -2,7 +2,7 @@
 
 | # | Date | Decision | Why |
 |---|---|---|---|
-| 1 | 2026-10-19 | Website replaces the HTML Control Panel; hosted on Cloudflare at autopilot.hudaifa.dev | Free, fast everywhere, his DNS provider |
+| 1 | 2026-10-19 | Website replaces the HTML Control Panel; hosted on Cloudflare at automation.houdaifa.dev | Free, fast everywhere, his DNS provider |
 | 2 | 2026-10-19 | Open sign-up with Google (own OAuth), Admin page only for the owner | Anyone can use it; no 50-seat limit |
 | 3 | 2026-10-19 | Cloudflare D1, everything per user, autosave + versions | No more saving/opening answer files |
 | 4 | 2026-10-19 | Activepieces API key per user, stored encrypted; server does everything by API, no connection IDs | IDs and bookmarklets confused his friends |
@@ -46,3 +46,13 @@ The English clickable prototype is ready for review; it is not approved yet. Sig
 - Home action creates an automation. Add Pinterest account is scoped to an automation card or its Pinterest accounts page.
 - Global navigation is Automations; the automation’s local first tab is Summary. A visible Automations breadcrumb returns home.
 - In-place edits and pin-source changes preserve scroll position and control focus. Only page navigation resets scroll.
+
+## Live address — 19 October 2026
+
+The owner explicitly renamed the live site to Automation. Use **automation.houdaifa.dev**, under the domain confirmed in his Cloudflare account. This supersedes the earlier address. Repository paths and legacy external flow identifiers remain compatible.
+
+## New automation isolation and reference storage — 19 October 2026
+
+- New website automations use unique Drive workspace markers and their own Sheets. This prevents setup tests or independent automations from changing each other's global Sheet settings. Existing live flows and their shared Sheet remain untouched. Importing an existing flow must preserve its original workspace explicitly.
+- Reference images use private D1 blobs with per-account/member/global limits. The copied prompt contains 24-hour, batch-scoped image links. Anyone holding a link can read only the referenced image; blocking the owner revokes access. Text copying is not an attachment. A live receiving-session image check is required before calling this handoff verified.
+- The first scheduled bootstrap run is dated once, rather than repeated every minute. A confirmed completion restores the hourly schedule. Website callbacks and signed-in status checks both resume the same saved deployment stage.

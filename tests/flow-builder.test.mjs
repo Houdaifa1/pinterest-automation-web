@@ -1,0 +1,121 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { FakeWorld } from "../engine/tests/fake-world.mjs";
+import { defaultState, emptyAccount } from "../engine/panel/generator.js";
+import { buildWebsiteFlow } from "../server/flow-builder.mjs";
+const template = fs.readFileSync("engine/dist/poster.template.json", "utf8");
+function state() {
+  return {
+    ...defaultState(),
+    google: "google-connection",
+    gmail: "gmail-connection",
+    emailTo: "owner@example.com",
+    botEmail: "bot@example.com",
+    accounts: [
+      {
+        ...emptyAccount(),
+        name: "testprofile",
+        username: "testprofile",
+        connection: "pinterest-connection",
+        general: true,
+        on: false,
+      },
+    ],
+  };
+}
+function codeStep(flow, name) {
+  let step = flow.trigger;
+  while (step) {
+    if (step.name === name) return step;
+    step = step.nextAction;
+  }
+  throw Error("Step not found");
+}
+test("separate automations create isolated Sheets and preserve the existing workspace", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const first = buildWebsiteFlow(
+      template,
+      state(),
+      "11111111-1111-4111-8111-111111111111",
+      "First",
+      "v1",
+      null,
+    );
+    const second = buildWebsiteFlow(
+      template,
+      state(),
+      "22222222-2222-4222-8222-222222222222",
+      "Second",
+      "v2",
+      null,
+    );
+    const run = async (flow) => {
+      const step = codeStep(flow, "step_3");
+      const module = await import(
+        "data:text/javascript;base64," +
+          Buffer.from(step.settings.sourceCode.code).toString("base64")
+      );
+      return module.code({
+        google: { access_token: w.tokens.google },
+        gmail: { access_token: w.tokens.gmail },
+        config: step.settings.input.config,
+      });
+    };
+    const result1 = await run(first);
+    const before = JSON.stringify([...w.books.values()][0]);
+    const result2 = await run(second);
+    assert.equal(w.books.size, 2);
+    assert.notEqual(result1.spreadsheet, result2.spreadsheet);
+    assert.equal(JSON.stringify([...w.books.values()][0]), before);
+    assert.equal(w.pins.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+test("the first scheduled run is one-time and the normal schedule is restored by a separate build", () => {
+  const at = "2026-10-19T15:23:00Z";
+  const boot = buildWebsiteFlow(
+    template,
+    state(),
+    "11111111-1111-4111-8111-111111111111",
+    "Posting",
+    "v1",
+    "https://example.test/api/callback/safe",
+    at,
+  );
+  assert.equal(boot.trigger.settings.input.cronExpression, "23 15 19 10 *");
+  assert.equal(boot.trigger.settings.input.timezone, "UTC");
+  const regular = buildWebsiteFlow(
+    template,
+    state(),
+    "11111111-1111-4111-8111-111111111111",
+    "Posting",
+    "v1",
+    null,
+  );
+  assert.equal(regular.trigger.settings.input.cronExpression, "0 6-23 * * *");
+  const callback = codeStep(boot, "website_status");
+  assert.equal(
+    callback.settings.errorHandlingOptions.continueOnFailure.value,
+    true,
+  );
+});
+test("a flow cannot be built with missing accounts or invalid connections", () => {
+  assert.throws(() =>
+    buildWebsiteFlow(
+      template,
+      { ...state(), accounts: [] },
+      "11111111-1111-4111-8111-111111111111",
+      "Posting",
+      "v1",
+      null,
+    ),
+  );
+  assert.throws(() =>
+    buildWebsiteFlow(template, state(), "unsafe-code", "Posting", "v1", null),
+  );
+});
