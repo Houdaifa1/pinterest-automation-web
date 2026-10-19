@@ -102,3 +102,8 @@ Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded
 - Proof: 17 Cloudflare-runtime tests and three flow-builder tests pass. Existing engine tests pass 40/40. Production build passes. Real setup screenshot: docs/proof/screenshots/real-connections.jpg.
 - Cloudflare login refreshed with reduced permissions, verified by whoami: Pages/D1 write and account/user/domain read. Hosting project pinterest-automations and its empty D1 database were created; all three migrations applied remotely. Encryption secret upload is in progress. No website deployment yet.
 - Live address changed by the owner to automation.houdaifa.dev. Google sign-in client setup is in progress in a separate Cloud project. Done: connection/reference foundations and infrastructure. Half-done: production journey and deployment. Next: Google client, complete history/style screens, live flow checks, accessibility/localization/browser checks, deploy and verify. Open problems: sign-in credentials, domain binding and live acceptance remain unproved.
+
+### Hosting and local preview follow-up
+
+- Production encryption secret upload confirmed by Cloudflare: one secret stored, no value displayed. Database migrations 0001–0003 are applied to the new production database.
+- Pages does not accept an alternate configuration path for local serving. Corrected the development command to its supported --d1 override; health, local sign-in and saved-automation reads returned HTTP 200, with the existing draft preserved. Production and local database identifiers remain distinct.

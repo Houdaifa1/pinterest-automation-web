@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler pages dev dist --config wrangler.dev.jsonc --ip 127.0.0.1 --port 8788",
+    "dev": "wrangler pages dev dist --ip 127.0.0.1 --port 8788 --d1 DB=00000000-0000-0000-0000-000000000000",
     "build": "node scripts/build-engine.mjs && tsc --noEmit && vite build",
     "test": "node scripts/build-engine.mjs && vitest run && node --test tests/flow-builder.test.mjs",
     "test:engine": "cd engine && python3 tools/build.py && node --test tests/engine.test.mjs",
