@@ -1,0 +1,110 @@
+# Design research — 19 October 2026
+
+## Recommendation, awaiting the owner
+
+Keep the approved Vercel / Geist direction. Improve its readability and make the next action explicit. A sidebar alternative is worth comparing visually, but there is no evidence yet that it is better for this audience.
+
+This is a design review, not a user study. No older participant has tested these proposals. Public examples were inspected without signing into any product. No live Activepieces, Google Sheet or Pinterest account was accessed. The home studies use the approved screenshot's sample names, numbers and times; these are not current results. Moroccan Kitchen is a sample, not a fourth account to add to the owner's live setup.
+
+## What was examined
+
+Compared home dashboards, task lists, setup, forms, status communication, navigation, typography, dark/light appearance and implementation fit. Priority: can a new user answer **Is it posting? What needs me? What do I do next?**
+
+Sources below were opened or inspected on 2026-10-19. Captures are real browser screenshots of public pages, demos or official product imagery. Product imagery published by a company is not a hands-on test of its logged-in app. Earlier files 1–7 came from the handoff; their original capture dates and sources were not re-established here.
+
+## Candidate comparison
+
+These are engineering/design judgments for this project, not measured rankings.
+
+| Candidate | What is good | Limitation for our users | What to take |
+|---|---|---|---|
+| **Vercel / Geist** | Quiet surfaces, strong black action, clear tabs, project cards | Small secondary text and icon menus need care; a developer dashboard is not a beginner guide | Keep the visual foundation; add explicit actions and readable text |
+| **Linear** | Consistent placement, restrained icons, strong task hierarchy | Dense navigation and muted inactive labels demand familiarity | Predictable actions and reduced decoration; avoid copying its density |
+| **Stripe** | Clear sections, review/edit pattern, requirements and validation drive setup | Business onboarding is more complex than our six steps | Plain setup progress, confirmed completion and review before going live |
+| **Resend** | Focused lists, clear event statuses, careful surface details | Dark compact tables are less suitable as the first screen | Runs and history rows; respect light/dark preferences |
+| **Cal.com** | Connect → configure → use; restrained black/white appearance | The public setup explanation is not proof of authenticated onboarding | A clear chain, useful defaults and direct scheduling choices |
+| **Activepieces** | App icons, connection status, tested steps | A flow canvas exposes machinery our users should not have to manage | Detection/checklist language; keep the flow builder out of our home |
+| **shadcn/ui** | Adaptable components, neutral palette, useful form/table patterns | Copying the demo adds irrelevant charts and controls | Building blocks, styled to Geist; no generic analytics template |
+| **Radix Themes** | Consistent styled controls, color scales, sizing and variants | Its default accent styling changes the approved visual language | Alternative styled system; Radix Primitives remain the proposed behavior layer |
+| **Untitled UI** | Clear headings, roomy forms, visible action cards | Full dashboard includes competing charts, content and sidebar extras; PRO examples need paid access | Spacing and action-card ideas; no paid dependency proposed |
+| **GOV.UK** | Explicit tasks, readable labels, visible completion | Its government branding is not our desired visual identity | Setup recovery, concise labels, minimal statuses |
+| **Award galleries** | Broad visual exploration | Screenshots and awards do not establish task success | Inspiration only; no evidence to replace Geist |
+
+### 1. Vercel / Geist: strongest overall fit
+
+Official [introduction](https://vercel.com/geist/introduction), [typography](https://vercel.com/geist/typography), [tabs](https://vercel.com/geist/tabs) and [drawer](https://vercel.com/geist/drawer) document the foundation and component behavior. Its hierarchy already matches our small collection of autopilots. Keep the top bar, underline tabs, borders and black primary actions. Avoid adopting developer terminology or tiny controls simply to imitate the source.
+
+The approved HTML has 13–14px body/detail text, 32px buttons, a vague “Add New…” label, an unlabeled grid button and an exact Vercel triangle. Proposed refinements: 16px body, 44px main controls, “Add autopilot,” visible “Open”/“Continue setup,” and an original loop mark. Preserve the approved original file for comparison.
+
+### 2. Linear: hierarchy, not density
+
+Linear's designers describe reducing distracting navigation weight and making controls consistent in [A calmer interface for a product in motion](https://linear.app/now/behind-the-latest-design-refresh) (12 March 2026). The official before/after image is saved. This supports restraint, but does not prove that subdued labels and compact controls suit new users. Its [start guide](https://linear.app/docs/start-guide) offers a demo and onboarding resources. Our proposal should make essential actions discoverable without learning shortcuts.
+
+### 3. Stripe: strongest setup reference
+
+The public [embedded onboarding demo](https://docs.stripe.com/connect/embedded-onboarding) shows a review screen with clear groups and Edit buttons. Its documented flow adapts to requirements, validates data and supports localization. This suggests a setup where detected logins determine what remains, and a final review shows accounts, schedule and notifications. The saved screenshot is a public read-only demo with Stripe's fictional data, not the owner's account. The modern logged-in Stripe dashboard was not inspected; no claim is made that its current home has a particular checklist.
+
+### 4. Resend: excellent event lists
+
+[Rebranding Resend](https://resend.com/blog/rebranding-resend) (1 July 2025) includes an actual published dashboard image: a clear event table with restrained status color. We captured that official image in the browser. [Introducing Light Mode](https://resend.com/blog/introducing-light-mode) explains that some users found dark mode difficult and describes deliberate color adjustments. Borrow status clarity for Runs; keep automatic appearance plus an eventual user override as a proposal. Do not copy premium material effects into routine settings.
+
+### 5. Cal.com and Activepieces: reduce setup work
+
+[Cal.com](https://cal.com) publicly explains three stages: connect a calendar, set availability, choose how to meet. The saved screenshot is that public explainer, not an authenticated wizard. Its [onboarding embed documentation](https://cal.com/docs/atoms/onboarding-embed) describes a contained setup flow. Our six steps should feel similarly continuous, while retaining external OAuth where required.
+
+Activepieces documents [connections](https://www.activepieces.com/docs/admin-guide/guides/connections) and [building flows](https://www.activepieces.com/docs/flows/building-flows). Its illustrated builder clearly labels triggers/actions. Our users should see which login is connected and whether posting succeeded. They should not need to understand nodes or step outputs. These are design findings only; API-key capabilities still need the separate permissioned proof.
+
+### 6. Systems: distinguish appearance from behavior
+
+The [shadcn dashboard](https://ui.shadcn.com/examples/dashboard) is a component showcase, not a home we should copy. Its charts and table controls are unnecessary for two autopilots. [shadcn's MIT license](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md) permits adaptation with its notices retained.
+
+[Radix Themes](https://www.radix-ui.com/themes/docs/theme/overview) is a styled library; [Radix Primitives accessibility](https://www.radix-ui.com/primitives/docs/overview/accessibility) explains behavior such as focus, keyboard interaction and semantics. Those primitives can support a Geist appearance; using them does not certify our finished app as accessible. The [official dashboard example](https://www.radix-ui.com/themes/example-dashboard) is saved for comparison.
+
+[Untitled UI dashboards](https://www.untitledui.com/react/components/dashboards) offer strong spacing and visible action cards. The [public preview](https://www.untitledui.com/react/iframe/dashboards/dashboard-01) is captured. Its [CLI documentation](https://www.untitledui.com/react/docs/cli) distinguishes PRO examples. Use it as a visual reference; no purchase or copied PRO implementation is proposed.
+
+### 7. Raycast, galleries and independent usability guidance
+
+Raycast's [UI reference](https://developers.raycast.com/api-reference/user-interface) centers on lists, forms and action panels. Its [settings manual](https://manual.raycast.com/settings) and [Interface Size release](https://www.raycast.com/changelog/macos/0-66) describe scaling text and controls together. The saved Raycast image is a promotional release illustration, not an app screenshot. A direct manual image preview was blocked; no substitute was presented as an app capture.
+
+The inspected [Awwwards SaaS gallery](https://www.awwwards.com/websites/saas/) mixes marketing sites, UI showcases and other entries. Visual novelty alone is not sufficient reason to change a daily-use dashboard.
+
+[Nielsen Norman Group's older-adult research](https://www.nngroup.com/articles/usability-for-senior-citizens/) and [report overview](https://www.nngroup.com/reports/senior-citizens-on-the-web/) identify readability and interaction difficulties. Only public material was read, not the paid report. Age does not determine skill; we still need actual users to test our tasks.
+
+The [GOV.UK multiple-task pattern](https://design-system.service.gov.uk/patterns/complete-multiple-tasks/) recommends clear task names and statuses for work completed across sessions. Adapt its recovery principles; our required dependency order still follows HANDOFF.
+
+## Concrete design proposals to test
+
+1. Keep Geist, but use 16px body text with generous line spacing. Use Mono for times and numbers only; choose and test an Arabic companion font later.
+2. Main buttons/fields: aim for at least 44px height. This is our comfort target. WCAG 2.2 AA's [minimum target rule](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) is 24×24px with exceptions, not 44px.
+3. Normal text: minimum 4.5:1 contrast; large text 3:1, following [WCAG contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html). Test every state in each appearance; do not infer compliance from a screenshot.
+4. Make “Needs you” the first useful content, with the account names and one direct action. Keep it compact when nothing needs attention.
+5. Keep the meaningful numbers: posted, waiting, next post and errors. No decorative charts. “Next post” must eventually explain which account it refers to.
+6. Use words alongside status dots. Show “Checking…” and “Could not check” honestly; never show a green connection merely because a token was pasted.
+7. Setup: one task per page, “Step 4 of 6,” saved progress, Back, and the next required action. Explain why Continue is unavailable in nearby text. Reconnection errors retain entered settings.
+8. Review before Deploy; show confirmed stages and the actual first-run result. On failure show what succeeded, what failed and one recovery action.
+9. Draft changes autosave, while Apply makes them live. Explain this distinction; do not call a saved draft “unsaved.” Keep version restore available.
+10. Mobile: single column, meaningful action labels, no hover-only controls. Validate keyboard focus, 200% text size, [320px reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), long French labels and Arabic RTL in the later prototype. No such implementation proof exists yet.
+
+## Screenshot inventory
+
+All files are under `docs/design-references/`. New browser captures use a 1440×1000 desktop viewport so dashboard structure can be compared. Some public examples are wider than the viewport; captures preserve what the page actually showed. Screenshots remain reference material, not product assets.
+
+| File | Provenance / what it proves |
+|---|---|
+| `7-vercel-style-home.png` | Previously approved project home; sample data |
+| `08-geist-official.jpg` | Live official system introduction; reference appearance |
+| `09-linear-official-refresh.jpg` | Official 2026 before/after sidebar image opened in its article |
+| `10-shadcn-dashboard-official.jpg` | Live public component demo |
+| `11-resend-official-dashboard.jpg` | Browser view of official [dashboard image](https://cdn.resend.com/posts/rebranding-resend-10.jpg) from the rebrand article |
+| `12-radix-dashboard-official.jpg` | Live official styled dashboard/component example |
+| `13-stripe-official-onboarding-demo.jpg` | Live public read-only onboarding review demo; fictional data |
+| `14-untitled-official-dashboard.jpg` | Live public dashboard preview; sample data |
+| `15-cal-official-setup-explainer.jpg` | Public marketing explanation of setup; not an app screenshot |
+| `16-activepieces-official-builder.jpg` | Official annotated flow-builder image inside documentation |
+| `17-raycast-official-interface-size.jpg` | Official promotional image about interface scaling; not an app screenshot |
+| `18-govuk-official-task-list.jpg` | Official running task-list example |
+| `19-awwwards-saas-gallery.jpg` | Real public award-gallery page |
+
+## Review status
+
+Research and source captures collected. Home comparison renders are the next part of this research step. Final style choice remains with the owner. No app implementation or live API proof has started.
