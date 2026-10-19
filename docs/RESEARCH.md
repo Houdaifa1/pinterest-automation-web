@@ -107,4 +107,26 @@ All files are under `docs/design-references/`. New browser captures use a 1440×
 
 ## Review status
 
-Research and source captures collected. Home comparison renders are the next part of this research step. Final style choice remains with the owner. No app implementation or live API proof has started.
+Research, source captures and home studies are complete and ready for the owner's choice. No app implementation or live API proof has started.
+
+### Rendered options
+
+| Option | View | Assessment |
+|---|---|---|
+| A — approved Geist | [Original at matching viewport](design-references/20-approved-home-same-viewport.jpg) | Most compact; preserves the existing approval |
+| **B — clearer Geist, recommended** | [Rendered screen](design-references/21-home-geist-clearer.jpg), [static HTML](design-references/home-study-geist.html) | Keeps the approved character; promotes the next task, increases body text and exposes card actions |
+| C — soft sidebar | [Rendered screen](design-references/22-home-sidebar-alternative.jpg), [static HTML](design-references/home-study-sidebar.html) | Borrows visible navigation and spacing from Stripe/Untitled UI; uses more width and changes the approved visual direction |
+
+Compare [A and B](design-references/23-home-comparison.jpg), then [B and C](design-references/25-geist-sidebar-comparison.jpg). The [review page](design-references/home-comparison.html) links full-size images. The [reference shortlist](design-references/reference-shortlist.html) and [all references](design-references/all-references.html) label every source. These HTML files are standalone research documents, not the clickable prototype or app implementation. Buttons in the home studies do not perform actions.
+
+C is an alternative to assess, not a claim that a sidebar is proven better. B is the stronger design hypothesis for the existing audience: the main task appears before the statistics, and Open / Continue setup require less guessing. This still needs validation with the owner and beginner users.
+
+### Proof and limits
+
+- Inspected desktop renders at 1440×1000; sample accounts and statistics appear in A, B and C. Preserved the original approved HTML and PNG unchanged.
+- Inspected B at 390×844 and saved the [full phone screen](design-references/26-geist-mobile-study.jpg). Measured document width = viewport width = 390px; no horizontal page overflow in that check.
+- Desktop B measurement: document width = viewport width = 1440px; font status loaded; body text 16px; both primary buttons 44px high; three sample cards present. This proves the rendered layout only.
+- Source pages, live component demos and official imagery were inspected visually. Raycast's saved promotional image is not counted as an app UI screenshot.
+- Engine build and all 40 existing engine tests passed (0 failed). No engine source files changed.
+- Not tested here: functional navigation, API requests, usability with older participants, Arabic/French, complete keyboard behavior, complete contrast audit, dark mode or all responsive sizes. These belong to the permissioned API proof and later approved prototype/build stages.
+- Next: wait for A, B or C (or requested changes). After the owner chooses, ask for permission and agree the exact live Activepieces proof actions before accessing either account. Then build the clickable prototype and wait for approval before app implementation.

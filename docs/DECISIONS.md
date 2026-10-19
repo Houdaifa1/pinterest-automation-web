@@ -10,3 +10,10 @@
 | 6 | 2026-10-19 | Style = Vercel's Geist design system (approved screenshot) | He wants a world-class, not AI-looking UI |
 | 7 | 2026-10-19 | History never duplicates a copied batch | Re-copying made duplicate entries |
 | 8 | 2026-10-19 | Logins are made in Activepieces (OAuth), our site detects them live | Google/Pinterest only allow sign-in on their screens |
+| 9 | 2026-10-19 | Research choice → permissioned Activepieces API-key proof → clickable prototype approval → real build | Owner explicitly confirmed this sequence for the current session |
+
+## Pending owner choice — 2026-10-19
+
+The design review proposes A (existing approved Geist), B (clearer Geist, recommended), or C (soft sidebar).
+See `docs/RESEARCH.md` and `docs/design-references/home-comparison.html`.
+No new style has been approved. Decision 6 remains the baseline until the owner chooses.
