@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-19",
+  "zipIntegrity": "passed",
+  "files": [
+    "prompt.txt",
+    "manifest.json",
+    "example-pin-1.svg",
+    "example-pin-2.svg",
+    "example-pin-3.svg"
+  ],
+  "styleInferredFromImages": true,
+  "writtenStyleBriefRequired": false,
+  "referenceBytesMatch": true,
+  "scope": "Revised local example handoff. No real image generation or live spreadsheet write."
+}

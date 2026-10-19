@@ -20,7 +20,7 @@
 
 ## Approval boundary
 
-The home style is approved. The full clickable prototype has not been built or approved. Build order remains decision 9. Reference-image delivery and storage require proof before promising a one-copy handoff.
+The home style is approved. The full clickable prototype exists and is being revised; it has not been approved. Build order remains decision 9. Reference-image delivery and storage require proof before promising a one-copy handoff.
 
 ## API proof implementation findings — 19 October 2026
 
@@ -31,3 +31,10 @@ The home style is approved. The full clickable prototype has not been built or a
 ## Prototype review boundary — 19 October 2026
 
 The English clickable prototype is ready for review; it is not approved yet. Sign-in/setup shows a focused header, with dashboard tabs reserved for the workspace. A local prompt-and-images download demonstrates an explicit attachment handoff while private automatic delivery remains unproved. Example references are clearly labeled. Production architecture, reference storage and localization decisions are unchanged.
+
+## Owner clarity corrections — 19 October 2026
+
+- Remove “What should we keep?” entirely. Uploaded references define the style; Codex infers palette, lettering and mood. No written style brief.
+- Make **Add Pinterest account** the visible home and Accounts action. Keep service identifiers hidden; guide external login and Save, detect the connection, fill defaults, then activate. Reconnecting an existing account must not duplicate it.
+- Rename **Prepare batch** to **Get Codex prompt**. Show the distinction between a ready-to-paste prompt, creating pins in Codex, and scheduled publishing from the Sheet. Without-link topics use the account's niche automatically.
+- Explain the final setup result: automation + Sheet, then first content creation. Owner requested a complete walkthrough and production accuracy, not ease alone. The local walkthrough and 40 engine tests passed; real website integration and unassisted beginner acceptance remain pending. These corrections are not full prototype approval.

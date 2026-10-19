@@ -17,10 +17,10 @@ Home option B (clearer Geist) is approved. The full clickable prototype still ne
 
 1. Open the Pinterest account card → Picture style.
 2. Add example pins; show thumbnails, upload progress and Remove. Accept multiple references, including the owner's example of three pictures. Exact limits will be set after storage and upload checks.
-3. Save automatically. Optional short field: “What should we keep?” A user can leave it empty.
+3. Save automatically. No written style field or design brief. The user adds images; Codex infers the visual identity from them.
 4. In New pins, show “Uses your saved style” and reference thumbnails. The normal batch action must carry a versioned reference list and style instructions into the creation workflow.
 
-Default behavior: keep the brand identity and create variety. Do not force beginners to configure creativity sliders or write a long art brief. Accounts without references can continue using a written style or a newly developed identity.
+Default behavior: keep the brand identity and create variety. Do not force beginners to configure creativity sliders or write a long art brief. Accounts without references use an identity developed from their niche and recent profile. Do not require the user to write style instructions.
 
 ### Identity and variety
 
@@ -48,6 +48,16 @@ Creation must stop with one useful recovery action if required references cannot
 - Stable reference IDs and content hashes, a style version, and a batch snapshot. History must preserve which style/reference version a batch used.
 - Recopying the same batch updates its copy count. Changed style/reference versions must not silently alter an earlier history entry.
 - Protect uploads and reference instructions as untrusted content. They cannot change account ownership or authorize posting elsewhere.
+
+## Clear account addition and creation outcome
+
+- Home and Accounts both expose **Add Pinterest account**. An existing workspace is selected by name only; skip that choice when there is only one.
+- Guide the user to Activepieces Connections → New Connection → Pinterest → sign in → Save. Detect the saved connection, fill sensible settings and offer Review & activate. A repeated connection must lead to the existing account, not create a duplicate.
+- The direct connection deep link and real OAuth return/detection still need end-to-end proof in the real build. Do not claim the local sign-in simulation proves them.
+- Replace “Prepare batch” with **Get Codex prompt**. Describe its output as ready-to-paste instructions plus the selected account's reference images, never finished pins.
+- Pin ideas default to the saved niche. The user selects the amount or supplies page links; they do not write instructions.
+- Setup completion explains the outcome: a configured posting automation and its Google Sheet. Next: use the prompt and reference images in Codex, review the pins, have Codex fill the Sheet, then automatic posting follows the saved schedule.
+- The local attachment package requires unzip/attach steps. Automatic private image access remains a required feasibility check for a smoother production handoff; do not imply that plain text copying attaches files.
 
 ## Production acceptance
 

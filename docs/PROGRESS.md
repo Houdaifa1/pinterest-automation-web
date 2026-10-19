@@ -7,7 +7,7 @@
 | 0a. Design research and official source captures | done | 2026-10-19 | engineer | docs/RESEARCH.md; 12 new browser captures in docs/design-references/08–19; engine build and 40/40 tests passed |
 | 0b. Render home comparisons and present research | approved | 2026-10-19 | engineer | docs/design-references/20–26; home-comparison.html; sidebar-comparison.html; docs/RESEARCH.md |
 | 1. Activepieces API-key proof (HANDOFF 3.3) | done; run-now bootstrap constraint documented | 2026-10-19 | engineer | docs/proof/activepieces-api-key-2026-10-19.json; docs/RESEARCH.md; full run SUCCEEDED, revision 3, writes 0; original flow unchanged; test flow paused |
-| 2. Clickable prototype of all screens | ready for review; approval pending | 2026-10-19 | engineer | docs/prototype/; 14 interaction checks; 20 routes at 3 widths; 13 real screenshots; package integrity proof |
+| 2. Clickable prototype of all screens | ready for review; approval pending | 2026-10-19 | engineer | docs/prototype/; baseline 14 checks; latest clarity review 13 checks + 18 layouts; screenshots 14–20; revised package proof |
 | 3. Backend (D1, Google sign-in, ownership, encryption, admin) | todo | | | |
 | 4. Setup wizard + Deploy | todo | | | |
 | 5. Autopilot pages (Apply, Run now, Pause, Runs, New pins, History, Settings) | todo | | | |
@@ -58,3 +58,15 @@ Do not treat the earlier home approval as full prototype approval. Never publish
 - Syntax check passed. Engine unchanged; existing 40/40 test baseline from this session remains applicable. No backend, live-domain deployment or production posting acceptance claimed.
 - Done: API proof and English clickable prototype for review. Half-done: none in that bounded preview; translation, security, private image delivery and production acceptance remain future build work.
 - End of session: waiting for prototype approval. Local preview server retained on port 8766 for review; browser viewport override cleared; sample state reset. Next: owner corrections/approval, then backend.
+
+## Clarity corrections and complete preview walkthrough — 2026-10-19
+- Owner requested explanations before approval, removal of the written style brief, obvious Pinterest account addition, and full testing with production accuracy. Approval has not been given.
+- Changed: home/Accounts Add Pinterest account, external login/Save guide, detected defaults + activation, duplicate connection recovery, Get Codex prompt, automatic niche topics and image-led style inference. Removed the style textarea entirely. Setup and handoff now state what the user receives and does next.
+- Ran from a reset preview: Google entry → sample key → notifications → confirmed logins → account defaults → Finish setup → first prompt → copy/history → per-account style → add Pinterest → activate → repeat connection. Thirteen focused browser assertions passed. Eighteen affected page/dialog measurements at 1440, 390 and 320px had no page overflow. No console errors observed.
+- Downloaded the revised prompt/images package: ZIP integrity passed; prompt contains automatic image-style inference; all three reference files matched source bytes. Proof: docs/prototype/revised-package-proof.json.
+- Ran engine build and full existing engine tests: 40 passed, 0 failed. These use a fake service world; they are not a fresh live Pinterest publishing test. Engine source unchanged.
+- Saved real revised browser screenshots 14–20 and docs/prototype/clarity-review-results.json. Official Activepieces source confirms normal connection selection and Save; new website OAuth integration remains unproved.
+- Done: requested prototype corrections and full local walkthrough. Half-done: real website journey is unbuilt; automatic private image delivery and beginner acceptance are unproved. No production-readiness claim.
+- End of session: preview reset and left open for review, local server retained, temporary viewport override cleared. Next: owner review/approval, then backend in HANDOFF order. Live account scope remains @stunningcrochet only; no live account changes made in this correction step.
+
+- Additional accuracy fixes from the walkthrough: first-account entry from the empty home now goes directly to setup; selected category and posting amount now carry into the sample account, including matching posting hours. Checked 6 pins/day, DIY & crafts and six selected hours after setup. Latest clarity report totals 13 passing checks.

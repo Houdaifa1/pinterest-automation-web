@@ -16,8 +16,8 @@ Do not enter real API keys or bot tokens in this preview. Use the sample buttons
 
 1. Try setup → Google entry, workspace connection, optional Telegram, login mismatch recovery, detected Pinterest account, review and deploy.
 2. Open Stunning Crochet → pause/resume, run preview, Accounts → Edit, Review & apply.
-3. Accounts → Edit style → add/remove images and optional style notes. Images remain local to this preview.
-4. New pins → page links, no-link pins or website rounds → Prepare batch. Copy a prompt or download the prompt and reference images together.
+3. Accounts → Edit style → add/remove images. No written style brief. Images remain local to this preview.
+4. New pins → page links, no-link pins or website rounds → Get Codex prompt. Copy a prompt or download the prompt and reference images together.
 5. History → copy again, mark sent, make similar, delete with Undo; Setup changes → restore as a draft.
 6. Runs → inspect a result or recover an expired Pinterest login. Settings → notifications, connections, report time and deletion confirmation.
 7. Admin → review fictional members, block/unblock or remove website access. Website access is separate from external Google/Pinterest accounts.
@@ -38,7 +38,7 @@ Service verification, Google sign-in, deployment, live posting, moderation enfor
 
 - [qa-results.json](qa-results.json): 14 interaction checks passed; 20 screen routes checked at 1440px, 390px and 320px, with no page overflow after the Runs fix. These are observed browser checks, not a production test suite.
 - [package-proof.json](package-proof.json): ZIP integrity passed; prompt, manifest and three image files present; image bytes matched the example source assets.
-- [screenshots/](screenshots/): 13 real browser captures, including phone, dark appearance, login recovery and repeated-copy history.
+- [screenshots/](screenshots/): 20 real browser captures, including phone, dark appearance, login recovery and repeated-copy history.
 - JavaScript syntax check: `node --check docs/prototype/prototype.js`. Existing engine build/tests passed earlier this session (40/40); engine files were not changed.
 
 English only in this review. French, Arabic/RTL, real security boundaries, cloud image storage, receiving-session image access, production performance, full accessibility and beginner acceptance remain build-stage work. No production readiness is claimed.
@@ -46,3 +46,13 @@ English only in this review. French, Arabic/RTL, real security boundaries, cloud
 ## Approval boundary
 
 This prototype is ready for owner review. Its approval is pending. HANDOFF 3.4 requires that approval before app implementation.
+
+## Latest clarity revision
+
+Home and Accounts now offer Add Pinterest account. Its local walkthrough demonstrates saved-connection detection, default settings, activation and duplicate recovery. Normal production connection steps remain Activepieces → New Connection → Pinterest → sign in → Save.
+
+“Get Codex prompt” replaces “Prepare batch.” The output is instructions plus reference images, followed by creation in Codex and scheduled publishing from the Sheet. No written style brief; no-link topics use the account niche.
+
+Latest evidence: [clarity-review-results.json](clarity-review-results.json), [revised-package-proof.json](revised-package-proof.json), screenshots 14–20. Thirteen checks and 18 affected layouts passed. Engine build and 40/40 tests passed again. Older screenshots and qa-results.json preserve the first review baseline. Real integration and beginner acceptance remain unproved; approval is still pending.
+
+The revised walkthrough also caught and fixed setup choices not carrying into the sample account. A changed setting of 6 pins/day and DIY & crafts was checked after setup, with six matching posting hours. Empty-home Add Pinterest account now enters setup directly.

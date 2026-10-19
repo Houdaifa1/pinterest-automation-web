@@ -194,3 +194,11 @@ The downloaded example ZIP passed integrity checks and contained prompt.txt, man
 Thirteen actual browser screenshots are saved in [prototype/screenshots/](prototype/screenshots/). The illustrated pin layouts are interface examples, not real client generation output. English only: French/Arabic and RTL acceptance remain future work, as do real Google sign-in, ownership, encryption, moderation enforcement, deployment and live publishing.
 
 Prototype review is now the approval gate. Do not re-open the approved home-style choice or start the backend before that review.
+
+## Account-addition and creation clarity review — 19 October 2026
+
+Owner feedback identified three specific failures: “Prepare batch” hid its output, style notes demanded unnecessary writing, and account addition had no obvious starting action. Revised the local prototype to expose Add Pinterest account, use Get Codex prompt, remove the style brief, default topics from the niche and explain setup → content creation → scheduled posting.
+
+Checked the official [new-connection dialog](https://github.com/activepieces/activepieces/blob/main/packages/web/src/app/connections/new-connection-dialog.tsx) and [create/edit connection dialog](https://github.com/activepieces/activepieces/blob/main/packages/web/src/app/connections/create-edit-connection-dialog.tsx). The normal UI selects an authenticated service, opens its connection form, and uses Save to persist it. The guide now includes that Save step. This source check does not prove a free direct-to-Pinterest OAuth URL or a completed new website sign-in flow; normal Activepieces login remains the established approach.
+
+Evidence: [clarity walkthrough](prototype/clarity-review-results.json), [revised package](prototype/revised-package-proof.json), real screenshots 14–20. Thirteen focused checks passed, including account addition/activation, duplicate recovery, separate references, inferred style instructions and duplicate-free history. Eighteen affected page/dialog layout measurements had no page overflow. Engine build and all 40 existing engine tests passed again. These are local preview and fake-service engine results; real website authentication, image generation, private reference access, production performance and unassisted beginner usability still need acceptance evidence.

@@ -79,11 +79,11 @@ Needs pins / Setup step n of 6 / Stopped, last post, category).
 - Overview: status in plain words + Today numbers + big buttons **Run now · Pause/Resume · New pins**.
 - Accounts: one card per Pinterest account — posting times (click hours or "N a day, spread evenly"), pins per day,
   category, pins come from (niche / my website + pins per product, default 6), niche, picture style, on/off.
-  Pin style: optional uploaded example pins, thumbnail previews and simple removal; each account owns its references and style version. Keep recognizable identity while varying scenes, layouts, crops and headlines; trend research must cite current evidence. Copied prompts must identify the correct references and verify image access; plain text copying alone does not attach image files. See `docs/PRODUCT-REQUIREMENTS.md` for the proposed handoff and proof gates.
+  Pin style: uploaded example pins, thumbnail previews and simple removal; no written style field or design brief; each account owns its references and style version. Keep recognizable identity while varying scenes, layouts, crops and headlines; trend research must cite current evidence. Copied prompts must identify the correct references and verify image access; plain text copying alone does not attach image files. See `docs/PRODUCT-REQUIREMENTS.md` for the proposed handoff and proof gates.
   Changes autosave as drafts; a bar "Changes ready → **Apply**" (like Vercel's Redeploy) = update flow + publish +
   run once + show "Applied. Next post 15:00". New Pinterest connections in Activepieces appear by themselves.
 - New pins: today's batch builder (account, page links × counts, pins without link, website "next rounds × pins per
-  round"), total + days, **Copy Codex prompt**. History: copying the **same** batch again updates the same entry
+  round"), total + days, **Get Codex prompt** (ready-to-paste instructions, not finished pins; include reference handoff). History: copying the **same** batch again updates the same entry
   ("copied 2×") — never duplicates; "Mark as sent", "Copy again", "Make similar", delete.
 - Runs: every Activepieces run (time, ✓/✕, what happened in plain words), failures explained with a **Fix** button.
 - History: batches + every setup change with **Restore**.
@@ -195,3 +195,11 @@ Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the 
 - Activepieces run outputs can contain credentials. The website must expose allowlisted summaries only.
 - Clickable prototype ready: docs/prototype/README.md and http://127.0.0.1:8766/. All service operations are simulated. Local uploads, copy counts and prompt-and-images ZIP are demonstrated. Owner approval is pending; no app implementation before it.
 - Next: owner prototype review, then backend in build order. French/Arabic, private reference delivery/storage and production acceptance remain build work. Test evidence: docs/prototype/qa-results.json and package-proof.json.
+
+## 9. Latest prototype corrections — 19 October 2026
+
+- Owner found “Prepare batch” and account addition confusing. Home/Accounts now show **Add Pinterest account**. The guide includes Activepieces New Connection → Pinterest → sign in → Save, automatic detection/defaults and Review & activate. All connection actions in the prototype are simulated.
+- “What should we keep?” is removed. References drive automatic style inference; no user-written style brief. No-link batches use the saved niche.
+- **Get Codex prompt** clearly describes the deliverable. Intended completed-product sequence: setup creates the automation + Sheet → Codex creates and reviews pins using references → Codex fills the Sheet → scheduled posting.
+- Latest evidence: docs/prototype/clarity-review-results.json (13 focused checks and 18 layout measurements), revised-package-proof.json, screenshots 14–20. Engine build and all 40 tests passed again.
+- Real Google/Pinterest website connection, media delivery, image generation acceptance, security and production performance are not proved by the preview. Full prototype approval remains pending. Continue the owner's review before backend implementation.

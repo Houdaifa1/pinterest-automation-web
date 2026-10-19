@@ -1,0 +1,171 @@
+{
+  "date": "2026-10-19",
+  "scope": "Full local preview walkthrough and changed-setting checks after the owner requested easier account addition and no written style brief",
+  "checks": [
+    {
+      "check": "fresh setup waits for confirmed logins",
+      "passed": true
+    },
+    {
+      "check": "full fresh setup reaches an explicit automation-and-sheet outcome",
+      "passed": true
+    },
+    {
+      "check": "pin topics use the saved niche without a written brief",
+      "passed": true
+    },
+    {
+      "check": "copied prompt asks Codex to infer the style from reference images",
+      "passed": true
+    },
+    {
+      "check": "revised prompt still has one history entry after two copies",
+      "passed": true
+    },
+    {
+      "check": "pin style has uploads and no written style field",
+      "passed": true
+    },
+    {
+      "check": "home Add Pinterest account reaches a detected account and activation",
+      "passed": true
+    },
+    {
+      "check": "Accounts page has a direct Add Pinterest account action",
+      "passed": true
+    },
+    {
+      "check": "new account starts with its own empty style references",
+      "passed": true
+    },
+    {
+      "check": "original account keeps its three reference pins",
+      "passed": true
+    },
+    {
+      "check": "reconnecting an existing Pinterest account does not create a duplicate",
+      "passed": true
+    },
+    {
+      "check": "first account from empty home goes directly into setup",
+      "passed": true
+    },
+    {
+      "check": "chosen posting amount and category survive setup with matching schedule",
+      "passed": true
+    }
+  ],
+  "layouts": [
+    {
+      "route": "overview",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/accounts",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "autopilot/stunning/new-pins",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "style/stunning",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "setup/6",
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "add-pinterest-dialog",
+      "dialogScroll": 638,
+      "dialogWidth": 640,
+      "page": 1440,
+      "viewport": 1440
+    },
+    {
+      "route": "overview",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/accounts",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "autopilot/stunning/new-pins",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "style/stunning",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "setup/6",
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "add-pinterest-dialog",
+      "dialogScroll": 350,
+      "dialogWidth": 352,
+      "page": 390,
+      "viewport": 390
+    },
+    {
+      "route": "overview",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/accounts",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "autopilot/stunning/new-pins",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "style/stunning",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "setup/6",
+      "page": 320,
+      "viewport": 320
+    },
+    {
+      "route": "add-pinterest-dialog",
+      "dialogScroll": 280,
+      "dialogWidth": 282,
+      "page": 320,
+      "viewport": 320
+    }
+  ],
+  "engine": {
+    "build": "passed",
+    "tests": 40,
+    "passed": 40,
+    "failed": 0,
+    "kind": "Existing engine tests with a fake service world"
+  },
+  "consoleErrors": [],
+  "limitations": [
+    "Pinterest sign-in and account activation in this walkthrough are simulated.",
+    "The live API-key capability proof is separate: docs/proof/activepieces-api-key-2026-10-19.json.",
+    "No real pin generation, private reference delivery, website authentication or production deployment was tested.",
+    "Beginner acceptance still needs a person to complete the journey independently.",
+    "Full prototype approval is pending."
+  ]
+}
