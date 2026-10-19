@@ -143,3 +143,42 @@ results to `docs/RESEARCH.md`. If something is impossible, propose the simplest 
 - Only permissively licensed libraries and open fonts (Geist is OFL).
 - Never touch his live Activepieces flows, spreadsheet or Pinterest accounts without asking first.
 - Keep `engine/` tests green; the live automation is built from `engine/`.
+
+## 5. How the live automations are updated today (until the website does it)
+1. `cd engine && python3 tools/build.py` → `dist/poster.template.json`.
+2. Read the live flow (Activepieces API `GET /api/v1/flows/{id}`): its connection externalIds (steps `step_1` Google,
+   `step_2` Gmail, `step_tg` Telegram) and the `config` input of `step_3`. Save that config to a local JSON file
+   (never commit it: it holds emails and IDs).
+3. `node tools/make-import.mjs dist/poster.template.json out.json <google> <gmail or -> <telegram or -> Africa/Casablanca config.json`
+   (`-` = that login is not used; the step is removed). Keep the same config version to avoid a "settings updated"
+   message, or a new version to re-apply settings.
+4. Import into the existing flow (UI: name menu → Import; or API `IMPORT_FLOW`), **Publish**, then **Test Flow** once.
+   Check the spreadsheet (new tabs/columns) and the run result.
+Changes only in `engine/panel/` (Codex prompt, categories, website mode) do NOT need a re-import: they only change the
+Control Panel file (`dist/Pinterest Autopilot.html`, also copied by hand to the owner's Desktop folder
+"Pinterest Autopilot/Pinterest Autopilot Control Panel.html", which friends use today).
+
+## 6. Practical lessons (learned the hard way)
+- Morocco moved to GMT+0 on 20 Sep 2026; Activepieces/Node/Chrome still think GMT+1 → `liveZone`/`scheduleZone`
+  map Africa/Casablanca to UTC. Gmail/Chrome show times one hour ahead of his real clock; trust the Mac clock.
+- Activepieces cloud starts scheduled runs 2–7 minutes late. Normal.
+- The owner's two Activepieces accounts share ONE spreadsheet; each automation only handles the accounts in its own
+  config, and "Config applied" keeps a list of versions (never re-apply each other's settings).
+- Activepieces does not show connection IDs in its UI (that is why the old panel needed a bookmark). The website must
+  hide IDs completely.
+- Codex wrote rows at row 1001 once (below 1,000 empty dropdown rows): prompts must say "write right under the last
+  filled row".
+- Teachers Pay Teachers banned AI content (Oct 2026) — irrelevant here, but do not suggest TpT.
+- Free Activepieces credits: about 1 per run; the hourly flow uses ~540/month per account, inside the free 1,000.
+- Friends sign up to Activepieces by invitation into their own platform; one friend runs a Moroccan-food account.
+
+## 7. Access the owner gives you
+- **GitHub:** create a **private** repository (suggested name `pinterest-autopilot-web` on his account Houdaifa1), add it
+  as `origin`, push `main`. Commits keep his style and author; never add AI co-author lines. Ask before making anything public.
+- **Cloudflare:** you may create the Pages/Workers project, the D1 database, DNS for `autopilot.hudaifa.dev` and any
+  API token you need (least privilege, named clearly, e.g. "autopilot-web deploy"). Store every secret only as a
+  Worker/Pages secret or in a local `.dev.vars` (git-ignored): Google OAuth client id/secret, session secret,
+  encryption key for the Activepieces API keys. Never print secrets in chat, logs or commits.
+- **Google Cloud:** the Google sign-in client (OAuth consent screen with `openid email profile`, authorised redirect
+  `https://autopilot.hudaifa.dev/auth/callback` plus the local dev URL). Walk him through any step only he can click.
+- Ask before: deploying to the live domain the first time, changing his live Activepieces flows, deleting anything.
