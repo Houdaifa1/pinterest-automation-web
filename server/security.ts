@@ -103,6 +103,12 @@ export function isLocal(c: Context<AppEnv>) {
     ["localhost", "127.0.0.1", "[::1]"].includes(host)
   );
 }
+export function cookieName(
+  c: Context<AppEnv>,
+  kind: "session" | "oauth_state",
+) {
+  return isLocal(c) ? kind : `__Host-${kind}`;
+}
 export function ownOrigin(c: Context<AppEnv>) {
   return isLocal(c) ? new URL(c.req.url).origin : c.env.APP_ORIGIN;
 }

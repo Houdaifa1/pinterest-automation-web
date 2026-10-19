@@ -161,7 +161,8 @@ describe("private website boundaries", () => {
       { headers: { Cookie: "oauth_state=invalid" } },
       env,
     );
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe("/?signin=sign_in_expired");
   });
   it("returns safe errors without provider tokens or database details", async () => {
     const a = await login("member-a");
@@ -172,4 +173,110 @@ describe("private website boundaries", () => {
     );
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
+});
+
+it("reuses a creation request instead of making duplicate automations", async () => {
+  const user = await login("member-a"),
+    requestId = crypto.randomUUID();
+  const first = await request("/api/automations", user, "POST", {
+    name: "Repeat-safe posting",
+    requestId,
+  });
+  const second = await request("/api/automations", user, "POST", {
+    name: "Repeat-safe posting",
+    requestId,
+  });
+  expect(first.status).toBe(201);
+  expect(second.status).toBe(200);
+  const a = (await first.json()) as any,
+    b = (await second.json()) as any;
+  expect(a.automation.id).toBe(b.automation.id);
+  const list = (await (await request("/api/automations", user)).json()) as any;
+  expect(list.automations).toHaveLength(1);
+});
+it("commits settings and their restore snapshot together and rejects stale edits", async () => {
+  const user = await login("member-a");
+  const { automation } = (await (
+    await request("/api/automations", user, "POST", { name: "Versioned" })
+  ).json()) as any;
+  const saved = await request(
+    `/api/automations/${automation.id}`,
+    user,
+    "PUT",
+    { name: "Versioned", revision: 1, config: {} },
+  );
+  expect(saved.status).toBe(200);
+  const stale = await request(
+    `/api/automations/${automation.id}`,
+    user,
+    "PUT",
+    { name: "Outdated", revision: 1, config: {} },
+  );
+  expect(stale.status).toBe(409);
+  const versions = (await (
+    await request(`/api/automations/${automation.id}/versions`, user)
+  ).json()) as any;
+  expect(versions.versions).toHaveLength(1);
+  expect(versions.versions[0].revision).toBe(2);
+  const restore = await request(
+    `/api/automations/${automation.id}/restore`,
+    user,
+    "POST",
+    { version: versions.versions[0].id },
+  );
+  expect(restore.status).toBe(200);
+  const current = (await (
+    await request(`/api/automations/${automation.id}`, user)
+  ).json()) as any;
+  expect(current.automation.revision).toBe(3);
+});
+it("deleting website data revokes sessions and removes saved automations without calling external services", async () => {
+  const user = await login("member-a");
+  await request("/api/automations", user, "POST", { name: "Private data" });
+  const deleted = await request("/api/me", user, "DELETE", { confirm: true });
+  expect(deleted.status).toBe(200);
+  expect((await request("/api/me", user)).status).toBe(401);
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM automations WHERE user_id=?",
+    )
+      .bind(user.user.id)
+      .first("n"),
+  ).toBe(0);
+});
+
+it("uses host-only secure Google state cookies and requests identity scopes only", async () => {
+  const production = {
+    ...env,
+    DEV_LOGIN: undefined,
+    APP_ORIGIN: "https://automation.houdaifa.dev",
+    GOOGLE_CLIENT_ID: "test-client",
+    GOOGLE_CLIENT_SECRET: "test-secret",
+  };
+  const response = await app.request(
+    "https://automation.houdaifa.dev/auth/start",
+    {},
+    production,
+  );
+  expect(response.status).toBe(302);
+  const target = new URL(response.headers.get("Location")!);
+  expect(target.origin).toBe("https://accounts.google.com");
+  expect(target.searchParams.get("scope")).toBe("openid email profile");
+  expect(target.searchParams.get("code_challenge_method")).toBe("S256");
+  expect(target.searchParams.get("redirect_uri")).toBe(
+    "https://automation.houdaifa.dev/auth/callback",
+  );
+  const cookie = response.headers.get("Set-Cookie")!;
+  expect(cookie).toContain("__Host-oauth_state=");
+  expect(cookie).toContain("Secure");
+  expect(cookie).toContain("HttpOnly");
+  expect(cookie).not.toContain("Domain=");
+  const preview = await app.request(
+    "https://pinterest-automations.pages.dev/auth/start",
+    {},
+    production,
+  );
+  expect(preview.headers.get("Location")).toBe(
+    "https://automation.houdaifa.dev/auth/start",
+  );
 });

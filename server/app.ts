@@ -7,7 +7,7 @@ import { integrations } from "./integrations";
 import { callbacks, deployment } from "./deployment";
 import { bodyLimit } from "hono/body-limit";
 import { content, referenceAccess } from "./content";
-import { id, isLocal, now, PublicError } from "./security";
+import { id, isLocal, now, PublicError, cookieName } from "./security";
 import type { AppEnv, Automation } from "./types";
 
 export const app = new Hono<AppEnv>();
@@ -34,6 +34,13 @@ app.use("*", async (c, next) => {
   c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 });
 app.onError((error, c) => {
+  if (c.req.path.startsWith("/auth/") && c.req.path !== "/auth/dev")
+    return c.redirect(
+      "/?signin=" +
+        (error instanceof PublicError
+          ? encodeURIComponent(error.code)
+          : "unavailable"),
+    );
   if (error instanceof z.ZodError)
     return c.json(
       {
@@ -76,7 +83,7 @@ app.post("/api/logout", async (c) => {
   await c.env.DB.prepare("DELETE FROM sessions WHERE token_hash=?")
     .bind(c.get("session").token_hash)
     .run();
-  deleteCookie(c, "session", { path: "/" });
+  deleteCookie(c, cookieName(c, "session"), { path: "/", secure: !isLocal(c) });
   return c.json({ ok: true });
 });
 function publicAutomation(a: Automation) {
@@ -102,33 +109,51 @@ app.get("/api/automations", async (c) => {
   return c.json({ automations: rows.results.map(publicAutomation) });
 });
 app.post("/api/automations", async (c) => {
-  const { name } = z
-    .object({ name: z.string().trim().min(1).max(60) })
+  const { name, requestId } = z
+    .object({
+      name: z.string().trim().min(1).max(60),
+      requestId: z.uuid().optional(),
+    })
     .parse(await c.req.json());
-  const userId = c.get("user").id;
-  const total = await c.env.DB.prepare(
-    "SELECT COUNT(*) AS n FROM automations WHERE user_id=?",
+  const userId = c.get("user").id,
+    automationId = requestId || id();
+  const existing = await c.env.DB.prepare(
+    "SELECT * FROM automations WHERE id=? AND user_id=?",
   )
-    .bind(userId)
-    .first<{ n: number }>();
-  if (total!.n >= 20)
+    .bind(automationId, userId)
+    .first<Automation>();
+  if (existing) return c.json({ automation: publicAutomation(existing) });
+  const integrations = (
+    await c.env.DB.prepare(
+      "SELECT id FROM integrations WHERE user_id=? LIMIT 2",
+    )
+      .bind(userId)
+      .all<{ id: string }>()
+  ).results;
+  const saved = await c.env.DB.prepare(
+    `INSERT INTO automations(id,user_id,name,integration_id,created_at,updated_at)
+ SELECT ?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM automations WHERE user_id=?)<20 ON CONFLICT(id) DO NOTHING RETURNING *`,
+  )
+    .bind(
+      automationId,
+      userId,
+      name,
+      integrations.length === 1 ? integrations[0].id : null,
+      now(),
+      now(),
+      userId,
+    )
+    .first<Automation>();
+  if (!saved) {
+    const repeated = await c.env.DB.prepare(
+      "SELECT * FROM automations WHERE id=? AND user_id=?",
+    )
+      .bind(automationId, userId)
+      .first<Automation>();
+    if (repeated) return c.json({ automation: publicAutomation(repeated) });
     throw new PublicError("limit", "You can create up to 20 automations.", 409);
-  const automationId = id();
-  await c.env.DB.prepare(
-    "INSERT INTO automations(id,user_id,name,created_at,updated_at) VALUES(?,?,?,?,?)",
-  )
-    .bind(automationId, userId, name, now(), now())
-    .run();
-  return c.json(
-    {
-      automation: publicAutomation(
-        (await c.env.DB.prepare("SELECT * FROM automations WHERE id=?")
-          .bind(automationId)
-          .first<Automation>())!,
-      ),
-    },
-    201,
-  );
+  }
+  return c.json({ automation: publicAutomation(saved) }, 201);
 });
 app.get("/api/automations/:id", async (c) =>
   c.json({ automation: publicAutomation(await owned(c)) }),
@@ -159,9 +184,9 @@ const configSchema = z.object({
   accounts: z
     .array(
       z.object({
-        id: z.string().max(80),
-        name: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
-        username: z.string().max(80),
+        id: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
+        name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,29}$/),
+        username: z.string().regex(/^[A-Za-z0-9_]{1,30}$/),
         connection: z.string().max(80),
         niche: z.string().max(300),
         general: z.boolean().default(false),
@@ -199,6 +224,14 @@ app.put("/api/automations/:id", async (c) => {
       "Settings changed in another tab. Reload to see the latest version.",
       409,
     );
+  for (const field of ["id", "name", "connection"] as const) {
+    const values = body.config.accounts.map((a) => a[field].toLowerCase());
+    if (new Set(values).size !== values.length)
+      throw new PublicError(
+        "duplicate_account",
+        "Each Pinterest account can appear only once.",
+      );
+  }
   const selected = [
     body.config.google,
     body.config.gmail,
@@ -239,34 +272,31 @@ app.put("/api/automations/:id", async (c) => {
   const config = JSON.stringify(body.config);
   if (automation.name === body.name && automation.config === config)
     return c.json({ automation: publicAutomation(automation) });
-  const updated = await c.env.DB.prepare(
-    `UPDATE automations SET name=?,config=?,revision=revision+1,updated_at=? WHERE id=? AND user_id=? AND revision=? RETURNING *`,
-  )
-    .bind(
+  const result = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "UPDATE automations SET name=?,config=?,revision=revision+1,updated_at=? WHERE id=? AND user_id=? AND revision=? RETURNING *",
+    ).bind(
       body.name,
       config,
       now(),
       automation.id,
       c.get("user").id,
       body.revision,
-    )
-    .first<Automation>();
+    ),
+    c.env.DB.prepare(
+      "INSERT INTO versions SELECT ?,user_id,id,revision,config,? FROM automations WHERE id=? AND user_id=? AND revision=? AND changes()=1",
+    ).bind(id(), now(), automation.id, c.get("user").id, body.revision + 1),
+    c.env.DB.prepare(
+      "DELETE FROM versions WHERE automation_id=? AND user_id=? AND revision NOT IN (SELECT revision FROM versions WHERE automation_id=? ORDER BY revision DESC LIMIT 100)",
+    ).bind(automation.id, c.get("user").id, automation.id),
+  ]);
+  const updated = result[0].results[0] as unknown as Automation | undefined;
   if (!updated)
     throw new PublicError(
       "conflict",
       "Settings changed in another tab. Reload to see the latest version.",
       409,
     );
-  await c.env.DB.prepare("INSERT INTO versions VALUES(?,?,?,?,?,?)")
-    .bind(
-      id(),
-      c.get("user").id,
-      automation.id,
-      updated.revision,
-      config,
-      now(),
-    )
-    .run();
   return c.json({ automation: publicAutomation(updated) });
 });
 app.get("/api/automations/:id/versions", async (c) => {
@@ -321,6 +351,21 @@ app.post("/api/admin/users/:userId", async (c) => {
     ),
   ]);
   return c.json({ ok: true });
+});
+app.delete("/api/me", async (c) => {
+  const { confirm } = z
+    .object({ confirm: z.literal(true) })
+    .parse(await c.req.json());
+  if (c.get("user").email === c.env.OWNER_EMAIL)
+    throw new PublicError("owner", "The owner account must keep access.");
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM audit WHERE actor_id=?").bind(
+      c.get("user").id,
+    ),
+    c.env.DB.prepare("DELETE FROM users WHERE id=?").bind(c.get("user").id),
+  ]);
+  deleteCookie(c, cookieName(c, "session"), { path: "/", secure: !isLocal(c) });
+  return c.json({ ok: confirm });
 });
 app.route("/api/automations", integrations);
 app.route("/api/automations", deployment);

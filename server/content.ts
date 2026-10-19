@@ -137,6 +137,7 @@ async function prepareBatch(env: Env, origin: string, batch: Batch) {
   return { ...batch, prompt, capability_expires: now() + 86400 };
 }
 function publicBatch(b: Batch) {
+  const snapshot=JSON.parse(b.snapshot);
   return {
     id: b.id,
     accountId: b.account_id,
@@ -146,6 +147,8 @@ function publicBatch(b: Batch) {
     createdAt: b.created_at,
     referenceCount: JSON.parse(b.reference_ids).length,
     referenceExpires: b.capability_expires,
+    username:snapshot.account.username,
+    input:snapshot.batch,
   };
 }
 export const content = new Hono<AppEnv>();

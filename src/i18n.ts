@@ -148,6 +148,17 @@ export const messages = {
     next: "Next",
     readiness: "Connections ready",
     deleteAccount: "Delete my website account",
+    referenceLimit: "Up to 6 images. JPG, PNG or WebP.",
+    referenceLinks: "Your prompt includes reference links, valid for 24 hours.",
+    deleteConfirm:
+      "Delete your website account and its saved data? Your external accounts and posting flows keep running independently.",
+    similar: "Make similar",
+    signInError: "Sign-in could not finish. Please continue with Google again.",
+    accessDenied: "Website access is unavailable. Contact the owner.",
+    accountTitle: "Your website account",
+    deleteAutomation: "Delete automation",
+    deleteAutomationConfirm:
+      "Delete this automation and its posting flow? Your Pinterest account stays connected. This cannot be undone.",
   },
   fr: {
     automations: "Automatisations",
@@ -297,6 +308,20 @@ export const messages = {
     next: "Suivant",
     readiness: "Connexions prêtes",
     deleteAccount: "Supprimer mon compte du site",
+    referenceLimit: "Jusqu’à 6 images. JPG, PNG ou WebP.",
+    referenceLinks:
+      "Les instructions contiennent des liens vers vos images, valables 24 heures.",
+    deleteConfirm:
+      "Supprimer votre compte et ses données du site ? Vos comptes et flux externes continuent de fonctionner.",
+    similar: "Créer une série similaire",
+    signInError:
+      "La connexion a échoué. Veuillez continuer avec Google à nouveau.",
+    accessDenied:
+      "L’accès au site est indisponible. Contactez le propriétaire.",
+    accountTitle: "Votre compte du site",
+    deleteAutomation: "Supprimer l’automatisation",
+    deleteAutomationConfirm:
+      "Supprimer cette automatisation et son flux de publication ? Votre compte Pinterest reste connecté. Cette action est définitive.",
   },
   ar: {
     automations: "الأتمتة",
@@ -444,6 +469,19 @@ export const messages = {
     next: "التالي",
     readiness: "الاتصالات جاهزة",
     deleteAccount: "حذف حسابي من الموقع",
+    referenceLimit: "حتى 6 صور بصيغة JPG أو PNG أو WebP.",
+    referenceLinks:
+      "تتضمن التعليمات روابط الصور المرجعية الصالحة لمدة 24 ساعة.",
+    deleteConfirm:
+      "حذف حسابك وبياناتك من الموقع؟ ستستمر حساباتك وسير النشر الخارجية في العمل بشكل مستقل.",
+    similar: "إنشاء دفعة مشابهة",
+    signInError:
+      "تعذر إكمال تسجيل الدخول. حاول المتابعة باستخدام Google مرة أخرى.",
+    accessDenied: "الوصول إلى الموقع غير متاح. تواصل مع المالك.",
+    accountTitle: "حسابك في الموقع",
+    deleteAutomation: "حذف الأتمتة",
+    deleteAutomationConfirm:
+      "حذف هذه الأتمتة وسير النشر الخاص بها؟ يبقى حساب Pinterest مرتبطًا. لا يمكن التراجع عن هذه الخطوة.",
   },
 };
 export type Message = keyof typeof messages.en;

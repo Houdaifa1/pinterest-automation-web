@@ -150,10 +150,21 @@ function Status({ status }: { status: string }) {
 }
 function ErrorBox({ error, retry }: { error: unknown; retry?: () => void }) {
   const { language, t } = useWorkspace();
+  const { id } = useParams();
   return (
     <div className="error" role="alert">
       {language === "en" && error instanceof Error ? error.message : t("error")}
-      {retry && <button onClick={retry}>{t("retry")}</button>}
+      {error instanceof ApiError && error.code === "sign_in" ? (
+        <a className="button" href="/auth/start">
+          {t("signIn")}
+        </a>
+      ) : error instanceof ApiError && error.code === "reconnect" && id ? (
+        <Link className="button" to={`/automations/${id}/setup?reconnect=1`}>
+          {t("connect")}
+        </Link>
+      ) : (
+        retry && <button onClick={retry}>{t("retry")}</button>
+      )}
     </div>
   );
 }
@@ -276,17 +287,14 @@ function App() {
             ))}
           </select>
           {user && (
-            <button
+            <Link
               className="avatar"
-              title={t("signOut")}
-              aria-label={t("signOut")}
-              onClick={async () => {
-                await api("/api/logout", "POST");
-                setUser(null);
-              }}
+              to="/account"
+              title={t("accountTitle")}
+              aria-label={t("accountTitle")}
             >
               {user.name[0]}
-            </button>
+            </Link>
           )}
         </div>
       </header>
@@ -321,6 +329,15 @@ function App() {
           </div>
           <h1>{t("welcome")}</h1>
           <p>{t("welcomeCopy")}</p>
+          {location.search.includes("signin=") && (
+            <div className="error" role="alert">
+              {t(
+                location.search.includes("access_denied")
+                  ? "accessDenied"
+                  : "signInError",
+              )}
+            </div>
+          )}
           <a className="button primary" href="/auth/start">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -360,6 +377,7 @@ function App() {
             element={<AutomationPage key={location.pathname.split("/")[2]} />}
           />
           <Route path="/members" element={<Members />} />
+          <Route path="/account" element={<WebsiteAccount />} />
           <Route
             path="*"
             element={
@@ -386,6 +404,79 @@ function App() {
     </WorkspaceContext.Provider>
   );
 }
+function WebsiteAccount() {
+  const { user, t, reload } = useWorkspace();
+  const [error, setError] = useState<unknown>(null),
+    [deleting, setDeleting] = useState(false),
+    [busy, setBusy] = useState(false);
+  return (
+    <main className="readable">
+      <Link className="back-link" to="/">
+        <ArrowLeft size={15} />
+        {t("all")}
+      </Link>
+      <h1>{t("accountTitle")}</h1>
+      <section className="panel history-section">
+        <h2>{user.name}</h2>
+        <p>
+          <bdi>{user.email}</bdi>
+        </p>
+        {error != null && <ErrorBox error={error} />}
+        <div className="button-row">
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api("/api/logout", "POST", {});
+                await reload();
+              } catch (e) {
+                setError(e);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {t("signOut")}
+          </button>
+          {!user.admin && (
+            <button className="danger" onClick={() => setDeleting(true)}>
+              {t("deleteAccount")}
+            </button>
+          )}
+        </div>
+      </section>
+      <Modal
+        title={t("deleteAccount")}
+        open={deleting}
+        onOpenChange={setDeleting}
+      >
+        <p>{t("deleteConfirm")}</p>
+        <div className="button-row">
+          <button onClick={() => setDeleting(false)}>{t("cancel")}</button>
+          <button
+            className="danger"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api("/api/me", "DELETE", { confirm: true });
+                await reload();
+              } catch (e) {
+                setError(e);
+                setDeleting(false);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {t("deleteAccount")}
+          </button>
+        </div>
+      </Modal>
+    </main>
+  );
+}
 function Home() {
   const { t } = useWorkspace();
   const [items, setItems] = useState<Automation[]>([]),
@@ -404,11 +495,13 @@ function Home() {
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
+  const creationId = useRef(crypto.randomUUID());
   const create = async () => {
     setBusy(true);
     try {
       const r = await api("/api/automations", "POST", {
         name: t("automation"),
+        requestId: creationId.current,
       });
       navigate(`/automations/${r.automation.id}/setup`);
     } catch (e) {
@@ -692,6 +785,7 @@ function AutomationPage() {
         )}
         {tab === "setup" ? (
           <Setup
+            key={location.search}
             automation={automation}
             draft={draft}
             edit={edit}
@@ -859,8 +953,17 @@ function Setup({
   busy,
 }: any) {
   const { t } = useWorkspace(),
-    navigate = useNavigate();
-  const [step, setStep] = useState(automation.connected ? 1 : 0),
+    navigate = useNavigate(),
+    location = useLocation();
+  const [step, setStep] = useState(
+      location.search.includes("reconnect=1")
+        ? 0
+        : location.search.includes("connections=1")
+          ? 2
+          : automation.connected
+            ? 1
+            : 0,
+    ),
     [key, setKey] = useState(""),
     [projects, setProjects] = useState<{ choice: string; name: string }[]>([]),
     [project, setProject] = useState(""),
@@ -1449,6 +1552,9 @@ function AccountCard({
 }
 function Settings({ draft, edit, automation, load }: any) {
   const { t } = useWorkspace();
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false),
+    [deleteBusy, setDeleteBusy] = useState(false);
   const [name, setName] = useState(automation.name),
     [error, setError] = useState<unknown>(null);
   return (
@@ -1499,9 +1605,43 @@ function Settings({ draft, edit, automation, load }: any) {
           ))}
         </select>
       </Field>
-      <Link className="button" to={`/automations/${automation.id}/setup`}>
+      <Link
+        className="button"
+        to={`/automations/${automation.id}/setup?reconnect=1`}
+      >
         {t("connect")}
       </Link>
+      <div className="history-section">
+        <button className="danger" onClick={() => setDeleting(true)}>
+          {t("deleteAutomation")}
+        </button>
+      </div>
+      <Modal title={automation.name} open={deleting} onOpenChange={setDeleting}>
+        <p>{t("deleteAutomationConfirm")}</p>
+        <div className="button-row">
+          <button onClick={() => setDeleting(false)}>{t("cancel")}</button>
+          <button
+            className="danger"
+            disabled={deleteBusy}
+            onClick={async () => {
+              setDeleteBusy(true);
+              try {
+                await api(`/api/automations/${automation.id}`, "DELETE", {
+                  confirm: true,
+                });
+                navigate("/");
+              } catch (e) {
+                setError(e);
+                setDeleting(false);
+              } finally {
+                setDeleteBusy(false);
+              }
+            }}
+          >
+            {t("deleteAutomation")}
+          </button>
+        </div>
+      </Modal>
     </section>
   );
 }
@@ -1559,48 +1699,142 @@ function History({
   flush: () => Promise<void>;
   load: () => Promise<void>;
 }) {
-  const { t, language } = useWorkspace();
+  const { t, language, notify } = useWorkspace();
   const [versions, setVersions] = useState<any[]>([]),
+    [batches, setBatches] = useState<any[]>([]),
+    [selected, setSelected] = useState<any>(null),
     [error, setError] = useState<unknown>(null);
-  const refresh = () =>
-    api(`/api/automations/${id}/versions`)
-      .then((r) => setVersions(r.versions))
-      .catch(setError);
+  const refresh = async () => {
+    try {
+      const [v, b] = await Promise.all([
+        api(`/api/automations/${id}/versions`),
+        api(`/api/automations/${id}/batches`),
+      ]);
+      setVersions(v.versions);
+      setBatches(b.batches);
+    } catch (e) {
+      setError(e);
+    }
+  };
   useEffect(() => {
     void refresh();
   }, [id]);
   return (
     <section className="panel">
       <h2>{t("history")}</h2>
-      {error != null && <ErrorBox error={error} />}{" "}
-      {!versions.length ? (
-        <Empty title={t("noHistory")} />
-      ) : (
-        versions.map((v) => (
-          <div className="review-row" key={v.id}>
-            <span>
-              {new Date(v.created_at * 1000).toLocaleString(language)}
-            </span>
+      {error != null && <ErrorBox error={error} />}
+      {!versions.length && !batches.length && <Empty title={t("noHistory")} />}
+      {batches.map((batch) => (
+        <div className="batch-row" key={batch.id}>
+          <div>
+            <strong>
+              <bdi>@{batch.username}</bdi> · {batch.total}
+            </strong>
+            <p>
+              {new Date(batch.createdAt * 1000).toLocaleString(language)} ·{" "}
+              {batch.copies} {t("copies")}
+            </p>
+          </div>
+          <div className="button-row">
             <button
               onClick={async () => {
-                if (!window.confirm(t("confirmRestore"))) return;
                 try {
-                  await flush();
-                  await api(`/api/automations/${id}/restore`, "POST", {
-                    version: v.id,
-                  });
-                  await load();
+                  const r = await api(
+                    `/api/automations/${id}/batches/${batch.id}`,
+                  );
+                  setSelected(r.batch);
+                } catch (e) {
+                  setError(e);
+                }
+              }}
+            >
+              {t("copy")}
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await api(
+                    `/api/automations/${id}/batches/${batch.id}/sent`,
+                    "POST",
+                    {},
+                  );
+                  notify(t("saved"));
                   await refresh();
                 } catch (e) {
                   setError(e);
                 }
               }}
             >
-              {t("restore")}
+              {t("sent")}
             </button>
           </div>
-        ))
+        </div>
+      ))}
+      {versions.length > 0 && (
+        <div className="history-section">
+          <h3>{t("settings")}</h3>
+          {versions.map((v) => (
+            <div className="review-row" key={v.id}>
+              <span>
+                {new Date(v.created_at * 1000).toLocaleString(language)}
+              </span>
+              <button
+                onClick={async () => {
+                  if (!window.confirm(t("confirmRestore"))) return;
+                  try {
+                    await flush();
+                    await api(`/api/automations/${id}/restore`, "POST", {
+                      version: v.id,
+                    });
+                    await load();
+                    await refresh();
+                  } catch (e) {
+                    setError(e);
+                  }
+                }}
+              >
+                {t("restore")}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
+      <Modal
+        title={t("getPrompt")}
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        {selected && (
+          <>
+            <p>{t("promptHelp")}</p>
+            {selected.referenceCount > 0 && (
+              <Notice>{t("referenceLinks")}</Notice>
+            )}
+            <pre className="prompt-preview">{selected.prompt}</pre>
+            <button
+              className="primary"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(selected.prompt);
+                  await api(
+                    `/api/automations/${id}/batches/${selected.id}/copy`,
+                    "POST",
+                    {},
+                  );
+                  notify(t("copied"));
+                  await refresh();
+                } catch (e) {
+                  setError(e);
+                }
+              }}
+            >
+              {t("copy")}
+            </button>
+          </>
+        )}
+      </Modal>
     </section>
   );
 }

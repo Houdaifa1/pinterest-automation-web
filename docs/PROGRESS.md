@@ -107,3 +107,10 @@ Live testing remains scoped to @stunningcrochet; @crochet_simplified is excluded
 
 - Production encryption secret upload confirmed by Cloudflare: one secret stored, no value displayed. Database migrations 0001–0003 are applied to the new production database.
 - Pages does not accept an alternate configuration path for local serving. Corrected the development command to its supported --d1 override; health, local sign-in and saved-automation reads returned HTTP 200, with the existing draft preserved. Production and local database identifiers remain distinct.
+
+## 19 October 2026 — account recovery and history controls
+
+- Added repeat-safe draft creation, atomic draft/version saving, confirmed automation deletion, member self-deletion and production host-only session cookies. Sign-in failures return to a clear retry screen.
+- Added real batch history, recopy counts, sent marking, setup restoration and account settings. Account deletion explains that separately hosted posting flows keep running.
+- Proof: 21 runtime tests and three flow-builder tests pass; the production build passes. Original engine baseline remains 40/40. No new live flow or Sheet writes in this step.
+- Google sign-in branding is prepared in a separate project. Its required policy acceptance and new-client approval are pending at the final review. Next: complete identity configuration, deployment and the live setup acceptance checks.

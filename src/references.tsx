@@ -59,6 +59,7 @@ export function References({
     <section className="references">
       <h3>{t("style")}</h3>
       <p>{t("styleCopy")}</p>
+      <p className="reference-help">{t("referenceLimit")}</p>
       <div className="reference-grid">
         {items.map((item) => (
           <div className="reference" key={item.id}>

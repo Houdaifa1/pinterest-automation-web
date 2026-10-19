@@ -468,6 +468,30 @@ deployment.post("/:id/run", async (c) => {
   }
 });
 export const callbacks = new Hono<AppEnv>();
+deployment.delete("/:id", async (c) => {
+  const a = await owned(c);
+  z.object({ confirm: z.literal(true) }).parse(await c.req.json());
+  const operation = await lock(c.env, a);
+  try {
+    if (a.flow_id) {
+      const { key } = await getIntegration(c.env, c.get("user").id, a);
+      try {
+        await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`, "DELETE");
+      } catch (e) {
+        if (!(e instanceof PublicError && e.code === "service_not_found"))
+          throw e;
+      }
+    }
+    await c.env.DB.prepare(
+      "DELETE FROM automations WHERE id=? AND user_id=? AND operation_id=?",
+    )
+      .bind(a.id, c.get("user").id, operation)
+      .run();
+    return c.json({ ok: true });
+  } finally {
+    await unlock(c.env, a, operation);
+  }
+});
 callbacks.post("/:id/:token", async (c) => {
   const a = await c.env.DB.prepare(
     "SELECT * FROM automations WHERE id=? AND callback_hash=?",

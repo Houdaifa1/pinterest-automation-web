@@ -8,6 +8,7 @@ import {
   isLocal,
   now,
   ownOrigin,
+  cookieName,
   PublicError,
   randomToken,
   rateLimit,
@@ -34,7 +35,12 @@ export async function createSession(
   )
     .bind(await hash(token), user.id, randomToken(), now() + 60 * 60 * 24 * 14)
     .run();
-  setCookie(c, "session", token, cookieOptions(!isLocal(c), 60 * 60 * 24 * 14));
+  setCookie(
+    c,
+    cookieName(c, "session"),
+    token,
+    cookieOptions(!isLocal(c), 60 * 60 * 24 * 14),
+  );
 }
 export async function signIn(
   c: Parameters<typeof ownOrigin>[0],
@@ -75,6 +81,8 @@ export async function signIn(
 }
 export const auth = new Hono<AppEnv>();
 auth.get("/start", async (c) => {
+  if (!isLocal(c) && new URL(c.req.url).origin !== c.env.APP_ORIGIN)
+    return c.redirect(c.env.APP_ORIGIN + "/auth/start");
   await rateLimit(
     c,
     `login:${c.req.header("CF-Connecting-IP") || "local"}`,
@@ -99,7 +107,12 @@ auth.get("/start", async (c) => {
       now() + 600,
     ),
   ]);
-  setCookie(c, "oauth_state", state, cookieOptions(!isLocal(c), 600));
+  setCookie(
+    c,
+    cookieName(c, "oauth_state"),
+    state,
+    cookieOptions(!isLocal(c), 600),
+  );
   const params = new URLSearchParams({
     client_id: c.env.GOOGLE_CLIENT_ID,
     redirect_uri: `${ownOrigin(c)}/auth/callback`,
@@ -115,8 +128,11 @@ auth.get("/start", async (c) => {
 });
 auth.get("/callback", async (c) => {
   const state = c.req.query("state");
-  const saved = getCookie(c, "oauth_state");
-  deleteCookie(c, "oauth_state", { path: "/" });
+  const saved = getCookie(c, cookieName(c, "oauth_state"));
+  deleteCookie(c, cookieName(c, "oauth_state"), {
+    path: "/",
+    secure: !isLocal(c),
+  });
   if (!state || state !== saved)
     throw new PublicError(
       "sign_in_expired",
@@ -197,7 +213,7 @@ export async function requireSession(
   c: Parameters<typeof ownOrigin>[0],
   next: () => Promise<void>,
 ) {
-  const token = getCookie(c, "session");
+  const token = getCookie(c, cookieName(c, "session"));
   if (!token)
     throw new PublicError("sign_in", "Please sign in to continue.", 401);
   const session = await c.env.DB.prepare(
@@ -213,7 +229,10 @@ export async function requireSession(
       .bind(session.user_id)
       .first<User>());
   if (!session || !user || user.status !== "active") {
-    deleteCookie(c, "session", { path: "/" });
+    deleteCookie(c, cookieName(c, "session"), {
+      path: "/",
+      secure: !isLocal(c),
+    });
     throw new PublicError("sign_in", "Please sign in to continue.", 401);
   }
   c.set("user", user);
