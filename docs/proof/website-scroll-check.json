@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-19",
+  "width": 320,
+  "method": "Direct viewport clicks after settling keyboard scroll; semantic locator clicks scroll controls into view.",
+  "pageLinks": {
+    "height": 1337,
+    "scrollY": 298
+  },
+  "withoutLinks": {
+    "focus": "Without links",
+    "height": 1337,
+    "scrollY": 298,
+    "selected": [
+      "Without links"
+    ]
+  },
+  "website": {
+    "focus": "My website",
+    "height": 1337,
+    "scrollY": 298,
+    "selected": [
+      "My website"
+    ]
+  }
+}

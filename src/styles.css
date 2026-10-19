@@ -1175,3 +1175,7 @@ footer {
 .account-heading > button {
   margin-inline-start: auto;
 }
+
+.pin-builder {
+  overflow-anchor: none;
+}

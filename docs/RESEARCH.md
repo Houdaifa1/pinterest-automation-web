@@ -211,3 +211,9 @@ Evidence: [clarity walkthrough](prototype/clarity-review-results.json), [revised
 - D1 free individual databases are limited to 500 MB. Reference storage is bounded, not unlimited. Source: https://developers.cloudflare.com/d1/platform/limits/.
 - The current official runtime test package is @cloudflare/vitest-plugin. Source: https://github.com/cloudflare/workers-sdk/tree/main/fixtures/vitest-plugin-examples. Registry dependency audit returned zero vulnerabilities. The test configuration is separate from local credentials.
 - Verified Cloudflare resources: Pages project pinterest-automations; D1 database pinterest-automations in WEUR. The reduced login has Pages/D1 write and account/user/zone read. No DNS-write or billing-write permission was requested.
+
+## 19 October 2026 — public source and deployment on push
+
+- The owner requested public source and automatic deployment. A checked main-branch release uses GitHub Actions and Wrangler direct upload, supported by Cloudflare’s [Pages CI guide](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/). The credential needs Pages Edit plus D1 Edit for database migrations, limited to the owner’s selected account.
+- Checks and deployment are separate jobs. Pull requests do not run the production job. Official actions are pinned to verified full commit hashes, following GitHub’s [secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use). The production environment accepts main only. Secrets are not stored in source or included in screenshots.
+- The first GitHub build/test job passed. Deployment initially stopped because its token was absent. The Cloudflare token summary was reviewed in Chrome: only D1 Edit and Pages Edit for one account. Creation approval and the first successful pipeline remain pending at this point; a prepared workflow alone is not deployment proof.

@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-19T22:10:43.163Z",
+  "results": [
+    {
+      "path": "/",
+      "status": 200,
+      "milliseconds": 744,
+      "contentType": "text/html; charset=utf-8",
+      "nosniff": true,
+      "csp": true
+    },
+    {
+      "path": "/api/health",
+      "status": 200,
+      "milliseconds": 214,
+      "contentType": "application/json",
+      "nosniff": true,
+      "csp": false
+    },
+    {
+      "path": "/api/me",
+      "status": 401,
+      "milliseconds": 299,
+      "contentType": "application/json",
+      "nosniff": true,
+      "csp": false
+    },
+    {
+      "path": "/auth/dev",
+      "status": 404,
+      "milliseconds": 121,
+      "contentType": "text/plain; charset=UTF-8",
+      "nosniff": true,
+      "csp": false
+    }
+  ],
+  "limit": "Single requests from this computer; not page-render or load-test measurements."
+}

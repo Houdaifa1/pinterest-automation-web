@@ -27,11 +27,11 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 - No app implementation or live-account access. Original approved references unchanged. Next step: authorized API proof on the confirmed test setup.
 
 ## Open problems
-- Full clickable prototype is ready for review; approval remains pending. Home option B is approved.
-- Reference-image storage and delivery into the content-creation session need proof; current copy action carries text only.
-- Confirm `hudaifa.dev` DNS is on Cloudflare.
-- Run now requires a retained successful scheduled seed; first deployment and seed expiry need a guided bootstrap.
-- Activepieces run outputs contain credentials; the future backend must return allowlisted summaries only.
+- The limited Cloudflare token is prepared in Chrome. Its final creation approval and the first successful push-driven deployment are pending.
+- The explicit prompt-and-images attachment package is checked. Automatic image access from a separate content-creation session remains unproved.
+- Existing production-flow migration and an unassisted beginner setup session remain pending. Test scope is @stunningcrochet only; Crochet Simplified is excluded.
+- Real Google sign-in, isolated first run, Run now, pause/resume and the live domain are verified. A new pin-publication test and a live website Telegram test have not been completed.
+- Run now depends on a scheduled seed; first-run and expiry recovery are implemented and checked. Provider run outputs remain private and responses allowlisted.
 
 ## Product requirements update — 2026-10-19
 - Owner approved home option B; reaffirmed open Google sign-up, moderation control and fast, brief beginner-friendly flows.
@@ -159,3 +159,13 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 - Visually checked the 320px Arabic settings viewport and replaced an incorrectly cropped full-page capture. The real viewport has matching 320px body/main bounds and no page overflow. Corrected the dark page background below short pages. This does not substitute for unassisted beginner acceptance.
 - The explicit attachment ZIP and original-flow boundary checks are saved in docs/proof/. Private Chrome screenshots are excluded from the public source. Latest known-secret history scan checked 229 blobs with no matches.
 - Done: checked local content/setup changes. Half-done: Cloudflare final key approval and automatic deployment proof. Next: save the approved limited key to GitHub production, push and verify both CI jobs and the live site.
+
+## 19 October 2026 — current production database
+
+- Production migrations 0005 and 0006 applied successfully. The first attempt received Cloudflare error 7403; the existing login’s account read and D1 write were verified, a read succeeded, and the retry applied both migrations. No permission expansion was needed.
+- The checked website release deployed successfully through the existing command-line login to fa2497f5.pinterest-automations.pages.dev. Production health/access checks passed again. Limited GitHub deployment-token approval remains pending. This manual upload will not count as CI deployment proof.
+
+## 19 October 2026 — scroll position verified in the real builder
+
+- Reserved the current pin-builder height while changing source modes and disabled scroll anchoring inside it. On the real 320px page, direct clicks changed Page links → Without links → My website with scroll fixed at 298px and focus on the selected button. Evidence: docs/proof/website-scroll-check.json. Semantic browser-control clicks center their targets, so the final proof uses direct viewport clicks.
+- Production build passes. The latest manual release and both database migrations are live. This final scroll correction is prepared locally for the next deployment. Automatic deployment remains pending the final limited-token approval; no key has been created yet.

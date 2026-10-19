@@ -2078,6 +2078,8 @@ function Pins({
     [error, setError] = useState<unknown>(null),
     [busy, setBusy] = useState(false);
   const variant = useRef(preset?.variant);
+  const form = useRef<HTMLElement>(null);
+  const [formHeight, setFormHeight] = useState(0);
   const account = draft.accounts.find((a) => a.id === accountId);
   useEffect(() => {
     if (!accountId) return;
@@ -2093,7 +2095,11 @@ function Pins({
         ? count * (account?.pinsPerProduct || 6)
         : count;
   return (
-    <section className="readable">
+    <section
+      className="readable pin-builder"
+      ref={form}
+      style={{ minHeight: formHeight || undefined }}
+    >
       <h2>{t("newPins")}</h2>
       {!draft.accounts.length ? (
         <Empty title={t("noAccounts")} />
@@ -2117,6 +2123,13 @@ function Pins({
                 key={m}
                 aria-pressed={mode === m}
                 onClick={() => {
+                  if (form.current)
+                    setFormHeight(
+                      Math.max(
+                        formHeight,
+                        form.current.getBoundingClientRect().height,
+                      ),
+                    );
                   setMode(m);
                   if (m === "next") setCount(1);
                   else if (mode === "next") setCount(10);
