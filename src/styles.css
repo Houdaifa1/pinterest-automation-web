@@ -1215,3 +1215,22 @@ footer {
   gap: 8px;
   margin-top: 12px;
 }
+.card-management {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 22px 16px;
+}
+.removed-drafts .review-row {
+  justify-content: space-between;
+}
+.choice-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.flow-choice {
+  width: 100%;
+  text-align: start;
+  justify-content: space-between;
+}

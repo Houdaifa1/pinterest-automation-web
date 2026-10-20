@@ -1,5 +1,20 @@
 export const setupMessages = {
   en: {
+    createChoice: "Edit an existing automation, or start with an empty one.",
+    editExisting: "Edit existing automation",
+    startEmpty: "Create new automation",
+    connectToFind: "Connect Activepieces to find your existing automations.",
+    noExistingSetup:
+      "No matching automation was found. You can start an empty one.",
+    edit: "Edit",
+    removeDraft: "Remove draft",
+    removedDrafts: "Removed drafts",
+    removeDraftConfirm:
+      "Remove this unfinished setup? You can restore it below. Your Activepieces connections stay saved.",
+    activepiecesConnected: "Activepieces is connected",
+    savedKeyMessage:
+      "Your API key is saved securely. Continue with this connection, or replace it.",
+    changeApiKey: "Change API key",
     findingSetup: "Finding your saved connections and automations…",
     existingAutomation: "Your existing automation",
     keepExistingSetup:
@@ -25,6 +40,22 @@ export const setupMessages = {
     readyChanges: "Changes saved. Update the automation to use them.",
   },
   fr: {
+    createChoice:
+      "Modifiez une automatisation existante ou commencez avec une nouvelle.",
+    editExisting: "Modifier une automatisation existante",
+    startEmpty: "Créer une nouvelle automatisation",
+    connectToFind: "Connectez Activepieces pour retrouver vos automatisations.",
+    noExistingSetup:
+      "Aucune automatisation compatible trouvée. Vous pouvez en créer une nouvelle.",
+    edit: "Modifier",
+    removeDraft: "Retirer le brouillon",
+    removedDrafts: "Brouillons retirés",
+    removeDraftConfirm:
+      "Retirer cette configuration inachevée ? Vous pourrez la restaurer. Vos connexions Activepieces restent enregistrées.",
+    activepiecesConnected: "Activepieces est connecté",
+    savedKeyMessage:
+      "Votre clé API est enregistrée. Continuez avec cette connexion ou remplacez-la.",
+    changeApiKey: "Changer la clé API",
     findingSetup: "Recherche de vos connexions et automatisations…",
     existingAutomation: "Votre automatisation existante",
     keepExistingSetup:
@@ -52,6 +83,19 @@ export const setupMessages = {
       "Modifications enregistrées. Mettez à jour pour les utiliser.",
   },
   ar: {
+    createChoice: "عدّل أتمتة موجودة أو ابدأ بأتمتة فارغة.",
+    editExisting: "تعديل أتمتة موجودة",
+    startEmpty: "إنشاء أتمتة جديدة",
+    connectToFind: "وصّل Activepieces للعثور على أتمتاتك الحالية.",
+    noExistingSetup: "لم نجد أتمتة متوافقة. يمكنك إنشاء واحدة فارغة.",
+    edit: "تعديل",
+    removeDraft: "إزالة المسودة",
+    removedDrafts: "المسودات المُزالة",
+    removeDraftConfirm:
+      "هل تريد إزالة هذا الإعداد غير المكتمل؟ يمكنك استعادته أدناه. ستبقى اتصالات Activepieces محفوظة.",
+    activepiecesConnected: "تم توصيل Activepieces",
+    savedKeyMessage: "مفتاح API محفوظ بأمان. تابع بهذا الاتصال أو استبدله.",
+    changeApiKey: "تغيير مفتاح API",
     findingSetup: "جارٍ البحث عن اتصالاتك وأتمتاتك المحفوظة…",
     existingAutomation: "أتمتتك الحالية",
     keepExistingSetup:

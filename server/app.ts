@@ -4,7 +4,7 @@ import { z } from "zod";
 import { auth, requireSession } from "./auth";
 import { owned } from "./access";
 import { integrations } from "./integrations";
-import { discovery } from "./discovery";
+import { discovery, existingSetups } from "./discovery";
 import { configSchema } from "./config";
 import { telegramChecks } from "./telegram";
 import { callbacks, deployment } from "./deployment";
@@ -103,6 +103,7 @@ function publicAutomation(a: Automation) {
     connected: Boolean(a.integration_id),
     deployed: Boolean(a.flow_id),
     imported: a.workspace_id !== null && a.workspace_id !== undefined,
+    intent: (a as any).setup_intent || "new",
     createdAt: a.created_at,
     updatedAt: a.updated_at,
   };
@@ -113,13 +114,21 @@ app.get("/api/automations", async (c) => {
   )
     .bind(c.get("user").id)
     .all<Automation>();
-  return c.json({ automations: rows.results.map(publicAutomation) });
+  return c.json({
+    automations: rows.results
+      .filter((a) => !a.archived_at)
+      .map(publicAutomation),
+    removedDrafts: rows.results
+      .filter((a) => a.archived_at && !a.flow_id)
+      .map(publicAutomation),
+  });
 });
 app.post("/api/automations", async (c) => {
-  const { name, requestId } = z
+  const { name, requestId, intent } = z
     .object({
       name: z.string().trim().min(1).max(60),
       requestId: z.uuid().optional(),
+      intent: z.enum(["new", "existing"]).default("new"),
     })
     .parse(await c.req.json());
   const userId = c.get("user").id,
@@ -138,8 +147,8 @@ app.post("/api/automations", async (c) => {
       .all<{ id: string }>()
   ).results;
   const saved = await c.env.DB.prepare(
-    `INSERT INTO automations(id,user_id,name,integration_id,created_at,updated_at)
- SELECT ?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM automations WHERE user_id=?)<20 ON CONFLICT(id) DO NOTHING RETURNING *`,
+    `INSERT INTO automations(id,user_id,name,integration_id,created_at,updated_at,setup_intent)
+ SELECT ?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM automations WHERE user_id=? AND archived_at IS NULL)<20 ON CONFLICT(id) DO NOTHING RETURNING *`,
   )
     .bind(
       automationId,
@@ -148,6 +157,7 @@ app.post("/api/automations", async (c) => {
       integrations.length === 1 ? integrations[0].id : null,
       now(),
       now(),
+      intent,
       userId,
     )
     .first<Automation>();
@@ -165,6 +175,27 @@ app.post("/api/automations", async (c) => {
 app.get("/api/automations/:id", async (c) =>
   c.json({ automation: publicAutomation(await owned(c)) }),
 );
+app.post("/api/automations/:id/restore-draft", async (c) => {
+  const a = await owned(c, true);
+  if (!a.archived_at || a.flow_id)
+    throw new PublicError(
+      "draft",
+      "Only a removed draft can be restored.",
+      409,
+    );
+  const result = await c.env.DB.prepare(
+    "UPDATE automations SET archived_at=NULL WHERE id=? AND user_id=? AND flow_id IS NULL AND operation_id IS NULL AND (SELECT COUNT(*) FROM automations WHERE user_id=? AND archived_at IS NULL)<20",
+  )
+    .bind(a.id, c.get("user").id, c.get("user").id)
+    .run();
+  if (!result.meta.changes)
+    throw new PublicError(
+      "limit",
+      "Finish or remove another draft before restoring this one.",
+      409,
+    );
+  return c.json({ restored: true });
+});
 app.put("/api/automations/:id", async (c) => {
   const automation = await owned(c);
   const body = z
@@ -338,6 +369,7 @@ app.delete("/api/me", async (c) => {
 });
 app.route("/api/automations", integrations);
 app.route("/api/automations", discovery);
+app.route("/api/existing-automations", existingSetups);
 app.route("/api/automations", telegramChecks);
 app.route("/api/automations", deployment);
 app.route("/api/automations", content);

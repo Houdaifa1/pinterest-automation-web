@@ -87,3 +87,9 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Use a pure black canvas, neutral dark surfaces and white main actions. Reserve green for a meaningful edit/save state. No green/teal background and no automatic appearance switch in the new design.
 - English only. Remove the language picker and French/Arabic screens from the redesign. This supersedes earlier translation/RTL requirements; older release evidence remains historical.
 - Prototype actions use sample state only. Existing unfinished application files stay untouched; no live posting, production draft cleanup or deployment during this stage.
+
+## 20 October 2026 — real rebuild and production testing authorized
+
+- Owner explicitly resumed the real build and requested production testing, superseding the previous review pause and prototype approval gate. Use the black English-only workspace and reviewed behavior.
+- Test account is now hhdrahm@gmail.com and its connected Activepieces/Pinterest services. Ask the owner to sign in at the live-test stage, then verify actual connected identities and isolate tests. crochetsimplified.com is authorized as a content source. Do not infer that a similarly named old shared flow belongs to this account.
+- Reset obsolete website test data after an inventory and private backup; preserve unrelated members and remote resources. Flexible posting times, manual execution, conservative editable defaults, accurate per-pin links and concise complete prompts require real proof.

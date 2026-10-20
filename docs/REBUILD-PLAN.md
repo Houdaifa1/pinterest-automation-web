@@ -1,6 +1,6 @@
 # Product and design proposal — 20 October 2026
 
-Status: PROTOTYPE READY FOR REVIEW, 20 October 2026. The owner requested starting work with a pure black background and English only. The separate revised prototype is in docs/prototype-v2/. Forty-two browser checks passed; optional unverified dialog polish was removed after saved browser permissions blocked further inspection. Prototype approval still precedes the production rebuild. Earlier unfinished application edits remain local and unapproved.
+Status: REAL BUILD AUTHORIZED, 20 October 2026. The owner's latest instructions supersede the earlier prototype-review pause. Complete integration proofs, implement the checked black English-only direction, and test the designated real account after asking him to sign in.
 
 ## 1. What this product should feel like
 

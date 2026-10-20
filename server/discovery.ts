@@ -7,9 +7,10 @@ import {
   syncConnections,
   safeSheet,
   type Connection,
+  type Integration,
 } from "./activepieces";
 import { configSchema } from "./config";
-import { hash, id, now, PublicError, rateLimit } from "./security";
+import { decrypt, hash, id, now, PublicError, rateLimit } from "./security";
 import type { AppEnv, Automation, Env } from "./types";
 
 const uuid = /^[a-f0-9-]{36}$/;
@@ -236,6 +237,19 @@ discovery.post("/:id/adopt", async (c) => {
       "This automation changed. Check your saved automations again.",
       409,
     );
+  await adoptFlow(c.env, userId, a, flow, parsed, key, integration);
+  return c.json({ adopted: true });
+});
+
+async function adoptFlow(
+  env: Env,
+  userId: string,
+  a: Automation,
+  flow: any,
+  parsed: NonNullable<ReturnType<typeof readExistingFlow>>,
+  key: string,
+  integration: Integration,
+) {
   const runs = await ap(
     key,
     `/flow-runs?projectId=${encodeURIComponent(integration.project_id)}&flowId=${encodeURIComponent(flow.id)}&limit=25`,
@@ -255,7 +269,7 @@ discovery.post("/:id/adopt", async (c) => {
   const config = JSON.stringify(parsed.config),
     revision = a.revision + 1;
   const statements = [
-    c.env.DB.prepare(
+    env.DB.prepare(
       "INSERT INTO flow_bindings SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM automations WHERE id=? AND user_id=? AND revision=? AND flow_id IS NULL AND operation_id IS NULL)",
     ).bind(
       integration.project_id,
@@ -266,7 +280,7 @@ discovery.post("/:id/adopt", async (c) => {
       userId,
       a.revision,
     ),
-    c.env.DB.prepare(
+    env.DB.prepare(
       "UPDATE automations SET name=?,config=?,revision=?,applied_revision=?,applied_config=?,flow_id=?,flow_version_id=?,seed_run_id=?,sheet_url=?,workspace_id=?,status=?,setup_step=3,error_code=NULL,updated_at=? WHERE id=? AND user_id=? AND flow_id IS NULL AND operation_id IS NULL AND revision=?",
     ).bind(
       parsed.name,
@@ -285,7 +299,7 @@ discovery.post("/:id/adopt", async (c) => {
       userId,
       a.revision,
     ),
-    c.env.DB.prepare(
+    env.DB.prepare(
       "INSERT INTO versions SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM automations WHERE id=? AND user_id=? AND revision=? AND flow_id=?)",
     ).bind(
       id(),
@@ -302,12 +316,12 @@ discovery.post("/:id/adopt", async (c) => {
   ];
   for (const account of parsed.config.accounts.filter((p: any) => p.on))
     statements.push(
-      c.env.DB.prepare(
+      env.DB.prepare(
         "INSERT INTO profile_claims SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM automations WHERE id=? AND user_id=? AND revision=? AND flow_id=?)",
       ).bind(userId, account.connection, a.id, a.id, userId, revision, flow.id),
     );
   try {
-    const results = await c.env.DB.batch(statements);
+    const results = await env.DB.batch(statements);
     if (results[1].meta.changes !== 1) throw new Error("adoption_changed");
   } catch {
     throw new PublicError(
@@ -316,7 +330,110 @@ discovery.post("/:id/adopt", async (c) => {
       409,
     );
   }
-  return c.json({ adopted: true });
+}
+
+async function savedFlows(env: Env, userId: string) {
+  const integrations = (
+    await env.DB.prepare("SELECT * FROM integrations WHERE user_id=?")
+      .bind(userId)
+      .all<Integration>()
+  ).results;
+  const found = [];
+  for (const integration of integrations) {
+    const key = await decrypt(env, integration.encrypted_key, userId);
+    await syncConnections(env, userId, integration, key);
+    const rows = await connectionRows(env, userId, integration.id);
+    for (const flow of await providerFlows(key, integration.project_id)) {
+      const parsed = readExistingFlow(flow, rows);
+      if (!parsed) continue;
+      const binding = await env.DB.prepare(
+        "SELECT user_id,automation_id FROM flow_bindings WHERE project_id=? AND flow_id=?",
+      )
+        .bind(integration.project_id, flow.id)
+        .first<{ user_id: string; automation_id: string }>();
+      if (binding && binding.user_id !== userId) continue;
+      found.push({
+        choice: await hash(integration.id + ":" + flow.id),
+        integration,
+        key,
+        flow,
+        parsed,
+        websiteId: binding?.automation_id || null,
+      });
+    }
+  }
+  return { found, needsKey: integrations.length === 0 };
+}
+export const existingSetups = new Hono<AppEnv>();
+existingSetups.get("/", async (c) => {
+  await rateLimit(c, `saved-flows:${c.get("user").id}`, 12, 600);
+  const { found, needsKey } = await savedFlows(c.env, c.get("user").id);
+  return c.json({
+    needsKey,
+    flows: found.map((f) => ({
+      choice: f.choice,
+      name: f.parsed.name,
+      project: f.integration.platform_name,
+      profiles: f.parsed.config.accounts.map((a) => a.username),
+      status: f.flow.status === "ENABLED" ? "running" : "paused",
+      websiteId: f.websiteId,
+    })),
+  });
+});
+existingSetups.post("/open", async (c) => {
+  const userId = c.get("user").id;
+  await rateLimit(c, `open-saved:${userId}`, 8, 600);
+  const { choice } = z
+    .object({ choice: z.string().regex(/^[A-Za-z0-9_-]{43}$/) })
+    .parse(await c.req.json());
+  const { found } = await savedFlows(c.env, userId),
+    selected = found.find((f) => f.choice === choice);
+  if (!selected)
+    throw new PublicError(
+      "existing_changed",
+      "This automation changed. Refresh the list.",
+      409,
+    );
+  if (selected.websiteId) return c.json({ id: selected.websiteId });
+  const automationId = id();
+  const created = await c.env.DB.prepare(
+    "INSERT INTO automations(id,user_id,integration_id,name,created_at,updated_at,setup_intent) SELECT ?,?,?,?,?,?,'existing' WHERE (SELECT COUNT(*) FROM automations WHERE user_id=? AND archived_at IS NULL)<20 RETURNING *",
+  )
+    .bind(
+      automationId,
+      userId,
+      selected.integration.id,
+      selected.parsed.name,
+      now(),
+      now(),
+      userId,
+    )
+    .first<Automation>();
+  if (!created)
+    throw new PublicError(
+      "limit",
+      "Remove an unused draft before adding another automation.",
+      409,
+    );
+  try {
+    await adoptFlow(
+      c.env,
+      userId,
+      created,
+      selected.flow,
+      selected.parsed,
+      selected.key,
+      selected.integration,
+    );
+  } catch (error) {
+    await c.env.DB.prepare(
+      "UPDATE automations SET archived_at=? WHERE id=? AND user_id=? AND flow_id IS NULL",
+    )
+      .bind(now(), automationId, userId)
+      .run();
+    throw error;
+  }
+  return c.json({ id: automationId });
 });
 
 export async function existingTelegramSheet(

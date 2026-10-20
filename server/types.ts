@@ -39,6 +39,7 @@ export interface Automation {
   sheet_url: string | null;
   operation_id: string | null;
   workspace_id?: string | null;
+  archived_at?: number | null;
   applied_config?: string | null;
   created_at: number;
   updated_at: number;

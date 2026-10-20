@@ -635,6 +635,14 @@ deployment.delete("/:id", async (c) => {
   z.object({ confirm: z.literal(true) }).parse(await c.req.json());
   const operation = await lock(c.env, a);
   try {
+    if (!a.flow_id) {
+      await c.env.DB.prepare(
+        "UPDATE automations SET archived_at=?,updated_at=? WHERE id=? AND user_id=? AND operation_id=? AND flow_id IS NULL",
+      )
+        .bind(now(), now(), a.id, c.get("user").id, operation)
+        .run();
+      return c.json({ archived: true });
+    }
     if (a.flow_id) {
       const { key } = await getIntegration(c.env, c.get("user").id, a);
       try {

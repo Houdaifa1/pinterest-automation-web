@@ -28,14 +28,6 @@ export function detectedConfig(
   const bots = active.filter((c) => c.service === "telegram");
   if (!active.some((c) => c.id === next.telegram) && bots.length === 1)
     next.telegram = bots[0].id;
-  if (!next.accounts.length)
-    next.accounts = active
-      .filter(
-        (c) =>
-          c.service === "pinterest" &&
-          /^[A-Za-z0-9_]{1,30}$/.test(c.identity.replace(/^@/, "")),
-      )
-      .map((c) => newPinterestAccount(c));
   return next;
 }
 export function newPinterestAccount(connection: Connection): Account {

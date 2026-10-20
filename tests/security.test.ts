@@ -280,3 +280,64 @@ it("uses host-only secure Google state cookies and requests identity scopes only
     "https://automation.houdaifa.dev/auth/start",
   );
 });
+
+it("removes only the owned draft, hides all its routes and restores the same draft", async () => {
+  const a = await login("member-a"),
+    b = await login("member-b");
+  const { automation } = (await (
+    await request("/api/automations", a, "POST", { name: "Disposable draft" })
+  ).json()) as any;
+  const base = `/api/automations/${automation.id}`;
+  expect((await request(base, b, "DELETE", { confirm: true })).status).toBe(
+    404,
+  );
+  expect((await request(base, a, "DELETE", { confirm: true })).status).toBe(
+    200,
+  );
+  for (const suffix of ["", "/versions", "/batches", "/connections"])
+    expect((await request(base + suffix, a)).status).toBe(404);
+  const removed = (await (await request("/api/automations", a)).json()) as any;
+  expect(removed.automations).toHaveLength(0);
+  expect(removed.removedDrafts[0].id).toBe(automation.id);
+  expect((await request(base + "/restore-draft", b, "POST", {})).status).toBe(
+    404,
+  );
+  expect((await request(base + "/restore-draft", a, "POST", {})).status).toBe(
+    200,
+  );
+  expect((await request(base, a)).status).toBe(200);
+  expect((await request(base + "/restore-draft", a, "POST", {})).status).toBe(
+    409,
+  );
+});
+
+it("starts new setups empty while retaining the member's sole encrypted integration", async () => {
+  const a = await login("member-a");
+  const integrationId = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO integrations VALUES(?,?,?,?,?,?)")
+    .bind(
+      integrationId,
+      a.user.id,
+      await encrypt(env, "private-key", a.user.id),
+      "project",
+      "Saved workspace",
+      1,
+    )
+    .run();
+  const { automation } = (await (
+    await request("/api/automations", a, "POST", {
+      name: "Fresh",
+      intent: "new",
+    })
+  ).json()) as any;
+  expect(automation.connected).toBe(true);
+  expect(automation.config.accounts ?? []).toEqual([]);
+  expect(automation.intent).toBe("new");
+  expect(JSON.stringify(automation)).not.toContain("private-key");
+  const saved = await env.DB.prepare(
+    "SELECT integration_id FROM automations WHERE id=?",
+  )
+    .bind(automation.id)
+    .first();
+  expect(saved?.integration_id).toBe(integrationId);
+});

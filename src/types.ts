@@ -47,6 +47,7 @@ export interface Automation {
   connected: boolean;
   deployed: boolean;
   imported: boolean;
+  intent: "new" | "existing";
   createdAt: number;
   updatedAt: number;
 }

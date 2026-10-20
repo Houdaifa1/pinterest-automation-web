@@ -482,6 +482,13 @@ function WebsiteAccount() {
 function Home() {
   const { t } = useWorkspace();
   const [items, setItems] = useState<Automation[]>([]),
+    [removedDrafts, setRemovedDrafts] = useState<Automation[]>([]),
+    [removing, setRemoving] = useState<Automation | null>(null),
+    [creating, setCreating] = useState(false),
+    [createMode, setCreateMode] = useState<"choice" | "existing">("choice"),
+    [savedFlows, setSavedFlows] = useState<any[]>([]),
+    [finding, setFinding] = useState(false),
+    [needsKey, setNeedsKey] = useState(false),
     [loading, setLoading] = useState(true),
     [error, setError] = useState<unknown>(null),
     [query, setQuery] = useState(""),
@@ -491,6 +498,7 @@ function Home() {
     api("/api/automations")
       .then((r) => {
         setItems(r.automations);
+        setRemovedDrafts(r.removedDrafts || []);
         setError(null);
       })
       .catch(setError)
@@ -498,18 +506,33 @@ function Home() {
   };
   useEffect(load, []);
   const creationId = useRef(crypto.randomUUID());
-  const create = async () => {
+  const create = async (intent: "new" | "existing" = "new") => {
     setBusy(true);
     try {
       const r = await api("/api/automations", "POST", {
         name: t("automation"),
         requestId: creationId.current,
+        intent,
       });
       navigate(`/automations/${r.automation.id}/setup`);
     } catch (e) {
       setError(e);
     } finally {
       setBusy(false);
+    }
+  };
+  const findExisting = async () => {
+    setCreateMode("existing");
+    setFinding(true);
+    try {
+      const r = await api("/api/existing-automations");
+      setSavedFlows(r.flows);
+      setNeedsKey(r.needsKey);
+    } catch (e) {
+      setError(e);
+      setCreating(false);
+    } finally {
+      setFinding(false);
     }
   };
   const filtered = items.filter((a) =>
@@ -523,7 +546,14 @@ function Home() {
         <div>
           <h1>{t("automations")}</h1>
         </div>
-        <button className="primary" onClick={create} disabled={busy}>
+        <button
+          className="primary"
+          onClick={() => {
+            setCreateMode("choice");
+            setCreating(true);
+          }}
+          disabled={busy}
+        >
           <Plus size={18} />
           {t("create")}
         </button>
@@ -534,7 +564,14 @@ function Home() {
       ) : !items.length ? (
         <Empty title={t("empty")}>
           <p>{t("emptyCopy")}</p>
-          <button className="primary" onClick={create} disabled={busy}>
+          <button
+            className="primary"
+            onClick={() => {
+              setCreateMode("choice");
+              setCreating(true);
+            }}
+            disabled={busy}
+          >
             <Plus size={18} />
             {t("create")}
           </button>
@@ -576,6 +613,17 @@ function Home() {
                     ))}
                   </div>
                 </div>
+                <div className="card-management">
+                  <Link
+                    className="button"
+                    to={`/automations/${a.id}/${a.deployed ? "settings" : "setup"}`}
+                  >
+                    {t("edit")}
+                  </Link>
+                  <button className="danger" onClick={() => setRemoving(a)}>
+                    {t(a.deployed ? "deleteAutomation" : "removeDraft")}
+                  </button>
+                </div>
                 <Link
                   className="card-action"
                   to={`/automations/${a.id}/accounts?add=1`}
@@ -589,6 +637,143 @@ function Home() {
           {!filtered.length && <Empty title={t("noResults")} />}
         </>
       )}
+      {removedDrafts.length > 0 && (
+        <details className="history-section removed-drafts">
+          <summary>
+            {t("removedDrafts")} · {removedDrafts.length}
+          </summary>
+          {removedDrafts.map((a) => (
+            <div className="review-row" key={a.id}>
+              <span>{a.name}</span>
+              <button
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api(
+                      `/api/automations/${a.id}/restore-draft`,
+                      "POST",
+                      {},
+                    );
+                    load();
+                  } catch (e) {
+                    setError(e);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t("restore")}
+              </button>
+            </div>
+          ))}
+        </details>
+      )}
+      <Modal
+        title={removing?.name || t("automation")}
+        open={Boolean(removing)}
+        onOpenChange={(v) => !v && setRemoving(null)}
+      >
+        <p>
+          {t(
+            removing?.deployed
+              ? "deleteAutomationConfirm"
+              : "removeDraftConfirm",
+          )}
+        </p>
+        <div className="button-row">
+          <button onClick={() => setRemoving(null)}>{t("cancel")}</button>
+          <button
+            className="danger"
+            disabled={busy}
+            onClick={async () => {
+              if (!removing) return;
+              setBusy(true);
+              try {
+                await api(`/api/automations/${removing.id}`, "DELETE", {
+                  confirm: true,
+                });
+                setRemoving(null);
+                load();
+              } catch (e) {
+                setError(e);
+                setRemoving(null);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {t(removing?.deployed ? "deleteAutomation" : "removeDraft")}
+          </button>
+        </div>
+      </Modal>
+      <Modal title={t("create")} open={creating} onOpenChange={setCreating}>
+        {createMode === "choice" ? (
+          <>
+            <p>{t("createChoice")}</p>
+            <div className="choice-buttons">
+              <button className="primary" onClick={() => void findExisting()}>
+                {t("editExisting")}
+              </button>
+              <button disabled={busy} onClick={() => void create("new")}>
+                {t("startEmpty")}
+              </button>
+            </div>
+          </>
+        ) : finding ? (
+          <p role="status">{t("findingSetup")}</p>
+        ) : (
+          <>
+            {savedFlows.map((f) => (
+              <button
+                className="existing-setup flow-choice"
+                key={f.choice}
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const r = await api(
+                      "/api/existing-automations/open",
+                      "POST",
+                      { choice: f.choice },
+                    );
+                    navigate(`/automations/${r.id}/summary`);
+                  } catch (e) {
+                    setError(e);
+                    setCreating(false);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                <span>
+                  <strong>{f.name}</strong>
+                  <small>
+                    {f.profiles.map((u: string) => "@" + u).join(" · ")}
+                  </small>
+                  <small>
+                    {f.project} · {t(f.status)}
+                  </small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            ))}
+            {!savedFlows.length && (
+              <>
+                <p>{t(needsKey ? "connectToFind" : "noExistingSetup")}</p>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => void create(needsKey ? "existing" : "new")}
+                >
+                  {t(needsKey ? "connect" : "startEmpty")}
+                </button>
+              </>
+            )}
+            <button onClick={() => setCreateMode("choice")}>{t("back")}</button>
+          </>
+        )}
+      </Modal>
     </main>
   );
 }
@@ -616,6 +801,7 @@ function AutomationPage() {
     [saving, setSaving] = useState(false),
     [saveError, setSaveError] = useState<unknown>(null),
     [connections, setConnections] = useState<Connection[]>([]),
+    [connectionName, setConnectionName] = useState(""),
     [connectionsUrl, setConnectionsUrl] = useState(
       "https://cloud.activepieces.com/",
     ),
@@ -683,6 +869,7 @@ function AutomationPage() {
     try {
       const r = await api(`/api/automations/${id}/connections?refresh=1`);
       setConnections(r.connections);
+      setConnectionName(r.name || "");
       setConnectionsUrl(r.connectionsUrl);
     } catch (e) {
       setError(e);
@@ -800,6 +987,7 @@ function AutomationPage() {
             connections={connections}
             refresh={refreshConnections}
             connectionsUrl={connectionsUrl}
+            connectionName={connectionName}
             action={action}
             busy={actionPending}
           />
@@ -990,6 +1178,7 @@ function Setup({
   connections,
   refresh,
   connectionsUrl,
+  connectionName,
   action,
   busy,
 }: any) {
@@ -1025,14 +1214,17 @@ function Setup({
     [flows, setFlows] = useState<any[]>([]),
     [flowChoice, setFlowChoice] = useState(""),
     [discovering, setDiscovering] = useState(false),
-    [addingBot, setAddingBot] = useState(false);
+    [addingBot, setAddingBot] = useState(false),
+    [changingKey, setChangingKey] = useState(false);
   const discovered = useRef(false);
   const discover = async (config: Config) => {
     setDiscovering(true);
     try {
       const result = await api(`/api/automations/${automation.id}/discovery`);
       setFlows(result.flows);
-      setFlowChoice(result.flows[0]?.choice || "");
+      setFlowChoice(
+        automation.intent === "existing" ? result.flows[0]?.choice || "" : "",
+      );
       const next = detectedConfig(config, result.connections);
       edit(next);
       await flush();
@@ -1048,7 +1240,7 @@ function Setup({
         !location.search.includes("notifications=1")
       )
         setStep(
-          result.flows.length ||
+          (automation.intent === "existing" && result.flows.length) ||
             connectionsReady(next, result.connections, reusedBot)
             ? 3
             : 2,
@@ -1177,6 +1369,37 @@ function Setup({
       {error != null && <ErrorBox error={error} />}
       {discovering ? (
         <p role="status">{t("loading")}</p>
+      ) : step === 0 && automation.connected && !changingKey ? (
+        <>
+          <div className="review-row">
+            <Check size={18} />
+            <strong>{t("activepiecesConnected")}</strong>
+          </div>
+          {connectionName && <p>{connectionName}</p>}
+          <Notice>{t("savedKeyMessage")}</Notice>
+          <div className="button-row">
+            <button
+              className="primary"
+              disabled={working}
+              onClick={async () => {
+                setWorking(true);
+                try {
+                  if (automation.deployed)
+                    navigate(`/automations/${automation.id}/summary`);
+                  else await discover(draft);
+                } finally {
+                  setWorking(false);
+                }
+              }}
+            >
+              {t("continue")}
+              <ArrowRight size={16} />
+            </button>
+            <button onClick={() => setChangingKey(true)}>
+              {t("changeApiKey")}
+            </button>
+          </div>
+        </>
       ) : step === 0 ? (
         <form onSubmit={connectKey}>
           <p>{t("connectCopy")}</p>
@@ -1217,6 +1440,19 @@ function Setup({
           <button className="primary" disabled={working || key.length < 16}>
             {working ? t("loading") : t("verify")}
           </button>
+          {automation.connected && (
+            <button
+              type="button"
+              onClick={() => {
+                setChangingKey(false);
+                setKey("");
+                setProjects([]);
+                setProject("");
+              }}
+            >
+              {t("cancel")}
+            </button>
+          )}
         </form>
       ) : step === 1 ? (
         <>
@@ -1410,67 +1646,69 @@ function Setup({
         </>
       ) : (
         <>
-          {flows.length > 0 && !automation.deployed && (
-            <div className="existing-setups">
-              <h2>{t("existingAutomation")}</h2>
-              <p>{t("keepExistingSetup")}</p>
-              {flows.map((f: any) => (
-                <label className="existing-setup" key={f.choice}>
-                  <input
-                    type="radio"
-                    name="existing-flow"
-                    checked={flowChoice === f.choice}
-                    onChange={() => setFlowChoice(f.choice)}
-                  />
-                  <span>
-                    <strong>{f.name}</strong>
-                    <small>
-                      {f.config.accounts
-                        .map((a: Account) => "@" + a.username)
-                        .join(" · ")}{" "}
-                      · {t(f.status)}
-                    </small>
-                  </span>
-                </label>
-              ))}
-              {selectedFlow && (
-                <button
-                  className="primary"
-                  disabled={working}
-                  onClick={async () => {
-                    if (selectedFlow.websiteAutomationId) {
-                      navigate(
-                        `/automations/${selectedFlow.websiteAutomationId}/summary`,
-                      );
-                      return;
-                    }
-                    setWorking(true);
-                    setError(null);
-                    try {
-                      await flush();
-                      await api(
-                        `/api/automations/${automation.id}/adopt`,
-                        "POST",
-                        { choice: flowChoice },
-                      );
-                      await load();
-                      navigate(`/automations/${automation.id}/summary`);
-                    } catch (e) {
-                      setError(e);
-                    } finally {
-                      setWorking(false);
-                    }
-                  }}
-                >
-                  {t(
-                    selectedFlow.websiteAutomationId
-                      ? "open"
-                      : "useExistingAutomation",
-                  )}
-                </button>
-              )}
-            </div>
-          )}
+          {flows.length > 0 &&
+            !automation.deployed &&
+            automation.intent === "existing" && (
+              <div className="existing-setups">
+                <h2>{t("existingAutomation")}</h2>
+                <p>{t("keepExistingSetup")}</p>
+                {flows.map((f: any) => (
+                  <label className="existing-setup" key={f.choice}>
+                    <input
+                      type="radio"
+                      name="existing-flow"
+                      checked={flowChoice === f.choice}
+                      onChange={() => setFlowChoice(f.choice)}
+                    />
+                    <span>
+                      <strong>{f.name}</strong>
+                      <small>
+                        {f.config.accounts
+                          .map((a: Account) => "@" + a.username)
+                          .join(" · ")}{" "}
+                        · {t(f.status)}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+                {selectedFlow && (
+                  <button
+                    className="primary"
+                    disabled={working}
+                    onClick={async () => {
+                      if (selectedFlow.websiteAutomationId) {
+                        navigate(
+                          `/automations/${selectedFlow.websiteAutomationId}/summary`,
+                        );
+                        return;
+                      }
+                      setWorking(true);
+                      setError(null);
+                      try {
+                        await flush();
+                        await api(
+                          `/api/automations/${automation.id}/adopt`,
+                          "POST",
+                          { choice: flowChoice },
+                        );
+                        await load();
+                        navigate(`/automations/${automation.id}/summary`);
+                      } catch (e) {
+                        setError(e);
+                      } finally {
+                        setWorking(false);
+                      }
+                    }}
+                  >
+                    {t(
+                      selectedFlow.websiteAutomationId
+                        ? "open"
+                        : "useExistingAutomation",
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           {(!flows.length || !flowChoice || automation.deployed) && (
             <>
               <p>{t("reviewCopy")}</p>
@@ -1506,17 +1744,21 @@ function Setup({
             </>
           )}
           <div className="setup-options">
-            {flows.length > 0 && !automation.deployed && (
-              <button
-                onClick={() => setFlowChoice(flowChoice ? "" : flows[0].choice)}
-              >
-                {t(
-                  flowChoice
-                    ? "createSeparateAutomation"
-                    : "useExistingAutomation",
-                )}
-              </button>
-            )}
+            {flows.length > 0 &&
+              !automation.deployed &&
+              automation.intent === "existing" && (
+                <button
+                  onClick={() =>
+                    setFlowChoice(flowChoice ? "" : flows[0].choice)
+                  }
+                >
+                  {t(
+                    flowChoice
+                      ? "createSeparateAutomation"
+                      : "useExistingAutomation",
+                  )}
+                </button>
+              )}
             <button onClick={() => setStep(1)}>
               {t("changeNotifications")}
             </button>

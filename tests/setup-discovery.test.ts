@@ -1,13 +1,17 @@
 import { expect, it } from "vitest";
 import { defaultState } from "../engine/panel/generator.js";
-import { connectionsReady, detectedConfig } from "../src/setup";
+import {
+  connectionsReady,
+  detectedConfig,
+  newPinterestAccount,
+} from "../src/setup";
 const connections = [
   { id: "sheets", service: "google", identity: "bot@example.test" },
   { id: "mail", service: "gmail", identity: "bot@example.test" },
   { id: "pinterest", service: "pinterest", identity: "crochettest" },
   { id: "bot", service: "telegram", identity: "savedbot" },
 ].map((c) => ({ ...c, status: "ACTIVE", label: c.service }));
-it("fills verified connections once and can go straight to review", () => {
+it("fills saved service connections without silently adding Pinterest accounts", () => {
   const config = detectedConfig(
     { ...defaultState(), emailTo: "member@example.test" },
     connections,
@@ -15,6 +19,9 @@ it("fills verified connections once and can go straight to review", () => {
   expect(config.google).toBe("sheets");
   expect(config.gmail).toBe("mail");
   expect(config.telegram).toBe("bot");
+  expect(config.accounts).toEqual([]);
+  expect(connectionsReady(config, connections, false)).toBe(false);
+  config.accounts = [newPinterestAccount(connections[2])];
   expect(config.accounts[0].username).toBe("crochettest");
   expect(config.accounts[0].hours).toEqual([9, 12, 15, 18, 21]);
   expect(detectedConfig(config, connections)).toEqual(config);
