@@ -167,8 +167,35 @@ telegramChecks.get("/:id/telegram-status", async (c) => {
   const a = await owned(c),
     userId = c.get("user").id;
   await rateLimit(c, `bot-check:${userId}`, 20, 60);
+  const selected = c.req.query("connection") || JSON.parse(a.config).telegram;
+  const applied = a.applied_config ? JSON.parse(a.applied_config) : null;
+  if (
+    a.workspace_id !== null &&
+    a.workspace_id !== undefined &&
+    applied?.notifyTelegram &&
+    applied.telegram === selected
+  )
+    return c.json({
+      configured: true,
+      existing: true,
+      started: true,
+      tested: false,
+    });
+  const recipient = await c.env.DB.prepare(
+    "SELECT connection_id FROM telegram_recipients WHERE automation_id=? AND user_id=?",
+  )
+    .bind(a.id, userId)
+    .first<{ connection_id: string }>();
+  if (recipient && recipient.connection_id === selected)
+    return c.json({
+      configured: true,
+      existing: true,
+      started: true,
+      tested: false,
+    });
   const result = await readSetup(c.env, userId, a.id);
-  if (!result) return c.json({ configured: false });
+  if (!result || (selected && result.value.connectionId !== selected))
+    return c.json({ configured: false });
   const { setup } = result;
   let value = result.value;
   if (!setup.tested_at) value = await findStart(c.env, setup, value);

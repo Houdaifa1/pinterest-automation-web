@@ -38,6 +38,8 @@ export interface Automation {
   status: string;
   sheet_url: string | null;
   operation_id: string | null;
+  workspace_id?: string | null;
+  applied_config?: string | null;
   created_at: number;
   updated_at: number;
 }

@@ -5,6 +5,7 @@ import { buildWebsiteFlow } from "./flow-builder.mjs";
 import { defaultState } from "../engine/panel/generator.js";
 import { owned } from "./access";
 import { verifiedBotChat } from "./telegram";
+import { existingTelegramSheet, checkExistingProfiles } from "./discovery";
 import { ap, getIntegration, safeSheet, type Connection } from "./activepieces";
 import {
   decrypt,
@@ -28,6 +29,7 @@ interface DeployAutomation extends Automation {
   operation_started_at: number | null;
   callback_hash: string | null;
   encrypted_callback: string | null;
+  resume_after_apply: number;
 }
 async function resolveConfig(
   env: Env,
@@ -71,15 +73,59 @@ async function resolveConfig(
   }
   config.google = google.external_id;
   delete config.telegramChat;
+  delete config.reuseTelegramRecipient;
+  delete config.telegramRecipientSheet;
   if (config.notifyEmail)
     config.gmail = resolve(config.gmail, "gmail").external_id;
   if (config.notifyTelegram) {
-    config.telegramChat = await verifiedBotChat(
-      env,
-      userId,
-      a.id,
-      config.telegram,
-    );
+    const applied = a.applied_config ? JSON.parse(a.applied_config) : null;
+    if (
+      a.sheet_url &&
+      applied?.notifyTelegram &&
+      applied.telegram === config.telegram &&
+      applied.google === google.id
+    )
+      config.reuseTelegramRecipient = true;
+    else {
+      try {
+        config.telegramChat = await verifiedBotChat(
+          env,
+          userId,
+          a.id,
+          config.telegram,
+        );
+      } catch (e) {
+        if (!(e instanceof PublicError) || e.code !== "telegram_unverified")
+          throw e;
+        const googleId = JSON.parse(configText).google;
+        const saved = await env.DB.prepare(
+          "SELECT sheet_id FROM telegram_recipients WHERE automation_id=? AND user_id=? AND connection_id=? AND google_id=?",
+        )
+          .bind(a.id, userId, config.telegram, googleId)
+          .first<{ sheet_id: string }>();
+        config.telegramRecipientSheet =
+          saved?.sheet_id ||
+          (await existingTelegramSheet(
+            env,
+            userId,
+            a,
+            config.telegram,
+            googleId,
+          ));
+        if (!saved)
+          await env.DB.prepare(
+            "INSERT INTO telegram_recipients VALUES(?,?,?,?,?) ON CONFLICT(automation_id) DO UPDATE SET connection_id=excluded.connection_id,google_id=excluded.google_id,sheet_id=excluded.sheet_id",
+          )
+            .bind(
+              a.id,
+              userId,
+              config.telegram,
+              googleId,
+              config.telegramRecipientSheet,
+            )
+            .run();
+      }
+    }
     config.telegram = resolve(config.telegram, "telegram").external_id;
   }
   config.accounts = config.accounts.map((account: any) => {
@@ -96,7 +142,16 @@ async function resolveConfig(
     return { ...account, connection: connection.external_id };
   });
   try {
-    buildWebsiteFlow(template, config, a.id, a.name, "check", null);
+    buildWebsiteFlow(
+      template,
+      config,
+      a.id,
+      a.name,
+      "check",
+      null,
+      null,
+      a.workspace_id ?? a.id,
+    );
   } catch {
     throw new PublicError(
       "setup_incomplete",
@@ -163,6 +218,7 @@ async function install(
   configText: string,
   revision: number,
   bootstrapAt: string | null,
+  maintenance = false,
 ) {
   const state = await resolveConfig(env, userId, a, configText);
   let callback: string;
@@ -188,6 +244,8 @@ async function install(
     `website-${a.id}-${revision}`,
     callback,
     bootstrapAt,
+    a.workspace_id ?? a.id,
+    maintenance,
   );
   await ap(key, `/flows/${encodeURIComponent(a.flow_id!)}`, "POST", {
     type: "IMPORT_FLOW",
@@ -212,6 +270,7 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
     const { integration, key } = await getIntegration(env, userId, a);
     await resolveConfig(env, userId, a, a.config);
     const config = JSON.parse(a.config);
+    await checkExistingProfiles(env, userId, a, config);
     if (!config.accounts?.length)
       throw new PublicError(
         "accounts",
@@ -273,9 +332,34 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
         .run();
     }
     await env.DB.prepare(
-      "UPDATE automations SET deploy_config=?,target_revision=?,error_code=NULL WHERE id=?",
+      "INSERT INTO flow_bindings VALUES(?,?,?,?) ON CONFLICT DO NOTHING",
     )
-      .bind(a.config, a.revision, a.id)
+      .bind(integration.project_id, a.flow_id, userId, a.id)
+      .run();
+    const binding = await env.DB.prepare(
+      "SELECT automation_id,user_id FROM flow_bindings WHERE project_id=? AND flow_id=?",
+    )
+      .bind(integration.project_id, a.flow_id)
+      .first<{ automation_id: string; user_id: string }>();
+    if (binding?.automation_id !== a.id || binding.user_id !== userId)
+      throw new PublicError(
+        "already_managed",
+        "This flow is already managed by another automation.",
+        409,
+      );
+    await env.DB.prepare(
+      "UPDATE automations SET deploy_config=?,target_revision=?,resume_after_apply=?,error_code=NULL WHERE id=?",
+    )
+      .bind(
+        a.config,
+        a.revision,
+        a.status === "paused"
+          ? 0
+          : a.status === "running"
+            ? 1
+            : a.resume_after_apply,
+        a.id,
+      )
       .run();
     let seed = a.seed_run_id;
     if (seed) {
@@ -297,6 +381,7 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
       a.config,
       a.revision,
       bootstrap ? new Date(Date.now() + 180000).toISOString() : null,
+      true,
     );
     await env.DB.prepare(
       "UPDATE automations SET flow_version_id=?,bootstrap=?,status=?,seed_run_id=? WHERE id=?",
@@ -378,7 +463,7 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
         "The run finished, but its Google Sheet was not confirmed. Check the saved Google connection.",
         409,
       );
-    if (a.bootstrap) {
+    {
       await ap(key, `/flows/${encodeURIComponent(a.flow_id!)}`, "POST", {
         type: "CHANGE_STATUS",
         request: { status: "DISABLED" },
@@ -386,7 +471,7 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
       await install(
         env,
         userId,
-        a,
+        { ...a, applied_config: a.deploy_config!, sheet_url: sheet },
         key,
         a.deploy_config!,
         a.target_revision!,
@@ -397,18 +482,27 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
       key,
       `/flows/${encodeURIComponent(a.flow_id!)}`,
       "POST",
-      { type: "CHANGE_STATUS", request: { status: "ENABLED" } },
+      {
+        type: "CHANGE_STATUS",
+        request: { status: a.resume_after_apply ? "ENABLED" : "DISABLED" },
+      },
     );
-    if (flow.status !== "ENABLED")
+    if (flow.status !== (a.resume_after_apply ? "ENABLED" : "DISABLED"))
       throw new PublicError(
         "enable",
         "The posting schedule could not be confirmed. Refresh its status.",
         502,
       );
     await env.DB.prepare(
-      "UPDATE automations SET status='running',bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,error_code=NULL WHERE id=?",
+      "UPDATE automations SET status=?,bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,error_code=NULL WHERE id=?",
     )
-      .bind(a.target_revision, run.id, sheet, a.id)
+      .bind(
+        a.resume_after_apply ? "running" : "paused",
+        a.target_revision,
+        run.id,
+        sheet,
+        a.id,
+      )
       .run();
     const selected = JSON.parse(a.deploy_config!)
       .accounts.filter((x: any) => x.on)
@@ -418,7 +512,10 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
     )
       .bind(a.id, JSON.stringify(selected))
       .run();
-    return { status: "running", sheetUrl: sheet };
+    return {
+      status: a.resume_after_apply ? "running" : "paused",
+      sheetUrl: sheet,
+    };
   } finally {
     await unlock(env, a, operation);
   }

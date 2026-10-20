@@ -26,6 +26,15 @@ export const code = async (inputs) => {
   const tgTok = secretOf(inputs.telegram);
   if (!gTok) throw new Error('The Google Sheets connection could not be loaded. Check it in Activepieces → Connections.');
   const config = parseConfig(inputs.config) || { settings: {}, accounts: [] };
+  if ((config.settings?.telegramRecipientSheet || config.settings?.requireTelegramRecipient) && config.settings.notifyTelegram && !tgTok) throw new Error('Reconnect the selected Telegram bot in Activepieces before updating.');
+  if (config.settings?.telegramRecipientSheet && config.settings.notifyTelegram && tgTok) {
+    const sourceId = String(config.settings.telegramRecipientSheet);
+    if (!/^[A-Za-z0-9_-]{1,200}$/.test(sourceId)) throw new Error('The existing Telegram setup could not be verified.');
+    const [rows] = await sheets.batchGet(gTok, sourceId, [`${quoteTab(TABS.settings)}!A1:C50`]);
+    const existing = readSettings(rows);
+    if (!existing.notifyTelegram || !/^\d+$/.test(existing.telegramChat)) throw new Error('Open your existing automation and finish its Telegram setup before using this bot.');
+    config.settings.telegramChat = existing.telegramChat;
+  }
   const now = new Date();
   const result = { due: [], reportDue: false, notes: [], created: [] };
 
@@ -36,6 +45,7 @@ export const code = async (inputs) => {
 
   let [settingRows, accountRows] = await sheets.batchGet(gTok, ws.sheetId, [`${quoteTab(TABS.settings)}!A1:C50`, `${quoteTab(TABS.accounts)}!A1:Z200`]);
   let settings = readSettings(settingRows);
+  if (config.settings?.requireTelegramRecipient && config.settings.notifyTelegram && !/^\d+$/.test(settings.telegramChat)) throw new Error('The saved Telegram recipient is missing. Add or replace the bot in Notifications.');
 
   // ---- Apply the Control Panel file once (identified by its version) ----
   // Several automations may share one spreadsheet (e.g. one per Activepieces account): the cell keeps
@@ -162,6 +172,10 @@ export const code = async (inputs) => {
     } catch (e) {
       result.notes.push(`setup message failed: ${e.message}`);
     }
+  }
+  if (config.settings?.maintenance) {
+    result.due = [];
+    result.reportDue = false;
   }
   return result;
 };

@@ -8,9 +8,13 @@ export function buildWebsiteFlow(
   version,
   callback,
   bootstrapAt = null,
+  workspaceId = automationId,
+  maintenance = false,
 ) {
   if (!/^[a-f0-9-]{36}$/.test(automationId))
     throw new Error("Invalid automation identity.");
+  if (workspaceId !== "" && !/^[a-f0-9-]{36}$/.test(workspaceId))
+    throw new Error("Invalid workspace identity.");
   const errors = validate(state);
   const externalIds = [
     state.google,
@@ -36,11 +40,34 @@ export function buildWebsiteFlow(
   const flow = JSON.parse(buildImportFile(template, state, version)).flows[0];
   const visit = (step) => {
     for (; step; step = step.nextAction) {
-      if (step.name === "step_3" && state.notifyTelegram) {
-        if (!/^\d+$/.test(state.telegramChat || ""))
+      if (
+        step.name === "step_3" &&
+        state.notifyTelegram &&
+        state.reuseTelegramRecipient
+      ) {
+        const config = JSON.parse(step.settings.input.config);
+        config.settings.requireTelegramRecipient = true;
+        step.settings.input.config = JSON.stringify(config);
+      }
+      if (step.name === "step_3" && maintenance) {
+        const config = JSON.parse(step.settings.input.config);
+        config.settings.maintenance = true;
+        step.settings.input.config = JSON.stringify(config);
+      }
+      if (
+        step.name === "step_3" &&
+        state.notifyTelegram &&
+        !state.reuseTelegramRecipient
+      ) {
+        if (
+          !/^\d+$/.test(state.telegramChat || "") &&
+          !/^[A-Za-z0-9_-]{1,200}$/.test(state.telegramRecipientSheet || "")
+        )
           throw new Error("Confirm your Telegram chat before starting.");
         const config = JSON.parse(step.settings.input.config);
-        config.settings.telegramChat = state.telegramChat;
+        if (state.telegramRecipientSheet)
+          config.settings.telegramRecipientSheet = state.telegramRecipientSheet;
+        else config.settings.telegramChat = state.telegramChat;
         step.settings.input.config = JSON.stringify(config);
       }
       const source = step.settings?.sourceCode;
@@ -48,11 +75,15 @@ export function buildWebsiteFlow(
         source.code = source.code
           .replaceAll(
             "const CONTROL_MARKER = 'control-sheet';",
-            `const CONTROL_MARKER = 'control-sheet:${automationId}';`,
+            workspaceId
+              ? `const CONTROL_MARKER = 'control-sheet:${workspaceId}';`
+              : "const CONTROL_MARKER = 'control-sheet';",
           )
           .replaceAll(
             "const ROOT_MARKER = 'root-folder';",
-            `const ROOT_MARKER = 'root-folder:${automationId}';`,
+            workspaceId
+              ? `const ROOT_MARKER = 'root-folder:${workspaceId}';`
+              : "const ROOT_MARKER = 'root-folder';",
           )
           .replaceAll("Pinterest Autopilot", "Pinterest Automation")
           .replaceAll("PINTEREST AUTOPILOT", "PINTEREST AUTOMATION");

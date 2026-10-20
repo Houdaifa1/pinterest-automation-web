@@ -244,13 +244,17 @@ export async function publicConnections(
   userId: string,
   integrationId: string,
 ) {
-  return (
+  const rows = (
     await env.DB.prepare(
       "SELECT id,service,label,identity,status FROM connections WHERE user_id=? AND integration_id=? ORDER BY service,label",
     )
       .bind(userId, integrationId)
       .all()
   ).results;
+  return rows.map((row) => ({
+    ...row,
+    label: String(row.label).replace(/autopilot/gi, "Automation"),
+  }));
 }
 export function safeRun(run: any) {
   const statuses = [

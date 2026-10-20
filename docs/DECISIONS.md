@@ -64,3 +64,10 @@ The owner explicitly changed repository visibility to public and requested a com
 ## 19 October 2026 — limited production deployment credential
 
 The owner approved creating automation-github-deploy and storing it in GitHub’s production environment. Its only permissions are Pages Edit and D1 Edit for the selected Cloudflare account. This grants access to those services across that account; Cloudflare does not narrow this token to one Pages project or one D1 database. The existing website and automation credentials remain Cloudflare secrets.
+
+## 20 October 2026 — reuse the setup people already have
+
+- An Activepieces key triggers saved-connection and published-flow discovery. Recognized posting flows appear before the new-setup wizard. Use existing automation imports their settings into the website using provider reads only; publishing waits for Update automation.
+- Preserve the original workspace markers, Sheet, posting hours and selected Telegram connection. Never ask for an existing bot token just to manage its flow. Adding or replacing a bot remains an explicit action.
+- A separate automation can reuse a known saved recipient through its verified Google/Telegram connections inside the execution service. Bot credentials stay there. Missing or ambiguous recipients fail clearly; never guess the newest private chat.
+- Add Pinterest account includes readable connection instructions, automatic detection, posting choices and Add & update automation. Updates use the same flow, preserve pause state and run a settings-only check before restoring the regular schedule. Prevent a second flow from posting the same already-running profile.

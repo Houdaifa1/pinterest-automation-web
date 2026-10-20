@@ -169,3 +169,180 @@ test("the website flow keeps the verified Telegram recipient even when another c
     globalThis.fetch = originalFetch;
   }
 });
+async function prepare(flow, w) {
+  const step = codeStep(flow, "step_3");
+  const module = await import(
+    "data:text/javascript;base64," +
+      Buffer.from(step.settings.sourceCode.code).toString("base64")
+  );
+  return module.code({
+    google: { access_token: w.tokens.google },
+    gmail: { access_token: w.tokens.gmail },
+    telegram: { secret_text: "test-bot-token" },
+    config: step.settings.input.config,
+  });
+}
+test("importing a legacy automation preserves its Sheet and Telegram recipient", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const config = {
+      ...state(),
+      notifyTelegram: true,
+      telegram: "telegram-connection",
+      telegramChat: "123",
+    };
+    const first = buildWebsiteFlow(
+      template,
+      config,
+      "11111111-1111-4111-8111-111111111111",
+      "Original",
+      "old",
+      null,
+      null,
+      "",
+    );
+    const previous = await prepare(first, w);
+    delete config.telegramChat;
+    config.reuseTelegramRecipient = true;
+    const imported = buildWebsiteFlow(
+      template,
+      config,
+      "22222222-2222-4222-8222-222222222222",
+      "Original",
+      "new",
+      null,
+      null,
+      "",
+      true,
+    );
+    const updated = await prepare(imported, w);
+    assert.equal(updated.spreadsheet, previous.spreadsheet);
+    assert.equal(w.books.size, 1);
+    assert.equal(
+      w.rows("Settings").find((r) => r[0] === "Telegram chat ID")[1],
+      "123",
+    );
+    assert.deepEqual(updated.due, []);
+    assert.equal(updated.reportDue, false);
+    assert.equal(w.pins.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+test("a separate automation reuses the saved recipient through Google without changing its source Sheet", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const original = buildWebsiteFlow(
+      template,
+      {
+        ...state(),
+        notifyTelegram: true,
+        telegram: "telegram-connection",
+        telegramChat: "123",
+      },
+      "11111111-1111-4111-8111-111111111111",
+      "Original",
+      "old",
+      null,
+    );
+    const first = await prepare(original, w);
+    const before = JSON.stringify([...w.books.values()][0]);
+    const recipientSheet = new URL(first.spreadsheet).pathname.split("/")[3];
+    const second = buildWebsiteFlow(
+      template,
+      {
+        ...state(),
+        notifyTelegram: true,
+        telegram: "telegram-connection",
+        telegramRecipientSheet: recipientSheet,
+      },
+      "22222222-2222-4222-8222-222222222222",
+      "Separate",
+      "new",
+      null,
+    );
+    await prepare(second, w);
+    assert.equal(w.books.size, 2);
+    assert.equal(JSON.stringify([...w.books.values()][0]), before);
+    const book = [...w.books.values()][1];
+    const settings = book.tabs.find((t) => t.title === "Settings");
+    assert.equal(
+      settings.grid.find((r) => r[0] === "Telegram chat ID")[1],
+      "123",
+    );
+    assert.equal(w.pins.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+test("a settings-only update suppresses work even when an active account needs its daily sync", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const config = state();
+    config.accounts[0].on = true;
+    const normal = buildWebsiteFlow(
+      template,
+      config,
+      "11111111-1111-4111-8111-111111111111",
+      "Posting",
+      "normal",
+      null,
+    );
+    assert.equal((await prepare(normal, w)).due.length, 1);
+    const update = buildWebsiteFlow(
+      template,
+      config,
+      "11111111-1111-4111-8111-111111111111",
+      "Posting",
+      "updated",
+      null,
+      null,
+      undefined,
+      true,
+    );
+    const result = await prepare(update, w);
+    assert.deepEqual(result.due, []);
+    assert.equal(result.reportDue, false);
+    assert.equal(w.pins.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+test("an existing bot with no saved recipient fails instead of choosing a different private chat", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const config = {
+      ...state(),
+      notifyTelegram: true,
+      telegram: "telegram-connection",
+      reuseTelegramRecipient: true,
+    };
+    const flow = buildWebsiteFlow(
+      template,
+      config,
+      "11111111-1111-4111-8111-111111111111",
+      "Missing recipient",
+      "new",
+      null,
+    );
+    await assert.rejects(
+      prepare(flow, w),
+      /saved Telegram recipient is missing/,
+    );
+    assert.equal(
+      w.requests.some((r) => r.url.includes("getUpdates")),
+      false,
+    );
+    assert.equal(w.sent.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
