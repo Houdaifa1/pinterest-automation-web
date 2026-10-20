@@ -42,9 +42,16 @@ export function newPinterestAccount(connection: Connection): Account {
     category: /crochet|knit/i.test(username) ? "crochet" : "other",
     source: "niche",
     website: "",
-    pinsPerProduct: 6,
-    pinsPerDay: 5,
-    hours: [9, 12, 15, 18, 21],
+    pinsPerProduct: 3,
+    pinsPerDay: 3,
+    schedule: {
+      mode: "varied",
+      start: "09:00",
+      end: "21:00",
+      minSpacing: 120,
+      times: [],
+    },
+    hours: [9, 15, 21],
     on: true,
   };
 }

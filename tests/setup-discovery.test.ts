@@ -23,7 +23,7 @@ it("fills saved service connections without silently adding Pinterest accounts",
   expect(connectionsReady(config, connections, false)).toBe(false);
   config.accounts = [newPinterestAccount(connections[2])];
   expect(config.accounts[0].username).toBe("crochettest");
-  expect(config.accounts[0].hours).toEqual([9, 12, 15, 18, 21]);
+  expect(config.accounts[0].hours).toEqual([9, 15, 21]);
   expect(detectedConfig(config, connections)).toEqual(config);
   expect(connectionsReady(config, connections, false)).toBe(true);
   expect(

@@ -17,6 +17,13 @@ export interface Account {
   website: string;
   pinsPerProduct: number;
   pinsPerDay: number;
+  schedule?: {
+    mode: "varied" | "fixed";
+    start: string;
+    end: string;
+    minSpacing: number;
+    times: string[];
+  };
   hours: number[];
   on: boolean;
 }

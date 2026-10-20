@@ -7,7 +7,9 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  BrowserRouter,
+  createBrowserRouter,
+  RouterProvider,
+  useBlocker,
   Link,
   NavLink,
   Route,
@@ -31,6 +33,7 @@ import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import { api, ApiError, setCSRF } from "./api";
+import { Queue } from "./queue";
 import { References } from "./references";
 import { detectedConfig, connectionsReady, newPinterestAccount } from "./setup";
 import { downloadBatch } from "./batch-package.mjs";
@@ -54,6 +57,9 @@ type Workspace = {
 };
 const WorkspaceContext = createContext<Workspace>(null!);
 const useWorkspace = () => useContext(WorkspaceContext);
+const AccountEditsContext = createContext<
+  React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+>(() => {});
 function Mark() {
   return (
     <svg
@@ -759,7 +765,7 @@ const defaults = (user: User): Config => ({
   notifyEmail: true,
   notifyTelegram: false,
   emailEveryPin: false,
-  lowQueue: 10,
+  lowQueue: 0,
   google: "",
   gmail: "",
   telegram: "",
@@ -780,13 +786,24 @@ function AutomationPage() {
       "https://cloud.activepieces.com/",
     ),
     [busy, setBusy] = useState(false);
+  const [accountEdits, setAccountEdits] = useState<Record<string, boolean>>({});
+  const blocker = useBlocker(Object.values(accountEdits).some(Boolean));
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    if (window.confirm("Discard unsaved account changes?")) blocker.proceed();
+    else blocker.reset();
+  }, [blocker]);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
     pending = useRef<Config | null>(null),
     inFlight = useRef<Promise<void> | null>(null),
     current = useRef<Automation | null>(null);
   const load = async () => {
     try {
-      const r = await api(`/api/automations/${id}`);
+      let r = await api(`/api/automations/${id}`);
+      if (r.automation.deployed) {
+        await api(`/api/automations/${id}/reconcile`, "POST", {});
+        r = await api(`/api/automations/${id}`);
+      }
       setAutomation(r.automation);
       current.current = r.automation;
       setDraft({ ...defaults(user), ...r.automation.config });
@@ -852,6 +869,25 @@ function AutomationPage() {
   useEffect(() => {
     if (automation?.connected) void refreshConnections();
   }, [automation?.connected]);
+  const saveAccount = async (account: Account) => {
+    await flush();
+    const saved = current.current!;
+    const config = {
+      ...defaults(user),
+      ...saved.config,
+      accounts: (saved.config.accounts || []).map((a) =>
+        a.id === account.id ? account : a,
+      ),
+    };
+    const r = await api(`/api/automations/${id}`, "PUT", {
+      name: saved.name,
+      revision: saved.revision,
+      config,
+    });
+    current.current = r.automation;
+    setAutomation(r.automation);
+    setDraft({ ...defaults(user), ...r.automation.config });
+  };
   const action = async (name: string) => {
     setBusy(true);
     setError(null);
@@ -903,165 +939,107 @@ function AutomationPage() {
   const actionPending =
     busy || ["starting", "applying"].includes(automation.status);
   return (
-    <>
-      <div className="automation-header">
-        <div className="breadcrumb">
-          <Link to="/">{t("automations")}</Link>
-          <span>/</span>
-          <b>{automation.name}</b>
+    <AccountEditsContext.Provider value={setAccountEdits}>
+      <>
+        <div className="automation-header">
+          <div className="breadcrumb">
+            <Link to="/">{t("automations")}</Link>
+            <span>/</span>
+            <b>{automation.name}</b>
+          </div>
+          <nav className="local-tabs">
+            {(
+              [
+                "summary",
+                "accounts",
+                "newPins",
+                "runs",
+                "history",
+                "settings",
+              ] as const
+            ).map((key) => (
+              <NavLink
+                key={key}
+                to={`${base}/${key === "newPins" ? "pins" : key}`}
+              >
+                {t(key)}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-        <nav className="local-tabs">
-          {(
-            [
-              "summary",
-              "accounts",
-              "newPins",
-              "runs",
-              "history",
-              "settings",
-            ] as const
-          ).map((key) => (
-            <NavLink
-              key={key}
-              to={`${base}/${key === "newPins" ? "pins" : key}`}
-            >
-              {t(key)}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
-      <main>
-        <Link className="back-link" to="/">
-          <ArrowLeft size={15} />
-          {t("all")}
-        </Link>
-        {error != null && (
-          <ErrorBox
-            error={error}
-            retry={() => {
-              setError(null);
-              void refreshConnections();
-            }}
-          />
-        )}
-        {saveError != null && (
-          <ErrorBox
-            error={saveError}
-            retry={() => void flush().catch(() => {})}
-          />
-        )}
-        {tab === "setup" ? (
-          <Setup
-            key={location.search}
-            automation={automation}
-            draft={draft}
-            edit={edit}
-            flush={flush}
-            load={load}
-            connections={connections}
-            refresh={refreshConnections}
-            connectionsUrl={connectionsUrl}
-            connectionName={connectionName}
-            action={action}
-            busy={actionPending}
-          />
-        ) : (
-          <>
-            <div className="page-heading">
-              <h1>{automation.name}</h1>
-              <div className="heading-actions">
-                <span className="muted" role="status">
-                  {saving ? t("saving") : pending.current ? "" : t("saved")}
-                </span>
-                <Status status={automation.status} />
-              </div>
-            </div>
-            {(automation.revision > automation.appliedRevision ||
-              pending.current) &&
-              automation.deployed && (
-                <div className="apply-bar">
-                  <span>{t("readyChanges")}</span>
-                  <button
-                    className="primary"
-                    disabled={actionPending || saving}
-                    onClick={() => void action("deploy")}
-                  >
-                    {t("apply")}
-                  </button>
+        <main>
+          <Link className="back-link" to="/">
+            <ArrowLeft size={15} />
+            {t("all")}
+          </Link>
+          {error != null && (
+            <ErrorBox
+              error={error}
+              retry={() => {
+                setError(null);
+                void refreshConnections();
+              }}
+            />
+          )}
+          {saveError != null && (
+            <ErrorBox
+              error={saveError}
+              retry={() => void flush().catch(() => {})}
+            />
+          )}
+          {tab === "setup" ? (
+            <Setup
+              key={location.search}
+              automation={automation}
+              draft={draft}
+              edit={edit}
+              flush={flush}
+              load={load}
+              connections={connections}
+              refresh={refreshConnections}
+              connectionsUrl={connectionsUrl}
+              connectionName={connectionName}
+              action={action}
+              busy={actionPending}
+            />
+          ) : (
+            <>
+              <div className="page-heading">
+                <h1>{automation.name}</h1>
+                <div className="heading-actions">
+                  <span className="muted" role="status">
+                    {saving ? t("saving") : pending.current ? "" : t("saved")}
+                  </span>
+                  <Status status={automation.status} />
                 </div>
-              )}
-            {tab === "summary" ? (
-              <>
-                <section className="panel summary-panel">
-                  <div>
-                    <Status status={automation.status} />
-                    <h2>
-                      {automation.config.accounts?.length || 0} {t("accounts")}
-                    </h2>
-                    {automation.status === "draft" && (
-                      <Link className="button primary" to={`${base}/setup`}>
-                        {t("draft")}
-                        <ArrowRight size={16} />
-                      </Link>
-                    )}
-                    {automation.status === "problem" && (
-                      <div>
-                        <Notice>{t("setupRecovery")}</Notice>
-                        <button
-                          disabled={busy}
-                          onClick={() => void action("deploy")}
-                        >
-                          {t("retry")}
-                        </button>
-                        <Link
-                          className="button"
-                          to={`${base}/setup?connections=1`}
-                        >
-                          {t("logins")}
-                        </Link>
-                      </div>
-                    )}
-                    {["starting", "applying"].includes(automation.status) && (
-                      <p>{t("firstRun")}</p>
-                    )}
+              </div>
+              {(automation.revision > automation.appliedRevision ||
+                pending.current) &&
+                automation.deployed && (
+                  <div className="apply-bar">
+                    <span>{t("readyChanges")}</span>
+                    <button
+                      className="primary"
+                      disabled={actionPending || saving}
+                      onClick={() => void action("deploy")}
+                    >
+                      {t("apply")}
+                    </button>
                   </div>
-                  <div className="button-row">
-                    {automation.status !== "draft" && (
-                      <>
-                        <button
-                          disabled={busy || automation.status !== "running"}
-                          onClick={() => void action("run")}
-                        >
-                          {t("runNow")}
-                        </button>
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            void action(
-                              automation.status === "paused"
-                                ? "resume"
-                                : "pause",
-                            )
-                          }
-                        >
-                          {t(
-                            automation.status === "paused" ? "resume" : "pause",
-                          )}
-                        </button>
-                      </>
-                    )}
-                    <Link className="button primary" to={`${base}/pins`}>
-                      {t("newPins")}
-                    </Link>
-                    {automation.sheetUrl && (
-                      <External href={automation.sheetUrl}>
-                        {t("sheet")}
-                      </External>
-                    )}
-                  </div>
-                </section>
+                )}
+              {tab === "summary" ? (
+                <>
+                  <Queue
+                    automation={automation}
+                    config={draft}
+                    action={action}
+                    busy={actionPending}
+                  />
+                </>
+              ) : tab === "accounts" ? (
                 <Accounts
                   flush={flush}
+                  saveAccount={saveAccount}
                   draft={draft}
                   edit={edit}
                   connections={connections}
@@ -1070,50 +1048,37 @@ function AutomationPage() {
                   updateAutomation={() => action("deploy")}
                   busy={actionPending}
                   deployed={automation.deployed}
-                  compact
                 />
-              </>
-            ) : tab === "accounts" ? (
-              <Accounts
-                flush={flush}
-                draft={draft}
-                edit={edit}
-                connections={connections}
-                refresh={refreshConnections}
-                connectionsUrl={connectionsUrl}
-                updateAutomation={() => action("deploy")}
-                busy={actionPending}
-                deployed={automation.deployed}
-              />
-            ) : tab === "settings" ? (
-              <Settings
-                draft={draft}
-                edit={edit}
-                automation={automation}
-                load={load}
-                connections={connections}
-                rename={async (name: string) => {
-                  await flush();
-                  const r = await api(`/api/automations/${id}`, "PUT", {
-                    name,
-                    revision: current.current!.revision,
-                    config: current.current!.config,
-                  });
-                  current.current = r.automation;
-                  setAutomation(r.automation);
-                }}
-              />
-            ) : tab === "runs" ? (
-              <Runs id={id!} />
-            ) : tab === "history" ? (
-              <History id={id!} flush={flush} load={load} />
-            ) : (
-              <Pins automation={automation} draft={draft} flush={flush} />
-            )}
-          </>
-        )}
-      </main>
-    </>
+              ) : tab === "settings" ? (
+                <Settings
+                  draft={draft}
+                  edit={edit}
+                  automation={automation}
+                  load={load}
+                  connections={connections}
+                  rename={async (name: string) => {
+                    await flush();
+                    const r = await api(`/api/automations/${id}`, "PUT", {
+                      name,
+                      revision: current.current!.revision,
+                      config: current.current!.config,
+                    });
+                    current.current = r.automation;
+                    setAutomation(r.automation);
+                  }}
+                />
+              ) : tab === "runs" ? (
+                <Runs id={id!} />
+              ) : tab === "history" ? (
+                <History id={id!} flush={flush} load={load} />
+              ) : (
+                <Pins automation={automation} draft={draft} flush={flush} />
+              )}
+            </>
+          )}
+        </main>
+      </>
+    </AccountEditsContext.Provider>
   );
 }
 function ConnectionSelect({
@@ -1786,6 +1751,7 @@ function Setup({
   );
 }
 function Accounts({
+  saveAccount,
   draft,
   edit,
   connections,
@@ -1797,6 +1763,7 @@ function Accounts({
   busy = false,
   deployed = false,
 }: {
+  saveAccount?: (a: Account) => Promise<void>;
   draft: Config;
   edit: (v: Config) => void;
   connections: Connection[];
@@ -1821,7 +1788,7 @@ function Accounts({
   const [addError, setAddError] = useState<unknown>(null),
     [addingNow, setAddingNow] = useState(false),
     [category, setCategory] = useState<Account["category"]>("other"),
-    [daily, setDaily] = useState(5);
+    [daily, setDaily] = useState(3);
   useEffect(() => {
     if (!adding) return;
     void refresh();
@@ -1850,6 +1817,13 @@ function Accounts({
         category,
         pinsPerDay: daily,
         hours: spreadHours(daily),
+        schedule: {
+          mode: "varied" as const,
+          start: "09:00",
+          end: "21:00",
+          minSpacing: Math.min(120, Math.floor(720 / Math.max(1, daily - 1))),
+          times: [],
+        },
       };
       edit({ ...draft, accounts: [...draft.accounts, account] });
       await flush();
@@ -1880,14 +1854,18 @@ function Accounts({
           key={account.id}
           account={account}
           compact={compact}
-          update={(next) =>
-            edit({
-              ...draft,
-              accounts: draft.accounts.map((a) =>
-                a.id === account.id ? next : a,
-              ),
-            })
-          }
+          update={async (next) => {
+            if (saveAccount) await saveAccount(next);
+            else {
+              edit({
+                ...draft,
+                accounts: draft.accounts.map((a) =>
+                  a.id === account.id ? next : a,
+                ),
+              });
+              await flush();
+            }
+          }}
         />
       ))}
       <Modal title={t("addAccount")} open={adding} onOpenChange={setAdding}>
@@ -1988,7 +1966,7 @@ function AccountCard({
   apply,
 }: {
   account: Account;
-  update: (a: Account) => void;
+  update: (a: Account) => Promise<void>;
   compact: boolean;
   flush: () => Promise<void>;
   apply?: () => Promise<boolean>;
@@ -2005,9 +1983,29 @@ function AccountCard({
     JSON.stringify({
       ...a,
       niche: a.niche.trim(),
+      general: !a.niche.trim(),
+      ...(a.schedule
+        ? {
+            schedule: {
+              ...a.schedule,
+              times: [...new Set(a.schedule.times)].sort(),
+            },
+          }
+        : {}),
       hours: [...a.hours].sort((a, b) => a - b),
     });
+  const [fixedText, setFixedText] = useState(
+    (
+      account.schedule?.times ||
+      account.hours.map((h) => `${String(h).padStart(2, "0")}:00`)
+    ).join(", "),
+  );
   const dirty = normalize(value) !== normalize(account);
+  const setAccountEdits = useContext(AccountEditsContext);
+  useEffect(() => {
+    setAccountEdits((old) => ({ ...old, [account.id]: dirty }));
+    return () => setAccountEdits((old) => ({ ...old, [account.id]: false }));
+  }, [dirty, account.id, setAccountEdits]);
   useEffect(() => {
     if (!dirty) return;
     const prevent = (e: BeforeUnloadEvent) => {
@@ -2037,6 +2035,12 @@ function AccountCard({
             )
               return;
             setValue(account);
+            setFixedText(
+              (
+                account.schedule?.times ||
+                account.hours.map((h) => `${String(h).padStart(2, "0")}:00`)
+              ).join(", "),
+            );
             setExpanded(!expanded);
             setError(null);
           }}
@@ -2076,17 +2080,35 @@ function AccountCard({
               <input
                 type="number"
                 min="1"
-                max="18"
+                max="1440"
                 step="1"
                 value={value.pinsPerDay}
                 onChange={(e) => {
                   const n = Number(e.target.value);
-                  change({
-                    pinsPerDay: n,
-                    ...(Number.isInteger(n) && n >= 1 && n <= 18
-                      ? { hours: spreadHours(n) }
-                      : {}),
-                  });
+                  const hours = spreadHours(n);
+                  if (
+                    (value.schedule?.mode || "fixed") === "fixed" &&
+                    Number.isInteger(n) &&
+                    n >= 1 &&
+                    n <= 18
+                  ) {
+                    const times = hours.map(
+                      (h) => `${String(h).padStart(2, "0")}:00`,
+                    );
+                    setFixedText(times.join(", "));
+                    change({
+                      pinsPerDay: n,
+                      hours,
+                      schedule: {
+                        mode: "fixed",
+                        start: "00:00",
+                        end: "23:59",
+                        minSpacing: value.schedule?.minSpacing || 1,
+                        times,
+                      },
+                    });
+                  } else
+                    change({ pinsPerDay: n, ...(n <= 18 ? { hours } : {}) });
                 }}
               />
             </Field>
@@ -2103,23 +2125,106 @@ function AccountCard({
               }
             />
           </Field>
-          <fieldset className="hours">
-            <legend>Posting hours</legend>
-            {Array.from({ length: 18 }, (_, i) => i + 6).map((h) => (
-              <button
-                key={h}
-                aria-pressed={value.hours.includes(h)}
-                onClick={() => {
-                  const hours = value.hours.includes(h)
-                    ? value.hours.filter((x) => x !== h)
-                    : [...value.hours, h].sort((a, b) => a - b);
-                  if (hours.length) change({ hours, pinsPerDay: hours.length });
-                }}
+          <div className="schedule-editor">
+            <Field label="Posting times">
+              <select
+                value={value.schedule?.mode || "fixed"}
+                onChange={(e) =>
+                  change({
+                    schedule: {
+                      mode: e.target.value as "varied" | "fixed",
+                      start: "09:00",
+                      end: "21:00",
+                      minSpacing: 120,
+                      times: value.hours.map(
+                        (h) => `${String(h).padStart(2, "0")}:00`,
+                      ),
+                    },
+                  })
+                }
               >
-                {String(h).padStart(2, "0")}:00
-              </button>
-            ))}
-          </fieldset>
+                <option value="varied">Varied times each day</option>
+                <option value="fixed">Choose exact times</option>
+              </select>
+            </Field>
+            {(value.schedule?.mode || "fixed") === "varied" ? (
+              <div className="form-grid">
+                <Field label="Start">
+                  <input
+                    type="time"
+                    value={value.schedule?.start || "09:00"}
+                    onChange={(e) =>
+                      change({
+                        schedule: { ...value.schedule!, start: e.target.value },
+                      })
+                    }
+                  />
+                </Field>
+                <Field label="End">
+                  <input
+                    type="time"
+                    value={value.schedule?.end || "21:00"}
+                    onChange={(e) =>
+                      change({
+                        schedule: { ...value.schedule!, end: e.target.value },
+                      })
+                    }
+                  />
+                </Field>
+              </div>
+            ) : (
+              <Field label="Exact times, separated by commas">
+                <input
+                  value={fixedText}
+                  placeholder="09:15, 15:30, 20:45"
+                  onChange={(e) => {
+                    setFixedText(e.target.value);
+                    const times = e.target.value
+                      .split(/[,\n]/)
+                      .map((t) => t.trim())
+                      .filter(Boolean);
+                    change({
+                      schedule: {
+                        mode: "fixed",
+                        start: "00:00",
+                        end: "23:59",
+                        minSpacing: value.schedule?.minSpacing || 1,
+                        times,
+                      },
+                      pinsPerDay: times.length,
+                    });
+                  }}
+                />
+              </Field>
+            )}
+            <Field label="Minimum minutes between posts">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={value.schedule?.minSpacing || 1}
+                onChange={(e) =>
+                  change({
+                    schedule: {
+                      mode: "fixed",
+                      start: "09:00",
+                      end: "21:00",
+                      times: value.hours.map(
+                        (h) => `${String(h).padStart(2, "0")}:00`,
+                      ),
+                      ...value.schedule,
+                      minSpacing: Number(e.target.value),
+                    },
+                  })
+                }
+              />
+            </Field>
+            <p className="inline-help">
+              Start with 3 original pins a day, spaced by at least 2 hours.
+              Adjust for your content and results. Varied times are saved once
+              for each day.
+            </p>
+          </div>
           <label className="check-row">
             <input
               type="checkbox"
@@ -2137,8 +2242,7 @@ function AccountCard({
                   setWorking(true);
                   setError(null);
                   try {
-                    update({ ...value, niche: value.niche.trim() });
-                    await flush();
+                    await update({ ...value, niche: value.niche.trim() });
                     if (apply && !(await apply()))
                       throw new Error(
                         "Saved on the website. Activepieces still needs the update; use Update automation to retry.",
@@ -2157,6 +2261,14 @@ function AccountCard({
                 disabled={working}
                 onClick={() => {
                   setValue(account);
+                  setFixedText(
+                    (
+                      account.schedule?.times ||
+                      account.hours.map(
+                        (h) => `${String(h).padStart(2, "0")}:00`,
+                      )
+                    ).join(", "),
+                  );
                   setError(null);
                 }}
               >
@@ -2466,7 +2578,7 @@ function History({
                 navigate(`/automations/${id}/pins`, {
                   state: {
                     accountId: batch.accountId,
-                    lines: batch.input.lines,
+                    input: batch.input,
                     variant: crypto.randomUUID(),
                   },
                 })
@@ -2608,7 +2720,17 @@ function Pins({
     try {
       stored = JSON.parse(localStorage.getItem(key) || "null");
     } catch {}
-    const initial = preset?.input?.sources || preset?.sources;
+    const initial =
+      preset?.input?.sources ||
+      preset?.sources ||
+      preset?.input?.lines?.map((line: any) => ({
+        kind: line.kind === "free" ? "free" : "product",
+        count: line.count,
+        url: line.url || "",
+        products: [],
+        perProduct: 3,
+        categoryCount: 0,
+      }));
     setSources(
       stored?.sources ||
         initial?.map((s: any) => ({ ...s, id: crypto.randomUUID() })) || [
@@ -2623,7 +2745,11 @@ function Pins({
           },
         ],
     );
-    setNotes(stored?.notes || preset?.input?.notes || "");
+    setNotes(
+      (preset?.variant ? undefined : stored?.notes) ||
+        preset?.input?.notes ||
+        "",
+    );
     setError(null);
     setSelected(null);
     loadedKey.current = key;
@@ -3109,7 +3235,7 @@ function Members() {
   );
 }
 createRoot(document.getElementById("root")!).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>,
+  <RouterProvider
+    router={createBrowserRouter([{ path: "*", element: <App /> }])}
+  />,
 );
