@@ -316,3 +316,40 @@ it("requires evidence for page offers instead of assuming every crochet pattern 
   expect(batch.prompt).not.toContain("Find the free PDF pattern");
   expect(batch.prompt).toContain("Use 1 different format across this batch");
 });
+
+it("builds one immutable mixed request with correct individual and category destinations",async()=>{
+  const {user,base}=await setup();
+  const sources=[
+    {kind:"free",count:5},
+    {kind:"product",url:"https://shop.example.com/bag",count:5},
+    {kind:"category",url:"https://shop.example.com/summer",products:["one","two","three"].map(x=>({url:`https://shop.example.com/${x}`,title:x})),perProduct:4,categoryCount:3}
+  ];
+  const input={accountId:"profile",notes:"Warm backgrounds",sources};
+  const first=await request(base+"/batches",user,"POST",input);
+  expect(first.status).toBe(200);
+  const {batch}=await first.json() as any;
+  expect(batch.total).toBe(25);
+  expect(batch.input.destinations.map((d:any)=>d.count)).toEqual([5,5,4,4,4,3]);
+  expect(batch.input.destinations[2].url).toBe("https://shop.example.com/one");
+  expect(batch.input.destinations[5].url).toBe("https://shop.example.com/summer");
+  expect(batch.prompt).toContain("Keep new Sheet rows as Draft for review");
+  expect(batch.prompt).toContain("Warm backgrounds");
+  const again=await (await request(base+"/batches",user,"POST",input)).json() as any;
+  expect(again.batch.id).toBe(batch.id);
+  const changed=await (await request(base+"/batches",user,"POST",{...input,notes:"Bold headlines"})).json() as any;
+  expect(changed.batch.id).not.toBe(batch.id);
+  const old=await (await request(base+`/batches/${batch.id}`,user)).json() as any;
+  expect(old.batch.prompt).toContain("Warm backgrounds");
+});
+
+it("supports large resumable requests and rejects fractional, unsafe and empty amounts",async()=>{
+  const {user,base}=await setup();
+  const good=await (await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"free",count:5000}]})).json() as any;
+  expect(good.batch.total).toBe(5000);
+  expect(good.batch.prompt).toContain("resumable parts of at most 25");
+  for(const count of [0,-1,1.5,Number.MAX_SAFE_INTEGER+1])
+    expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"free",count}]})).status).toBe(400);
+  expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"catalog",url:"https://store.example.com"}]})).status).toBe(400);
+  for(const url of ["http://example.com","https://127.0.0.1/","https://user:password@example.com/","https://example.com:8443/"])
+    expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"product",url}]})).status).toBe(400);
+});

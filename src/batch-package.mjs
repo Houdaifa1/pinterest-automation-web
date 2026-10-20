@@ -55,7 +55,7 @@ export async function downloadBatch(batch) {
   const encoder = new TextEncoder();
   let index = 0;
   const prompt =
-    "Use the attached reference images listed below. These local files do not expire. If an attachment is missing, stop and ask for it.\n\n" +
+    (batch.references?.length ? "Use the attached reference images listed below. These local files do not expire. If an attachment is missing, stop and ask for it.\n\n" : "") +
     batch.prompt
       .replace(
         /https?:\/\/[^\s]+\/api\/reference\/[^\s]+/g,
@@ -74,6 +74,7 @@ export async function downloadBatch(batch) {
       ),
     },
   ];
+  files.push({name:"manifest.json",bytes:encoder.encode(JSON.stringify({batchId:batch.id,account:batch.username,total:batch.total,input:batch.input,references:(batch.references||[]).map((_,i)=>`reference-${i+1}.jpg`)},null,2))});
   for (const [i, reference] of (batch.references || []).entries()) {
     const response = await fetch(reference.url, { credentials: "same-origin" });
     if (

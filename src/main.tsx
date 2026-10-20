@@ -205,17 +205,11 @@ function Modal({
 function App() {
   const [user, setUser] = useState<User | null>(null),
     [loading, setLoading] = useState(true),
-    [language, setLanguage] = useState<Language>(() => {
-      const v = localStorage.getItem("automation-language");
-      return v === "fr" || v === "ar" ? v : "en";
-    }),
-    [theme, setTheme] = useState(
-      () => localStorage.getItem("automation-theme") || "system",
-    ),
     [toast, setToast] = useState(""),
     [local, setLocal] = useState(false),
     [error, setError] = useState<unknown>(null);
   const location = useLocation();
+  const language: Language = "en";
   const t = (key: Message) => translate(language, key);
   const reload = async () => {
     try {
@@ -237,14 +231,12 @@ function App() {
       .catch(() => {});
   }, []);
   useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
-    localStorage.setItem("automation-language", language);
-  }, [language]);
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem("automation-theme", theme);
-  }, [theme]);
+    document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
+    document.documentElement.dataset.theme = "dark";
+    localStorage.removeItem("automation-language");
+    localStorage.removeItem("automation-theme");
+  }, []);
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = "Automation";
@@ -268,26 +260,6 @@ function App() {
           {user ? user.name : t("automations")}
         </Link>
         <div className="top-actions">
-          <select
-            aria-label={t("language")}
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as Language)}
-          >
-            <option value="en">English</option>
-            <option value="fr">Français</option>
-            <option value="ar">العربية</option>
-          </select>
-          <select
-            aria-label={t("appearance")}
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-          >
-            {(["system", "light", "dark"] as const).map((v) => (
-              <option key={v} value={v}>
-                {t(v)}
-              </option>
-            ))}
-          </select>
           {user && (
             <Link
               className="avatar"
@@ -593,6 +565,8 @@ function Home() {
                 <div className="card-main">
                   <span className="eyebrow">{t("automation")}</span>
                   <Link
+                    className="card-open"
+                    aria-label={`Open ${a.name}`}
                     to={`/automations/${a.id}/${a.status === "draft" ? "setup" : "summary"}`}
                   >
                     <h2>
@@ -1902,6 +1876,7 @@ function Accounts({
       {draft.accounts.map((account) => (
         <AccountCard
           flush={flush}
+          apply={deployed ? updateAutomation : undefined}
           key={account.id}
           account={account}
           compact={compact}
@@ -2009,43 +1984,76 @@ function Accounts({
 function AccountCard({
   account,
   update,
-  compact,
   flush,
+  apply,
 }: {
   account: Account;
   update: (a: Account) => void;
   compact: boolean;
   flush: () => Promise<void>;
+  apply?: () => Promise<boolean>;
 }) {
   const { t } = useWorkspace();
-  const [expanded, setExpanded] = useState(!compact);
+  const [expanded, setExpanded] = useState(false),
+    [value, setValue] = useState(account),
+    [working, setWorking] = useState(false),
+    [error, setError] = useState<unknown>(null);
+  useEffect(() => {
+    setValue(account);
+  }, [account]);
+  const normalize = (a: Account) =>
+    JSON.stringify({
+      ...a,
+      niche: a.niche.trim(),
+      hours: [...a.hours].sort((a, b) => a - b),
+    });
+  const dirty = normalize(value) !== normalize(account);
+  useEffect(() => {
+    if (!dirty) return;
+    const prevent = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", prevent);
+    return () => window.removeEventListener("beforeunload", prevent);
+  }, [dirty]);
+  const change = (patch: Partial<Account>) => setValue({ ...value, ...patch });
   return (
-    <article className="panel account-card">
+    <article className={`panel account-card ${dirty ? "has-changes" : ""}`}>
       <div className="account-heading">
         <span className="pinterest-mark">P</span>
         <div>
-          <bdi>
-            <h3>@{account.username}</h3>
-          </bdi>
+          <h3>@{account.username}</h3>
           <span className="muted">
-            {account.pinsPerDay} · {t("daily")} · {t(account.on ? "on" : "off")}
+            {account.pinsPerDay} pins each day ·{" "}
+            {account.on ? "Posting on" : "Posting off"}
           </span>
         </div>
-        <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
-          {t("settings")}
+        <button
+          onClick={() => {
+            if (
+              expanded &&
+              dirty &&
+              !window.confirm("Discard unsaved account changes?")
+            )
+              return;
+            setValue(account);
+            setExpanded(!expanded);
+            setError(null);
+          }}
+          aria-expanded={expanded}
+        >
+          {expanded ? "Hide settings" : "Settings"}
         </button>
       </div>
       {expanded && (
         <div className="account-body">
+          {error != null && <ErrorBox error={error} />}
           <div className="form-grid">
-            <Field label={t("category")}>
+            <Field label="Category">
               <select
-                value={account.category}
+                value={value.category}
                 onChange={(e) =>
-                  update({
-                    ...account,
-                    category: e.target.value as Account["category"],
-                  })
+                  change({ category: e.target.value as Account["category"] })
                 }
               >
                 {(
@@ -2064,89 +2072,98 @@ function AccountCard({
                 ))}
               </select>
             </Field>
-            <Field label={t("daily")}>
-              <select
-                value={account.pinsPerDay}
+            <Field label="Pins each day">
+              <input
+                type="number"
+                min="1"
+                max="18"
+                step="1"
+                value={value.pinsPerDay}
                 onChange={(e) => {
                   const n = Number(e.target.value);
-                  update({ ...account, pinsPerDay: n, hours: spreadHours(n) });
+                  change({
+                    pinsPerDay: n,
+                    ...(Number.isInteger(n) && n >= 1 && n <= 18
+                      ? { hours: spreadHours(n) }
+                      : {}),
+                  });
                 }}
-              >
-                {Array.from({ length: 18 }, (_, i) => (
-                  <option key={i} value={i + 1}>
-                    {i + 1}
-                  </option>
-                ))}
-              </select>
+              />
             </Field>
           </div>
-          <Field label={t("niche")}>
+          <Field label="What do you post about? (optional)">
             <input
-              value={account.niche}
+              value={value.niche}
+              maxLength={300}
               onChange={(e) =>
-                update({
-                  ...account,
+                change({
                   niche: e.target.value,
                   general: !e.target.value.trim(),
                 })
               }
-              maxLength={300}
             />
           </Field>
           <fieldset className="hours">
-            <legend>{t("times")}</legend>
-            {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => (
+            <legend>Posting hours</legend>
+            {Array.from({ length: 18 }, (_, i) => i + 6).map((h) => (
               <button
-                type="button"
-                key={hour}
-                aria-pressed={account.hours.includes(hour)}
+                key={h}
+                aria-pressed={value.hours.includes(h)}
                 onClick={() => {
-                  const hours = account.hours.includes(hour)
-                    ? account.hours.filter((h) => h !== hour)
-                    : [...account.hours, hour].sort((a, b) => a - b);
-                  if (hours.length)
-                    update({ ...account, hours, pinsPerDay: hours.length });
+                  const hours = value.hours.includes(h)
+                    ? value.hours.filter((x) => x !== h)
+                    : [...value.hours, h].sort((a, b) => a - b);
+                  if (hours.length) change({ hours, pinsPerDay: hours.length });
                 }}
               >
-                {String(hour).padStart(2, "0")}:00
+                {String(h).padStart(2, "0")}:00
               </button>
             ))}
           </fieldset>
-          <Field label={t("source")}>
-            <select
-              value={account.source}
-              onChange={(e) =>
-                update({
-                  ...account,
-                  source: e.target.value as Account["source"],
-                })
-              }
-            >
-              <option value="niche">{t("withoutLinks")}</option>
-              <option value="website">{t("website")}</option>
-            </select>
-          </Field>
-          {account.source === "website" && (
-            <Field label={t("websiteAddress")}>
-              <input
-                type="url"
-                value={account.website}
-                onChange={(e) =>
-                  update({ ...account, website: e.target.value })
-                }
-                placeholder="https://"
-              />
-            </Field>
-          )}
           <label className="check-row">
             <input
               type="checkbox"
-              checked={account.on}
-              onChange={(e) => update({ ...account, on: e.target.checked })}
+              checked={value.on}
+              onChange={(e) => change({ on: e.target.checked })}
             />
-            {t(account.on ? "on" : "off")}
+            Allow posting for this account
           </label>
-          <References accountId={account.id} flush={flush} t={t} />
+          {dirty ? (
+            <div className="button-row">
+              <button
+                className="save-changes"
+                disabled={working}
+                onClick={async () => {
+                  setWorking(true);
+                  setError(null);
+                  try {
+                    update({ ...value, niche: value.niche.trim() });
+                    await flush();
+                    if (apply && !(await apply()))
+                      throw new Error(
+                        "Saved on the website. Activepieces still needs the update; use Update automation to retry.",
+                      );
+                    setExpanded(false);
+                  } catch (e) {
+                    setError(e);
+                  } finally {
+                    setWorking(false);
+                  }
+                }}
+              >
+                {working ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                disabled={working}
+                onClick={() => {
+                  setValue(account);
+                  setError(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </article>
@@ -2571,56 +2588,82 @@ function Pins({
   draft: Config;
   flush: () => Promise<void>;
 }) {
-  const { t, notify } = useWorkspace(),
-    location = useLocation();
-  const preset = location.state as {
-    accountId?: string;
-    lines?: any[];
-    variant?: string;
-  } | null;
+  const { t, notify } = useWorkspace();
+  const location = useLocation();
+  const preset = location.state as any;
   const [accountId, setAccountId] = useState(
       preset?.accountId || draft.accounts[0]?.id || "",
     ),
-    [mode, setMode] = useState(preset?.lines?.[0]?.kind || "free"),
-    [count, setCount] = useState(preset?.lines?.[0]?.count || 10),
-    [links, setLinks] = useState<{ id: string; url: string; count: number }[]>(
-      preset?.lines
-        ?.filter((x) => x.kind === "link")
-        .map((x) => ({ ...x, id: crypto.randomUUID() })) || [],
-    ),
+    [sources, setSources] = useState<any[]>([]),
+    [notes, setNotes] = useState(""),
     [selected, setSelected] = useState<any>(null),
-    [refs, setRefs] = useState<any[]>([]),
+    [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(null),
-    [busy, setBusy] = useState(false);
+    [scanning, setScanning] = useState<string | null>(null);
   const variant = useRef(preset?.variant);
-  const form = useRef<HTMLElement>(null);
-  const [formHeight, setFormHeight] = useState(0);
-  const account = draft.accounts.find((a) => a.id === accountId);
+  const key = `automation-request:${automation.id}:${accountId}`;
+  const loadedKey = useRef("");
   useEffect(() => {
-    if (!accountId) return;
-    api(`/api/automations/${automation.id}/accounts/${accountId}/media`)
-      .then((r) => setRefs(r.media))
-      .catch(setError);
-  }, [accountId, automation.id]);
-  const rows = links.length ? links : [{ id: "first", url: "", count: 5 }];
-  const total =
-    mode === "link"
-      ? rows.reduce((n, r) => n + r.count, 0)
-      : mode === "next"
-        ? count * (account?.pinsPerProduct || 6)
-        : count;
+    let stored: any = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(key) || "null");
+    } catch {}
+    const initial = preset?.input?.sources || preset?.sources;
+    setSources(
+      stored?.sources ||
+        initial?.map((s: any) => ({ ...s, id: crypto.randomUUID() })) || [
+          {
+            id: crypto.randomUUID(),
+            kind: "free",
+            count: 5,
+            url: "",
+            products: [],
+            perProduct: 3,
+            categoryCount: 0,
+          },
+        ],
+    );
+    setNotes(stored?.notes || preset?.input?.notes || "");
+    setError(null);
+    setSelected(null);
+    loadedKey.current = key;
+  }, [key]);
+  useEffect(() => {
+    if (loadedKey.current === key && sources.length)
+      localStorage.setItem(key, JSON.stringify({ sources, notes }));
+  }, [key, sources, notes]);
+  const change = (id: string, patch: any) =>
+    setSources((ss) => ss.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const total = sources.reduce(
+    (n, s) =>
+      n +
+      (s.kind === "free" || s.kind === "product"
+        ? Number(s.count)
+        : s.products.length * Number(s.perProduct) + Number(s.categoryCount)),
+    0,
+  );
+  const chosen = draft.accounts.find((a) => a.id === accountId);
   return (
-    <section
-      className="readable pin-builder"
-      ref={form}
-      style={{ minHeight: formHeight || undefined }}
-    >
-      <h2>{t("newPins")}</h2>
+    <section className="content-workspace">
+      <div className="section-heading">
+        <div>
+          <h2>Make your next batch</h2>
+          <p>Mix sources. Choose amounts. Keep your style.</p>
+        </div>
+      </div>
       {!draft.accounts.length ? (
-        <Empty title={t("noAccounts")} />
+        <Empty title="Add a Pinterest account first">
+          <Link
+            className="button primary"
+            to={`/automations/${automation.id}/accounts?add=1`}
+          >
+            Add Pinterest account
+          </Link>
+        </Empty>
       ) : (
         <>
-          <Field label={t("accounts")}>
+          {error != null && <ErrorBox error={error} />}
+          <Field label="Pinterest account">
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
@@ -2632,187 +2675,351 @@ function Pins({
               ))}
             </select>
           </Field>
-          <div className="segmented" role="group" aria-label={t("source")}>
-            {(["link", "free", "next"] as const).map((m, i) => (
-              <button
-                key={m}
-                aria-pressed={mode === m}
-                onClick={() => {
-                  if (form.current)
-                    setFormHeight(
-                      Math.max(
-                        formHeight,
-                        form.current.getBoundingClientRect().height,
-                      ),
-                    );
-                  setMode(m);
-                  if (m === "next") setCount(1);
-                  else if (mode === "next") setCount(10);
-                }}
-              >
-                {t((["pageLinks", "withoutLinks", "website"] as const)[i])}
-              </button>
-            ))}
-          </div>
-          {mode === "link" ? (
-            <>
-              {rows.map((row) => (
-                <div className="pin-link-row" key={row.id}>
-                  <Field label={t("url")}>
-                    <input
-                      type="url"
-                      value={row.url}
-                      placeholder="https://"
+          <div className="source-stack">
+            {sources.map((s, index) => (
+              <article className="panel source-row" key={s.id}>
+                <div className="section-heading">
+                  <span className="eyebrow">Source {index + 1}</span>
+                  <button
+                    aria-label={`Remove source ${index + 1}`}
+                    onClick={() =>
+                      setSources((ss) => ss.filter((x) => x.id !== s.id))
+                    }
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="form-grid">
+                  <Field label="Make pins for">
+                    <select
+                      value={s.kind}
                       onChange={(e) =>
-                        setLinks(
-                          rows.map((x) =>
-                            x.id === row.id ? { ...x, url: e.target.value } : x,
-                          ),
-                        )
-                      }
-                    />
-                  </Field>
-                  <Field label={t("count")}>
-                    <input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={row.count}
-                      onChange={(e) =>
-                        setLinks(
-                          rows.map((x) =>
-                            x.id === row.id
-                              ? { ...x, count: Number(e.target.value) }
-                              : x,
-                          ),
-                        )
-                      }
-                    />
-                  </Field>
-                  {rows.length > 1 && (
-                    <button
-                      aria-label={t("remove")}
-                      onClick={() =>
-                        setLinks(rows.filter((x) => x.id !== row.id))
+                        change(s.id, {
+                          kind: e.target.value,
+                          products: [],
+                          discovered: [],
+                          notice: "",
+                        })
                       }
                     >
-                      <X size={18} />
-                    </button>
+                      <option value="free">Without links</option>
+                      <option value="product">One product</option>
+                      <option value="category">A category</option>
+                      <option value="catalog">My website or store</option>
+                    </select>
+                  </Field>
+                  {["free", "product"].includes(s.kind) && (
+                    <Field label="Number of pins">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={s.count}
+                        onChange={(e) =>
+                          change(s.id, {
+                            count:
+                              e.target.value === ""
+                                ? ""
+                                : Number(e.target.value),
+                          })
+                        }
+                      />
+                    </Field>
                   )}
                 </div>
-              ))}
-              <button
-                disabled={rows.length >= 20}
-                onClick={() =>
-                  setLinks([
-                    ...rows,
-                    { id: crypto.randomUUID(), url: "", count: 5 },
-                  ])
-                }
-              >
-                <Plus size={18} />
-                {t("addLink")}
-              </button>
-            </>
-          ) : (
-            <Field label={t(mode === "next" ? "rounds" : "count")}>
-              <input
-                type="number"
-                min={1}
-                max={mode === "next" ? 5 : 30}
-                value={count}
-                onChange={(e) => setCount(Number(e.target.value))}
+                {s.kind !== "free" && (
+                  <Field
+                    label={
+                      s.kind === "product"
+                        ? "Exact product link"
+                        : s.kind === "category"
+                          ? "Category link"
+                          : "Website or store link"
+                    }
+                  >
+                    <input
+                      type="url"
+                      placeholder="https://"
+                      value={s.url}
+                      maxLength={2048}
+                      onChange={(e) =>
+                        change(s.id, {
+                          url: e.target.value,
+                          products: [],
+                          discovered: [],
+                          notice: "",
+                        })
+                      }
+                    />
+                  </Field>
+                )}
+                {["category", "catalog"].includes(s.kind) && (
+                  <>
+                    <div className="button-row">
+                      <button
+                        disabled={scanning !== null || !s.url}
+                        onClick={async () => {
+                          setScanning(s.id);
+                          setError(null);
+                          try {
+                            const r = await api(
+                              `/api/automations/${automation.id}/catalog`,
+                              "POST",
+                              { url: s.url },
+                            );
+                            change(s.id, {
+                              discovered: r.products,
+                              notice: r.notice,
+                            });
+                          } catch (e) {
+                            setError(e);
+                          } finally {
+                            setScanning(null);
+                          }
+                        }}
+                      >
+                        {scanning === s.id
+                          ? "Finding links…"
+                          : "Find product links"}
+                      </button>
+                      <span className="muted">
+                        {s.products.length} selected
+                      </span>
+                    </div>
+                    {s.notice && <p className="inline-help">{s.notice}</p>}
+                    {s.discovered?.length > 0 && (
+                      <div className="product-choices">
+                        {s.discovered.map((p: any) => (
+                          <label className="check-row" key={p.url}>
+                            <input
+                              type="checkbox"
+                              checked={s.products.some(
+                                (x: any) => x.url === p.url,
+                              )}
+                              onChange={(e) =>
+                                change(s.id, {
+                                  products: e.target.checked
+                                    ? [...s.products, p]
+                                    : s.products.filter(
+                                        (x: any) => x.url !== p.url,
+                                      ),
+                                })
+                              }
+                            />
+                            <span>
+                              {p.title}
+                              <small>{p.url}</small>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <Field label="Product links (one per line)">
+                      <textarea
+                        rows={3}
+                        placeholder="Add missing product links here"
+                        value={s.manual || ""}
+                        onChange={(e) => {
+                          const manual = e.target.value;
+                          const oldManual = (s.manual || "")
+                            .split(/\n/)
+                            .map((x: string) => x.trim());
+                          const kept = s.products.filter(
+                            (p: any) => !oldManual.includes(p.url),
+                          );
+                          const urls = [
+                            ...new Set(
+                              manual
+                                .split(/\n/)
+                                .map((x) => x.trim())
+                                .filter(Boolean),
+                            ),
+                          ];
+                          change(s.id, {
+                            manual,
+                            products: [
+                              ...kept,
+                              ...urls
+                                .filter(
+                                  (url) =>
+                                    !kept.some((p: any) => p.url === url),
+                                )
+                                .map((url) => ({ url, title: "" })),
+                            ],
+                          });
+                        }}
+                      />
+                    </Field>
+                    <div className="form-grid">
+                      <Field label="Pins for each selected product">
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={s.perProduct}
+                          onChange={(e) =>
+                            change(s.id, {
+                              perProduct:
+                                e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value),
+                            })
+                          }
+                        />
+                      </Field>
+                      <Field
+                        label={
+                          s.kind === "category"
+                            ? "Pins for the whole category"
+                            : "Pins for the store overview"
+                        }
+                      >
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={s.categoryCount}
+                          onChange={(e) =>
+                            change(s.id, {
+                              categoryCount:
+                                e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value),
+                            })
+                          }
+                        />
+                      </Field>
+                    </div>
+                    <p className="inline-help">
+                      Product pins link to each product. Overview pins link to
+                      this {s.kind === "category" ? "category" : "store"}.
+                    </p>
+                  </>
+                )}
+              </article>
+            ))}
+          </div>
+          <button
+            onClick={() =>
+              setSources((ss) => [
+                ...ss,
+                {
+                  id: crypto.randomUUID(),
+                  kind: "product",
+                  count: 5,
+                  url: "",
+                  products: [],
+                  perProduct: 3,
+                  categoryCount: 0,
+                },
+              ])
+            }
+          >
+            <Plus size={16} />
+            Add another source
+          </button>
+          <details className="panel creative-options">
+            <summary>
+              Style and extra instructions{" "}
+              <span className="muted">Optional</span>
+            </summary>
+            <Field label="Anything to focus on?">
+              <textarea
+                rows={3}
+                maxLength={4000}
+                value={notes}
+                placeholder="For example: summer bags, bold headlines, warm backgrounds"
+                onChange={(e) => setNotes(e.target.value)}
               />
             </Field>
-          )}
-          {mode === "next" && account?.source !== "website" && (
-            <Notice>
-              {t("websiteSetup")}{" "}
-              <Link to={`/automations/${automation.id}/accounts`}>
-                {t("accounts")}
-              </Link>
-            </Notice>
-          )}
-          <p>
-            <strong>
-              {total} {t("pinsLabel")}
-            </strong>
-          </p>
-          {refs.length > 0 && (
+            <References
+              key={accountId}
+              accountId={accountId}
+              flush={flush}
+              t={t}
+            />
+          </details>
+          <div className="request-footer">
             <div>
-              <p>{t("usesStyle")}</p>
-              <div className="reference-grid">
-                {refs.map((r) => (
-                  <img key={r.id} src={r.url} alt={t("style")} />
-                ))}
-              </div>
+              <strong>
+                {Number.isSafeInteger(total) && total > 0
+                  ? total.toLocaleString()
+                  : "—"}{" "}
+                pins
+              </strong>
+              <small>
+                Creation amount · separate from {chosen?.pinsPerDay} daily posts
+              </small>
             </div>
-          )}
-          <p className="muted">{t("promptHelp")}</p>
-          {error != null && <ErrorBox error={error} />}
-          <button
-            className="primary"
-            disabled={
-              busy ||
-              !automation.sheetUrl ||
-              total < 1 ||
-              total > 40 ||
-              (mode === "next" && account?.source !== "website")
-            }
-            onClick={async () => {
-              setBusy(true);
-              setError(null);
-              try {
-                await flush();
-                const r = await api(
-                  `/api/automations/${automation.id}/batches`,
-                  "POST",
-                  {
-                    accountId,
-                    variant: variant.current,
-                    lines:
-                      mode === "link"
-                        ? rows.map((x) => ({
-                            kind: "link",
-                            url: x.url,
-                            count: x.count,
-                          }))
-                        : [{ kind: mode, count, url: "" }],
-                  },
-                );
-                setSelected(r.batch);
-              } catch (e) {
-                setError(e);
-              } finally {
-                setBusy(false);
+            <button
+              className="primary"
+              disabled={
+                busy ||
+                !sources.length ||
+                !Number.isSafeInteger(total) ||
+                total < 1
               }
-            }}
-          >
-            {busy ? t("loading") : t("getPrompt")}
-          </button>
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  await flush();
+                  const r = await api(
+                    `/api/automations/${automation.id}/batches`,
+                    "POST",
+                    {
+                      accountId,
+                      variant: variant.current,
+                      notes,
+                      sources: sources.map(
+                        ({ id, manual, discovered, notice, ...s }) => s,
+                      ),
+                    },
+                  );
+                  setSelected(r.batch);
+                } catch (e) {
+                  setError(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Preparing…" : "Review request"}
+              <ArrowRight size={16} />
+            </button>
+          </div>
           {!automation.sheetUrl && (
-            <Notice>
-              {t("firstSheet")}{" "}
-              <Link to={`/automations/${automation.id}/setup`}>
-                {t("draft")}
-              </Link>
-            </Notice>
+            <p className="inline-help">
+              Finish setup to connect this request to its Google Sheet.
+            </p>
           )}
           <Modal
-            title={t("getPrompt")}
+            title="Your content request"
             open={Boolean(selected)}
-            onOpenChange={(open) => {
-              if (!open) setSelected(null);
-            }}
+            onOpenChange={(open) => !open && setSelected(null)}
           >
             {selected && (
               <>
-                <p>{t("promptHelp")}</p>
-                {selected.referenceCount > 0 && (
-                  <Notice>{t("referenceLinks")}</Notice>
-                )}
+                <p>
+                  {selected.total.toLocaleString()} pins for @
+                  {selected.username}. The prompt creates the content; copying
+                  it does not queue or publish pins.
+                </p>
+                <div className="destination-review">
+                  {selected.input.destinations?.map((d: any, i: number) => (
+                    <div className="review-row" key={i}>
+                      <strong>
+                        {d.count} · {d.kind}
+                      </strong>
+                      <span>{d.url || "No destination link"}</span>
+                    </div>
+                  ))}
+                </div>
                 <PackageDownload batch={selected} />
-                <pre className="prompt-preview">{selected.prompt}</pre>
+                <details>
+                  <summary>Read the prompt</summary>
+                  <pre className="prompt-preview">{selected.prompt}</pre>
+                </details>
                 <button
                   className="primary"
                   onClick={async () => {
@@ -2823,13 +3030,15 @@ function Pins({
                         "POST",
                         {},
                       );
-                      notify(t("copied"));
+                      notify(
+                        "Prompt copied. Create and review the pins before publishing.",
+                      );
                     } catch (e) {
                       setError(e);
                     }
                   }}
                 >
-                  {t("copy")}
+                  Copy prompt
                 </button>
               </>
             )}

@@ -1,3 +1,4 @@
+import { planSources, concisePrompt } from "./batch-plan";
 import { Hono } from "hono";
 import { z } from "zod";
 import { owned } from "./access";
@@ -89,6 +90,8 @@ function referenceRules(urls: string[]) {
     : "";
 }
 function makePrompt(snapshot: any, batchId: string, urls: string[]) {
+  if (snapshot.batch.version === 2)
+    return concisePrompt(snapshot, batchId, urls);
   const source = promptTemplate
     .replaceAll("PINTEREST AUTOPILOT", "PINTEREST AUTOMATION")
     .replaceAll("Pinterest Autopilot", "Pinterest Automation")
@@ -383,29 +386,45 @@ content.post("/:id/batches", async (c) => {
     .object({
       accountId: z.string().max(80),
       variant: z.uuid().optional(),
+      notes: z.string().trim().max(4000).default(""),
+      sources: z.unknown().optional(),
       lines: z
         .array(
           z.object({
             kind: z.enum(["link", "free", "next"]),
-            count: z.number().int().min(1).max(30),
+            count: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
             url: z.string().max(2048).default(""),
             perRound: z.number().int().min(3).max(15).optional(),
           }),
         )
         .min(1)
-        .max(20),
+        .max(100)
+        .optional(),
     })
     .parse(await c.req.json());
   const selected = account(a, input.accountId),
     config = { ...defaultState(), ...JSON.parse(a.config) },
-    batchInput = {
-      accountId: input.accountId,
-      lines: input.lines.map((line, index) => ({ ...line, id: String(index) })),
-    };
-  if (Object.keys(validateBatch({ ...config, batch: batchInput })).length)
+    batchInput =
+      input.sources !== undefined
+        ? {
+            ...planSources(input.sources),
+            notes: input.notes,
+            accountId: input.accountId,
+          }
+        : {
+            accountId: input.accountId,
+            lines: (input.lines || []).map((line, index) => ({
+              ...line,
+              id: String(index),
+            })),
+          };
+  if (
+    !("version" in batchInput) &&
+    Object.keys(validateBatch({ ...config, batch: batchInput })).length
+  )
     throw new PublicError(
       "batch",
-      "Check your links and pin amounts. Each batch can contain up to 40 pins.",
+      "Check the links and pin amounts, or use the new mixed request builder.",
     );
   const media = await c.env.DB.prepare(
     "SELECT id,content_hash FROM media WHERE user_id=? AND automation_id=? AND account_id=? AND active=1 ORDER BY id",
@@ -450,7 +469,9 @@ content.post("/:id/batches", async (c) => {
         JSON.stringify({ ...snapshot, createdAt: now() }),
         JSON.stringify(media.results.map((m) => m.id)),
         "",
-        batchTotal(batchInput, selected),
+        "total" in batchInput
+          ? batchInput.total
+          : batchTotal(batchInput, selected),
         now(),
         userId,
       )

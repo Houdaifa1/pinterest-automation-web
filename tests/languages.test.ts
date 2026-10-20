@@ -1,13 +1,8 @@
 import { it, expect } from "vitest";
-import { messages } from "../src/i18n";
-it("provides every interface message in English, French and Arabic", () => {
-  expect(Object.keys(messages.fr).sort()).toEqual(
-    Object.keys(messages.en).sort(),
-  );
-  expect(Object.keys(messages.ar).sort()).toEqual(
-    Object.keys(messages.en).sort(),
-  );
-  for (const language of Object.values(messages))
-    for (const value of Object.values(language))
-      expect(value.trim().length).toBeGreaterThan(0);
+import { messages, translate } from "../src/i18n";
+it("ships only English interface messages", () => {
+  expect(Object.keys(messages)).toEqual(["en"]);
+  for (const value of Object.values(messages.en))
+    expect(value.trim().length).toBeGreaterThan(0);
+  expect(translate("en", "summary")).toBe("Queue");
 });
