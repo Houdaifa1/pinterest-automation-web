@@ -1,5 +1,7 @@
 # Pinterest Automation
 
+[![Check and deploy](https://github.com/Houdaifa1/pinterest-automation-web/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Houdaifa1/pinterest-automation-web/actions/workflows/checks.yml)
+
 A simple home for Pinterest posting. Connect your accounts, choose a schedule, save examples of your picture style, and prepare a batch of pins. Activepieces publishes the queued pins from your Google Sheet.
 
 [Open the website](https://automation.houdaifa.dev) · [Build and deployment checks](https://github.com/Houdaifa1/pinterest-automation-web/actions)

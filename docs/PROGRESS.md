@@ -11,10 +11,10 @@
 | 3. Backend (D1, Google sign-in, ownership, encryption, admin) | implemented; real Google login verified | 2026-10-19 | engineer | 28 runtime tests; real Google login on the live domain |
 | 4. Setup wizard + Deploy | implemented; isolated live setup and controls verified | 2026-10-19 | engineer | successful isolated first run and Run now; pause/resume checked |
 | 5. Automation pages | implemented; acceptance checks in progress | 2026-10-19 | engineer | runtime tests and production build |
-| 6. Live website, migration and beginner acceptance | website deployed; existing-flow migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
+| 6. Live website, migration and beginner acceptance | website and push deployment verified; migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-Finish the Cloudflare deployment credential in the owner’s existing Chrome session, prove automatic deployment, then complete the remaining usability and content-handoff acceptance checks. Existing production flows stay unchanged until their import/migration is reviewed. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
+Complete a separate receiving-session image-reference check and an unassisted beginner setup session. Review existing-flow migration before changing any original flow. The live website, public repository and automatic deployment on main are verified. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -27,7 +27,7 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 - No app implementation or live-account access. Original approved references unchanged. Next step: authorized API proof on the confirmed test setup.
 
 ## Open problems
-- The owner approved the limited Cloudflare deployment token. It is active and stored in GitHub’s production environment; the first successful push-driven deployment is being verified.
+- Push-driven deployment is verified. The limited credential is active in GitHub’s production environment. Remaining work is acceptance and existing-flow migration.
 - The explicit prompt-and-images attachment package is checked. Automatic image access from a separate content-creation session remains unproved.
 - Existing production-flow migration and an unassisted beginner setup session remain pending. Test scope is @stunningcrochet only; Crochet Simplified is excluded.
 - Real Google sign-in, isolated first run, Run now, pause/resume and the live domain are verified. A new pin-publication test and a live website Telegram test have not been completed.
@@ -181,3 +181,12 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 
 - The previous final commit/push was not executed: automatic approval review reached a usage limit. This was a review failure, not an unsafe-action decision. Checked the repository after resuming: source remains committed and public through 84e700e; only the deployment records were waiting locally.
 - GitHub confirms CLOUDFLARE_API_TOKEN exists in the production environment. Normal approval review is available again. Next: push the checked deployment record, verify both workflow jobs, and check the live domain.
+
+## 20 October 2026 — automatic deployment proved
+
+- GitHub push 0901ff1 triggered run 39417494219. Both Build and test and Deploy production finished successfully. The job applied migrations, uploaded the checked website and passed its production checks. Evidence: docs/proof/github-production-deployment.json and screenshots/github-production-deployment.jpg; https://github.com/Houdaifa1/pinterest-automation-web/actions/runs/39417494219.
+- The push ran all 28 runtime tests, four flow-builder tests, all 40 engine tests and the production build. The live domain returned health 200, private member access 401, local=false and development-login 404.
+- Removed deprecated action runtimes by pinning the official upload v7.0.2 and download v8.0.2 commits; both action definitions use Node 24. Their next run validates artifact transfer with these maintained versions. Added the live workflow badge to the README.
+- Checked the deployment credential against Git history: no match. Its temporary local capture is removed after verification; GitHub retains the production secret. Private Chrome screenshots remain ignored.
+- Done: live website, Google sign-in proof, public source/README and push-driven Cloudflare deployment. Remaining: existing-flow migration review, a fresh end-to-end publication/content-quality test, live website Telegram acceptance, independent automatic reference-image access and an unassisted beginner session. Original posting flows were not changed. The explicit prompt-and-images attachment package is verified.
+- End of session: the final workflow run is checked before reporting completion. Next work is the remaining acceptance and migration above; there is no outstanding deployment-key approval.
