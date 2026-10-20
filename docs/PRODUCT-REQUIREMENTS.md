@@ -1,6 +1,6 @@
 # Product requirements — updated 20 October 2026
 
-Current gate: application changes are paused at the owner's request. The complete latest behavior and proposed design are in [REBUILD-PLAN.md](REBUILD-PLAN.md). The earlier prototype was approved and released; the proposed redesign is not approved. The older account-level reference flow below is superseded: source URLs, optional batch notes and example pins belong in New pins, with optional reusable presets there. Do not make a written brief compulsory.
+Current gate: the owner approved work on the revised clickable prototype, with a pure black background and English only. French, Arabic and the language picker are removed from the redesign scope. The complete latest behavior is in [REBUILD-PLAN.md](REBUILD-PLAN.md). Revised prototype approval precedes the production rebuild. The older account-level reference flow below is superseded: source URLs, optional batch notes and example pins belong in New pins, with optional reusable presets there. Do not make a written brief compulsory.
 
 ## Approved direction
 

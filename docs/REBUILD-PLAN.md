@@ -1,12 +1,12 @@
 # Product and design proposal — 20 October 2026
 
-Status: FOR REVIEW. No approval to implement or deploy this rebuild. This document records the owner's latest requests and one recommended design. Earlier unfinished application edits remain local and unapproved.
+Status: PROTOTYPE WORK APPROVED, 20 October 2026. The owner requested starting work with a pure black background and English only. Complete the revised clickable prototype before approval of the production rebuild. Earlier unfinished application edits remain local and unapproved.
 
 ## 1. What this product should feel like
 
 A calm workspace for running a Pinterest account: see what is scheduled, create the next batch, and know how long the queue will last. Settings stay out of the way. The daily experience should not resemble a flow editor or a deployment console.
 
-Recommended direction: an editorial content workspace. Keep Geist's readable type, spacing and clear controls; use a warm neutral canvas, solid surfaces, an ink sidebar, a restrained teal action color and green only for meaningful saved/change states. Let actual pin previews provide most of the color. Avoid decorative graphs, oversized numbers, glass-heavy layers and repeated setup instructions.
+Approved direction for the prototype: an editorial content workspace with Geist's readable type, spacing and clear controls. Use a pure black canvas, neutral dark panels, white primary actions and green only for meaningful saved/change states. No green or teal background. Let actual pin previews provide most of the color. English only; no language picker or French/Arabic screens. Avoid decorative graphs, oversized numbers, glass-heavy layers and repeated setup instructions.
 
 Borrow Buffer's queue/calendar visibility and Planable's focused review states. Do not copy their branding, agency complexity or every navigation item. These are design references, not replacement services.
 
@@ -112,7 +112,7 @@ Every account starts collapsed. Settings opens only that account. Compare normal
 
 Connection lists refresh from Activepieces. A replaced, expired, deleted or externally changed flow must not silently leave a false Running badge. Reconcile external changes and detect draft/version conflicts; never overwrite changes in either system without a clear resolution. An absent remote flow gets a clear removed state, not a newly created duplicate.
 
-Use short labels, predictable Back navigation, preserved focus/scroll, visible keyboard focus, large touch targets and solid readable surfaces. Motion responds immediately and remains interruptible. Support reduced motion, phone widths, text zoom, light/dark, English/French/Arabic and right-to-left layout. Loading preserves layout; unavailable data is not a fake successful count.
+Use short labels, predictable Back navigation, preserved focus/scroll, visible keyboard focus, large touch targets and solid readable surfaces. Motion responds immediately and remains interruptible. Support reduced motion, phone widths and text zoom. Use the owner's fixed black theme and English only. This replaces the earlier automatic light/dark and French/Arabic/RTL scope. Loading preserves layout; unavailable data is not a fake successful count.
 
 ## 9. Build order after approval
 
@@ -122,7 +122,7 @@ Use short labels, predictable Back navigation, preserved focus/scroll, visible k
 | 2 | Complete new clickable prototype | Whole-card navigation, creation choice, saved-key Back/Continue, mixed requests, account dirty states, deletion recovery, empty/error/loading views |
 | 3 | Prove risky integrations in isolation | Permitted catalog access, historical pin coverage, actual queue counts, resumable creation handoff, varied scheduling/usage, pause/cancel/retry behavior |
 | 4 | Implement data and publishing contracts | Catalog/product IDs, per-pin destination, batch snapshots, content states, durable schedule and conflict-safe Activepieces reconciliation |
-| 5 | Implement the approved interface | Useful progress, mixed builder, optional brief/examples, collapsed accounts and accessible phone/RTL behavior |
+| 5 | Implement the approved interface | Useful progress, mixed builder, optional brief/examples, collapsed accounts and accessible English phone behavior |
 | 6 | End-to-end acceptance and rollout | Actual completed mixed batch and destinations, unchanged protected accounts, no duplicates after injected failures, honest queue coverage, unassisted beginner completion |
 
 Only after the prototype and integration proofs should the corresponding production rebuild proceed. Do not change original flows or the shared Sheet merely to demonstrate the proposal. Test scope remains the isolated @stunningcrochet setup; Crochet Simplified is excluded.
@@ -133,4 +133,4 @@ Acceptance examples include amounts above the old limits; mixed product/category
 
 This is a proposed rebuild, not a claim that these features exist. The last verified application release is recorded in PROGRESS.md. Earlier partially written saved-key/creation/draft-removal code is still uncommitted and unpublished; do not deploy it as part of this design review. Do not delete the three production drafts during the review pause.
 
-Next action: owner review of this plan and design, then the complete clickable prototype. No application implementation or live-account change is authorized by creation of this document.
+Next action: build the complete black, English-only clickable prototype authorized by the owner, then obtain its approval before the production rebuild. No live-account change is required for this prototype stage.

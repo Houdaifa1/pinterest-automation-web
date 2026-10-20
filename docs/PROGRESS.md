@@ -14,7 +14,7 @@
 | 6. Live website, migration and beginner acceptance | website and push deployment verified; migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-The setup and account-addition corrections are live. Next: complete a separate receiving-session image-reference check and an unassisted beginner setup session. Existing production setups can now be adopted read-only; review their settings before any Update automation action. The live website, public repository and automatic deployment on main are verified. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
+Build the complete revised clickable prototype in pure black and English only, as authorized by the owner on 20 October. Obtain its approval before the production rebuild. The live website and automatic deployment remain at the last verified release. Existing unfinished application edits and production duplicate cleanup are not part of this prototype stage. Future live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -235,3 +235,9 @@ The setup and account-addition corrections are live. Next: complete a separate r
 - Proof: browser interactions observed 25 mixed pins, 120 after changing the no-link amount to 100, and 108 when excluding category-product pins. An account edit exposes Save; restoring the original value hides it. Whole-card navigation, the existing/new choice and an empty new setup were observed. Queue and New pins had no horizontal overflow at a 320px browser width (288px product area). Evidence: docs/proof/workspace-proposal-review.json.
 - Application files were fingerprinted before and after this review: source, engine, functions and migrations are unchanged. No live account access, posting, draft deletion, migration, push or deployment occurred. Application tests were not rerun for this design/documentation-only work. Earlier uncommitted app changes are still unfinished and unverified; they are excluded from the review commit.
 - End of session: wait for the owner's corrections and agreement on the complete behavior and design. Then make the complete revised clickable prototype for separate approval, followed by isolated catalog/history/scheduling proofs before the corresponding production rebuild. Keep @stunningcrochet as the only permitted test target and Crochet Simplified excluded. The three duplicate production drafts remain pending; broader publication, Telegram, reference-delivery and beginner acceptance remain open. Save this review locally without pushing, because a main-branch push would trigger deployment while application work is paused.
+
+## 20 October 2026 — black English-only prototype work authorized
+
+- Owner approved starting the next stage and explicitly replaced the green background with black and removed French/Arabic. Updated the current requirements and handoff. Use neutral dark surfaces, white primary buttons and green only for meaningful edit/save feedback.
+- In progress: a complete separate clickable prototype in docs/prototype-v2/. It uses sample data and no service calls. Production rebuild approval follows prototype review; no unfinished app files or migrations will be deployed as part of this stage.
+- Next: complete setup/new-or-existing flows, mixed-source requests and catalog selection, queue/account editing, deletion recovery and error states; verify desktop/phone interactions and save real screenshots. Live content acceptance and production duplicate cleanup remain pending.

@@ -80,3 +80,10 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Account settings start collapsed. Only real net changes show green Save changes; reverting to the saved values leaves Hide settings. Retain the saved-key Continue/Change behavior, existing Telegram reuse, explicit existing/new creation choice, empty new setups and recoverable deletion requirements.
 - The owner requested varied posting times and a new visual direction. Recommend stored, spaced timestamps inside chosen hours, not detection evasion. Access approval, service usage and minute-level scheduling remain proof tasks. No claim that the old hourly engine already supports this.
 - Proposed direction: a calm editorial content workspace, borrowing queue clarity from Buffer and review focus from Planable while retaining readable Geist foundations. This direction, the new clickable prototype and the preferred scheduling architecture remain unapproved. See REBUILD-PLAN.md and RESEARCH.md. All current design-preview data is illustrative.
+
+## 20 October 2026 — revised prototype authorized, black and English only
+
+- Owner said to start work on the reviewed plan, with a black background instead of green and removal of French and Arabic. The next agreed stage is the complete revised clickable prototype; production rebuild approval follows that review.
+- Use a pure black canvas, neutral dark surfaces and white main actions. Reserve green for a meaningful edit/save state. No green/teal background and no automatic appearance switch in the new design.
+- English only. Remove the language picker and French/Arabic screens from the redesign. This supersedes earlier translation/RTL requirements; older release evidence remains historical.
+- Prototype actions use sample state only. Existing unfinished application files stay untouched; no live posting, production draft cleanup or deployment during this stage.
