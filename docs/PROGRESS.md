@@ -14,7 +14,7 @@
 | 6. Live website, migration and beginner acceptance | website and push deployment verified; migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-Release the checked existing-setup and account-addition corrections, then complete a separate receiving-session image-reference check and an unassisted beginner setup session. Review migration before changing any original flow. The live website, public repository and automatic deployment on main are verified. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
+The setup and account-addition corrections are live. Next: complete a separate receiving-session image-reference check and an unassisted beginner setup session. Existing production setups can now be adopted read-only; review their settings before any Update automation action. The live website, public repository and automatic deployment on main are verified. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -211,3 +211,10 @@ Release the checked existing-setup and account-addition corrections, then comple
 - Add Pinterest account shows the exact connection steps and detects a saved profile automatically. A detected profile uses category and daily-count choices, then Add & update automation. Failed updates leave a saved draft and a visible retry action rather than trapping the account in the addition dialog.
 - Proof: 35 runtime tests, eight flow-execution tests and all 40 engine tests pass. The production build passes. Real browser checks cover read-only adoption, retained Telegram, Back navigation and the account-connection guide. English, French and Arabic measurements have 320px body/scroll widths; Arabic is right-to-left. Evidence: docs/proof/existing-setup-check.json and its real screenshots. The account-update integration tests use simulated services.
 - Done locally: the reported setup and account-update fixes. Next: push, verify both deployment jobs and check the live release. No original flow or Sheet has been changed; no pin has been published by these checks. Broader acceptance remains open.
+
+## 20 October 2026 — setup fix released and session close
+
+- Push b379b2b completed both jobs in run 39424425209. Database migration 0007, Pages publication and production checks all succeeded. Live JavaScript matches the checked build and contains the existing-automation choice, existing-bot reuse and guided account update. Evidence: docs/proof/existing-setup-check.json and screenshots/setup-fix-deployment.jpg.
+- Independent live checks: health 200, private member data 401 without a session, local=false and development login 404. Known-secret history scan checked 292 blobs without a match before the release push. The Telegram screenshot with a personal recipient email is ignored.
+- Done: the reported existing-setup and account-update corrections, tests, phone checks, public commits and automatic deployment. The local website adopted the real @stunningcrochet setup using reads only; the original remote flow is unchanged. Production adoption is offered to the member and has not been performed automatically. The isolated website test flow remains paused.
+- Next/open: broader content-publication and live Telegram acceptance, independent reference delivery and an unassisted beginner session. A second real Pinterest identity was not connected or published in this session; account-update integration proof used simulated services. Keep Crochet Simplified excluded. The final session records are pushed; no approval or deployment credential is pending.

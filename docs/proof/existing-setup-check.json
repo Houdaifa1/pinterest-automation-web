@@ -41,12 +41,24 @@
   "screenshots": [
     "screenshots/existing-automation-review.jpg",
     "screenshots/add-pinterest-phone.jpg",
-    "screenshots/existing-automation-arabic-phone.jpg"
+    "screenshots/existing-automation-arabic-phone.jpg",
+    "screenshots/setup-fix-deployment.jpg"
   ],
   "limits": [
     "Account-addition publishing checks used simulated provider calls.",
     "Original remote flow was read only; no live configuration update was performed.",
     "Broader publishing, reference-delivery and beginner acceptance remain separate."
   ],
-  "productionRelease": "pending push verification"
+  "productionRelease": {
+    "commit": "b379b2b1888d1d07e326ab2aecaffb0892cb25ed",
+    "run": "https://github.com/Houdaifa1/pinterest-automation-web/actions/runs/39424425209",
+    "buildAndTest": "success",
+    "deployProduction": "success",
+    "databaseMigration": "success",
+    "checkedAssetLive": true,
+    "publicHealth": 200,
+    "privateMemberWithoutSession": 401,
+    "localMode": false,
+    "developmentLogin": 404
+  }
 }
