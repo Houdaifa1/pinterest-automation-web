@@ -27,7 +27,7 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 - No app implementation or live-account access. Original approved references unchanged. Next step: authorized API proof on the confirmed test setup.
 
 ## Open problems
-- The limited Cloudflare token is prepared in Chrome. Its final creation approval and the first successful push-driven deployment are pending.
+- The owner approved the limited Cloudflare deployment token. It is active and stored in GitHub’s production environment; the first successful push-driven deployment is being verified.
 - The explicit prompt-and-images attachment package is checked. Automatic image access from a separate content-creation session remains unproved.
 - Existing production-flow migration and an unassisted beginner setup session remain pending. Test scope is @stunningcrochet only; Crochet Simplified is excluded.
 - Real Google sign-in, isolated first run, Run now, pause/resume and the live domain are verified. A new pin-publication test and a live website Telegram test have not been completed.
@@ -169,3 +169,15 @@ Finish the Cloudflare deployment credential in the owner’s existing Chrome ses
 
 - Reserved the current pin-builder height while changing source modes and disabled scroll anchoring inside it. On the real 320px page, direct clicks changed Page links → Without links → My website with scroll fixed at 298px and focus on the selected button. Evidence: docs/proof/website-scroll-check.json. Semantic browser-control clicks center their targets, so the final proof uses direct viewport clicks.
 - Production build passes. The latest manual release and both database migrations are live. This final scroll correction is prepared locally for the next deployment. Automatic deployment remains pending the final limited-token approval; no key has been created yet.
+
+## 19 October 2026 — deployment credential configured
+
+- Owner approved the exact Chrome token summary and storing its value in this repository’s production environment. Created automation-github-deploy with D1 Edit and Pages Edit for one account only. The official verification endpoint returned HTTP 200, active.
+- Saved CLOUDFLARE_API_TOKEN through private standard input in the GitHub production environment. No value appeared in chat, source or logs. Returned Chrome to the token list after capture.
+- Commit 84e700e is public. Its Build and test job passed every step; deployment ran before the secret existed and stopped at authentication. The following push will verify a fully automatic release with the configured key.
+- The scroll correction deployed manually to 5fc5b4bb.pinterest-automations.pages.dev. Both production database migrations are applied. Next: observe both jobs succeed after the new push, check the live domain and save final proof.
+
+## 20 October 2026 — automatic release verification resumed
+
+- The previous final commit/push was not executed: automatic approval review reached a usage limit. This was a review failure, not an unsafe-action decision. Checked the repository after resuming: source remains committed and public through 84e700e; only the deployment records were waiting locally.
+- GitHub confirms CLOUDFLARE_API_TOKEN exists in the production environment. Normal approval review is available again. Next: push the checked deployment record, verify both workflow jobs, and check the live domain.

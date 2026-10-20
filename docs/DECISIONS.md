@@ -60,3 +60,7 @@ The owner explicitly renamed the live site to Automation. Use **automation.houda
 ## 19 October 2026 — public source and deployment on push
 
 The owner explicitly changed repository visibility to public and requested a complete README plus automatic Cloudflare deployment on each main-branch push. Use GitHub Actions with checks before deployment, pinned action commits, read-only repository permissions and a production environment secret. Pull requests must never receive the deployment credential. This replaces the earlier private-repository instruction. Keep website identity and automation keys in Cloudflare secrets; use only a limited Cloudflare deployment credential in GitHub.
+
+## 19 October 2026 — limited production deployment credential
+
+The owner approved creating automation-github-deploy and storing it in GitHub’s production environment. Its only permissions are Pages Edit and D1 Edit for the selected Cloudflare account. This grants access to those services across that account; Cloudflare does not narrow this token to one Pages project or one D1 database. The existing website and automation credentials remain Cloudflare secrets.
