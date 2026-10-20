@@ -5,20 +5,24 @@ import { auth, requireSession } from "./auth";
 import { owned } from "./access";
 import { integrations } from "./integrations";
 import { discovery, existingSetups } from "./discovery";
+import { validateSchedule } from "./schedule-plan";
 import { configSchema } from "./config";
 import { telegramChecks } from "./telegram";
 import { callbacks, deployment } from "./deployment";
 import { bodyLimit } from "hono/body-limit";
+import { queue, scheduleCallbacks, dispatcher } from "./scheduler";
 import { catalog } from "./catalog";
 import { content, referenceAccess } from "./content";
 import { id, isLocal, now, PublicError, cookieName } from "./security";
 import type { AppEnv, Automation } from "./types";
 
 export const app = new Hono<AppEnv>();
-app.use(
-  "*",
+app.use("*", (c, next) =>
   bodyLimit({
-    maxSize: 350000,
+    maxSize:
+      c.req.path.startsWith("/api/execute/") && c.req.path.endsWith("/snapshot")
+        ? 5000000
+        : 350000,
     onError: (c) =>
       c.json(
         {
@@ -27,7 +31,7 @@ app.use(
         },
         413,
       ),
-  }),
+  })(c, next),
 );
 app.use("*", async (c, next) => {
   await next();
@@ -71,6 +75,8 @@ app.get("/api/health", (c) => c.json({ ok: true }));
 app.get("/api/environment", (c) => c.json({ local: isLocal(c) }));
 app.route("/api/callback", callbacks);
 app.route("/api/reference", referenceAccess);
+app.route("/api/execute", scheduleCallbacks);
+app.route("/api/internal", dispatcher);
 app.use("/api/*", requireSession);
 app.get("/api/me", (c) =>
   c.json({
@@ -241,12 +247,14 @@ app.put("/api/automations/:id", async (c) => {
   }
   for (const account of body.config.accounts) {
     if (
-      new Set(account.hours).size !== account.pinsPerDay ||
-      account.hours.length !== account.pinsPerDay
+      account.schedule
+        ? !validateSchedule(account.schedule, account.pinsPerDay)
+        : new Set(account.hours).size !== account.pinsPerDay ||
+          account.hours.length !== account.pinsPerDay
     )
       throw new PublicError(
         "schedule",
-        "Choose one posting time for each daily pin.",
+        "The daily amount must fit your posting window and minimum spacing. For fixed times, enter one unique time per pin.",
       );
     if (
       account.source === "website" &&
@@ -375,4 +383,5 @@ app.route("/api/automations", telegramChecks);
 app.route("/api/automations", deployment);
 app.route("/api/automations", content);
 app.route("/api/automations", catalog);
+app.route("/api/automations", queue);
 export default app;

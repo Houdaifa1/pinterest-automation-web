@@ -1,0 +1,10 @@
+{
+  "$schema":"node_modules/wrangler/config-schema.json",
+  "name":"automation-dispatcher",
+  "main":"workers/dispatcher.ts",
+  "compatibility_date":"2026-10-19",
+  "workers_dev":false,
+  "triggers":{"crons":["* * * * *"]},
+  "vars":{"APP_ORIGIN":"https://automation.houdaifa.dev"},
+  "observability":{"enabled":true}
+}

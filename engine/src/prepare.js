@@ -76,6 +76,11 @@ export const code = async (inputs) => {
     if (head.idx(col) !== undefined) writes.push({ range: `${quoteTab(TABS.accounts)}!${colLetter(head.idx(col))}${rowNumber}`, values: [[value]] });
   };
   const accounts = [];
+  const websiteBase = config.settings?.website;
+  const websiteState = websiteBase && !config.settings?.maintenance ? await websiteRequest(websiteBase, '/claim', {}) : {jobs:[], commands:[]};
+  result.websiteJobs = websiteState.jobs;
+  result.websiteCommands = websiteBase ? await applyWebsiteCommands(gTok, ws.sheetId, config, websiteState.commands) : [];
+
   for (let i = 1; i < accountRows.length; i++) {
     const r = accountRows[i] || [];
     const g = (c) => (head.idx(c) === undefined ? '' : cellText(r[head.idx(c)]));
@@ -102,10 +107,11 @@ export const code = async (inputs) => {
       put(i + 1, 'Health', 'Setup problem: the Connection ID is empty (copy it from Activepieces → Connections)');
       continue;
     }
-    const publish = on && hours.includes(hour) && !g('Last run').startsWith(hourStamp);
+    const websiteJob = websiteState.jobs.find(j => j.name === name);
+    const publish = on && (websiteBase ? Boolean(websiteJob) : hours.includes(hour) && !g('Last run').startsWith(hourStamp));
     const sync = on && alerts.synced !== today;
     accounts.push({ name, on, hours });
-    if (publish || sync) result.due.push({ name, connection, publish });
+    if (publish || sync) result.due.push({ name, connection, publish, ...(websiteJob ? {websiteJob:{...websiteJob,base:websiteBase}} : {}) });
   }
   if (writes.length) await sheets.write(gTok, ws.sheetId, writes);
 
@@ -211,6 +217,7 @@ async function applyConfig(gTok, ws, config, settingRows, accountRows) {
     const values = {
       On: a.on === false ? 'No' : 'Yes',
       'Connection ID': cellText(a.connection),
+      ...(a.username ? {'Pinterest username': '@' + cellText(a.username).replace(/^@/, '')} : {}),
       Niche: cellText(a.niche),
       Link: cellText(a.link),
       'Posting times': formatHours((a.hours || []).filter((h) => h >= FIRST_HOUR && h <= LAST_HOUR)),

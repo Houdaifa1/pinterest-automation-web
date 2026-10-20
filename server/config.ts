@@ -1,3 +1,4 @@
+import { scheduleSchema } from "./schedule-plan";
 import { z } from "zod";
 export const configSchema = z.object({
   emailTo: z.email().or(z.literal("")).default(""),
@@ -42,7 +43,8 @@ export const configSchema = z.object({
         source: z.enum(["niche", "website"]),
         website: z.string().max(500).default(""),
         pinsPerProduct: z.number().int().min(3).max(15).default(6),
-        pinsPerDay: z.number().int().min(1).max(18),
+        pinsPerDay: z.number().int().min(1).max(1440),
+        schedule: scheduleSchema.optional(),
         hours: z.array(z.number().int().min(6).max(23)).min(1).max(18),
         on: z.boolean().default(true),
       }),

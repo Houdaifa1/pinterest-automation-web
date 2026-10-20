@@ -346,3 +346,193 @@ test("an existing bot with no saved recipient fails instead of choosing a differ
     globalThis.fetch = originalFetch;
   }
 });
+
+test("website scheduling denies publication without a one-use website authorization", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    const s = state();
+    s.websiteSchedule = true;
+    s.accounts[0].on = true;
+    s.accounts[0].username = "testprofile";
+    s.accounts[0].id = "profile";
+    const flow = buildWebsiteFlow(
+      template,
+      s,
+      "11111111-1111-4111-8111-111111111111",
+      "Scheduled",
+      "v-schedule",
+      "https://example.test/api/callback/11111111-1111-4111-8111-111111111111/secret",
+    );
+    assert.equal(flow.trigger.settings.input.cronExpression, "7 0 * * *");
+    const prep = codeStep(flow, "step_3");
+    const config = JSON.parse(prep.settings.input.config);
+    assert.equal(
+      config.settings.website,
+      "https://example.test/api/execute/11111111-1111-4111-8111-111111111111/secret",
+    );
+    let claims = 0;
+    const providerFetch = globalThis.fetch;
+    globalThis.fetch = async (url, opts) => {
+      if (String(url).endsWith("/claim")) {
+        claims++;
+        return Response.json({ jobs: [], commands: [] });
+      }
+      return providerFetch(url, opts);
+    };
+    const module = await import(
+      "data:text/javascript;base64," +
+        Buffer.from(prep.settings.sourceCode.code).toString("base64")
+    );
+    const result = await module.code({
+      google: { access_token: w.tokens.google },
+      gmail: { access_token: w.tokens.gmail },
+      config: prep.settings.input.config,
+    });
+    assert.equal(claims, 1);
+    assert.ok(result.due.every((d) => d.publish === false));
+    assert.equal(w.pins.length, 0);
+    const rows = w.rows("Accounts");
+    const userCol = rows[0].indexOf("Pinterest username");
+    assert.equal(rows[1][userCol], "@testprofile");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("the website contract publishes once and confirms the actual queue receipt", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    w.pinterestUsers["p-token-1"] = "testprofile";
+    w.boards.push({
+      id: "b-main",
+      name: "Main board",
+      privacy: "PUBLIC",
+      owner: "p-token-1",
+    });
+    const s = state();
+    s.websiteSchedule = true;
+    s.accounts[0] = { ...s.accounts[0], id: "profile", on: true };
+    const flow = buildWebsiteFlow(
+      template,
+      s,
+      "11111111-1111-4111-8111-111111111111",
+      "Scheduled",
+      "v-contract",
+      "https://example.test/api/callback/11111111-1111-4111-8111-111111111111/secret",
+    );
+    const prep = codeStep(flow, "step_3"),
+      job = {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "testprofile",
+        accountId: "profile",
+        token: "lease",
+      };
+    const providerFetch = globalThis.fetch;
+    let allowed = false,
+      commands = [],
+      snapshot,
+      finished = [];
+    globalThis.fetch = async (url, opts) => {
+      const path = String(url),
+        body = opts?.body ? JSON.parse(opts.body) : {};
+      if (path.endsWith("/claim"))
+        return Response.json({ jobs: [job], commands });
+      if (path.endsWith("/authorize")) {
+        const answer = allowed;
+        allowed = false;
+        return Response.json({ allowed: answer });
+      }
+      if (path.endsWith("/finish")) {
+        finished.push(body);
+        return Response.json({ ok: true });
+      }
+      if (path.endsWith("/snapshot")) {
+        snapshot = body;
+        return Response.json({ ok: true });
+      }
+      return providerFetch(url, opts);
+    };
+    const load = (step) =>
+      import(
+        "data:text/javascript;base64," +
+          Buffer.from(step.settings.sourceCode.code).toString("base64")
+      );
+    const prepared = await (
+      await load(prep)
+    ).code({
+      google: { access_token: w.tokens.google },
+      gmail: { access_token: w.tokens.gmail },
+      config: prep.settings.input.config,
+    });
+    const accountRows = w.rows("Accounts"),
+      a = accountRows[1],
+      folder =
+        a[accountRows[0].indexOf("Media folder")].match(/folders\/([^/?]+)/)[1];
+    w.addImage(folder, "test.jpg");
+    const pin = {
+      "Pin ID": "proof-pin",
+      Status: "Ready",
+      Account: "testprofile",
+      "Media type": "Image",
+      Media: "test.jpg",
+      Title: "Summer crochet bag",
+      Description: "A handmade bag idea.",
+      Link: "https://example.com/bag",
+      Board: "Main board",
+      Batch: "contract",
+    };
+    const rows = w.rows("Pins – testprofile");
+    rows.push(rows[0].map((h) => pin[h] || ""));
+    const engineStep = codeStep(flow, "step_4").firstLoopAction.nextAction;
+    const engine = await load(engineStep),
+      input = {
+        google: { access_token: w.tokens.google },
+        gmail: { access_token: w.tokens.gmail },
+        pinterest: { access_token: "p-token-1" },
+        accountName: "testprofile",
+        publish: true,
+        quietQueue: true,
+        websiteJob: prepared.due.find((d) => d.publish).websiteJob,
+      };
+    assert.equal((await engine.code(input)).outcome, "cancelled by website");
+    assert.equal(w.pins.length, 0);
+    allowed = true;
+    assert.equal((await engine.code(input)).outcome, "published");
+    assert.equal(w.pins.length, 1);
+    assert.equal((await engine.code(input)).outcome, "cancelled by website");
+    assert.equal(w.pins.length, 1);
+    const status = codeStep(flow, "website_status");
+    // The final status callback is independent of the queue-sync callback.
+    globalThis.fetch = async (url, opts) =>
+      String(url).includes("/api/callback/")
+        ? Response.json({ accepted: true })
+        : await (async () => {
+            const path = String(url),
+              body = opts?.body ? JSON.parse(opts.body) : {};
+            if (path.endsWith("/snapshot")) {
+              snapshot = body;
+              return Response.json({ ok: true });
+            }
+            if (path.endsWith("/finish")) return Response.json({ ok: true });
+            return providerFetch(url, opts);
+          })();
+    await (
+      await load(status)
+    ).code({
+      google: { access_token: w.tokens.google },
+      config: prep.settings.input.config,
+      spreadsheet: prepared.spreadsheet,
+      jobs: [],
+      commands: [],
+    });
+    assert.equal(snapshot.accounts[0].counts.Done, 1);
+    assert.ok(snapshot.accounts[0].pins[0].pinUrl.includes("/pin/"));
+    assert.ok(finished.some((x) => x.outcome === "published"));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

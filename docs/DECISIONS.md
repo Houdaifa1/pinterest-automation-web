@@ -93,3 +93,10 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Owner explicitly resumed the real build and requested production testing, superseding the previous review pause and prototype approval gate. Use the black English-only workspace and reviewed behavior.
 - Test account is now hhdrahm@gmail.com and its connected Activepieces/Pinterest services. Ask the owner to sign in at the live-test stage, then verify actual connected identities and isolate tests. crochetsimplified.com is authorized as a content source. Do not infer that a similarly named old shared flow belongs to this account.
 - Reset obsolete website test data after an inventory and private backup; preserve unrelated members and remote resources. Flexible posting times, manual execution, conservative editable defaults, accurate per-pin links and concise complete prompts require real proof.
+
+## 20 October 2026 — stored minute-level scheduling
+
+- Use a lightweight Cloudflare Worker Cron Trigger to call a protected Pages dispatcher once per minute. It starts Activepieces only for due jobs, rather than running a full posting flow each minute. Credentials and Pinterest publishing stay in Activepieces.
+- Store generated timestamps, claim each job once, recheck pause and applied revision immediately before publication, skip missed slots, and hold uncertain execution for review. Existing independent legacy flows are not converted automatically.
+- Conservative editable starting schedule: three original pins a day, varied inside 09:00–21:00 with two-hour minimum spacing. This is a starting point, not a promised ranking strategy. Custom exact minutes and higher volume must fit the selected window and spacing; provider quotas still apply.
+- Queue changes use actual Sheet snapshots and conflict-checked commands. A copied request or sent marker is never counted as queued content. Unposted pin removal is recoverable; already published Pinterest pins require a separate explicit action.

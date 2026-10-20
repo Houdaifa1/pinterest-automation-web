@@ -6,6 +6,7 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   ENCRYPTION_KEY: string;
   DEV_LOGIN?: string;
+  DISPATCH_KEY?: string;
 }
 export interface User {
   id: string;

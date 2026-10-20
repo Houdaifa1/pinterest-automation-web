@@ -40,12 +40,12 @@ def poster_flow():
     s1 = read_connection('step_1', 'Google login', PLACEHOLDERS['google'])
     s2 = read_connection('step_2', 'Gmail login', PLACEHOLDERS['gmail'], continue_on_failure=True)
     stg = read_connection('step_tg', 'Telegram login', PLACEHOLDERS['telegram'], continue_on_failure=True)
-    s3 = code_step('step_3', 'Prepare (spreadsheet + who posts now)', source('lib.js', 'workspace.js', 'prepare.js'), {
+    s3 = code_step('step_3', 'Prepare (spreadsheet + who posts now)', source('lib.js', 'website.js', 'workspace.js', 'prepare.js'), {
         'google': out('step_1'), 'gmail': out('step_2'), 'telegram': out('step_tg'), 'config': PLACEHOLDERS['config'],
     })
     loop = loop_step('step_4', 'For each account due now', "{{step_3['output'].due}}")
     s5 = read_connection('step_5', 'Pinterest login (this account)', "{{step_4['output'].item.connection}}", continue_on_failure=True)
-    s6 = code_step('step_6', 'Publish + daily sync (this account)', source('lib.js', 'account-engine.js'), {
+    s6 = code_step('step_6', 'Publish + daily sync (this account)', source('lib.js', 'website.js', 'account-engine.js'), {
         'google': out('step_1'), 'gmail': out('step_2'), 'telegram': out('step_tg'), 'pinterest': out('step_5'),
         'accountName': "{{step_4['output'].item.name}}", 'publish': "{{step_4['output'].item.publish}}",
     })
@@ -61,8 +61,8 @@ def poster_flow():
 def main():
     os.makedirs(os.path.join(DIST, 'steps'), exist_ok=True)
     steps = {
-        'prepare': ('lib.js', 'workspace.js', 'prepare.js'),
-        'account-engine': ('lib.js', 'account-engine.js'),
+        'prepare': ('lib.js', 'website.js', 'workspace.js', 'prepare.js'),
+        'account-engine': ('lib.js', 'website.js', 'account-engine.js'),
         'report': ('lib.js', 'report.js'),
     }
     for name, files in steps.items():

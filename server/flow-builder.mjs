@@ -15,6 +15,22 @@ export function buildWebsiteFlow(
     throw new Error("Invalid automation identity.");
   if (workspaceId !== "" && !/^[a-f0-9-]{36}$/.test(workspaceId))
     throw new Error("Invalid workspace identity.");
+  const requestedState = state;
+  if (state.websiteSchedule)
+    state = {
+      ...state,
+      accounts: state.accounts.map((a) => ({
+        ...a,
+        pinsPerDay: Math.min(18, a.pinsPerDay),
+        hours:
+          a.hours?.length === Math.min(18, a.pinsPerDay)
+            ? a.hours
+            : Array.from(
+                { length: Math.min(18, a.pinsPerDay) },
+                (_, i) => 6 + i,
+              ),
+      })),
+    };
   const errors = validate(state);
   const externalIds = [
     state.google,
@@ -70,6 +86,30 @@ export function buildWebsiteFlow(
         else config.settings.telegramChat = state.telegramChat;
         step.settings.input.config = JSON.stringify(config);
       }
+      if (
+        step.name === "step_3" &&
+        requestedState.websiteSchedule &&
+        callback
+      ) {
+        const config = JSON.parse(step.settings.input.config);
+        config.settings.website = callback.replace(
+          "/api/callback/",
+          "/api/execute/",
+        );
+        for (const a of config.accounts) {
+          const original = requestedState.accounts.find(
+            (x) => x.name === a.name,
+          );
+          a.dailyCap = original.pinsPerDay;
+          a.websiteId = original.id;
+          a.username = original.username;
+        }
+        step.settings.input.config = JSON.stringify(config);
+      }
+      if (step.name === "step_6" && requestedState.websiteSchedule) {
+        step.settings.input.websiteJob = "{{step_4['output'].item.websiteJob}}";
+        step.settings.input.quietQueue = true;
+      }
       const source = step.settings?.sourceCode;
       if (source?.code) {
         source.code = source.code
@@ -92,6 +132,14 @@ export function buildWebsiteFlow(
     }
   };
   visit(flow.trigger);
+  if (requestedState.websiteSchedule && !bootstrapAt) {
+    flow.trigger.settings.input = {
+      timezone: "UTC",
+      cronExpression: "7 0 * * *",
+    };
+    flow.trigger.displayName =
+      "Daily maintenance; posting times are managed by the website";
+  }
   if (bootstrapAt) {
     const d = new Date(bootstrapAt);
     flow.trigger.settings.input = {
@@ -102,16 +150,31 @@ export function buildWebsiteFlow(
   if (callback) {
     let last = flow.trigger;
     while (last.nextAction) last = last.nextAction;
+    let prepare = flow.trigger;
+    while (prepare && prepare.name !== "step_3") prepare = prepare.nextAction;
+    const snapshotCode = prepare.settings.sourceCode.code.split(
+      "export const code =",
+    )[0];
     last.nextAction = {
       name: "website_status",
       displayName: "Update website status",
       type: "CODE",
       valid: true,
       settings: {
-        input: {},
+        input: requestedState.websiteSchedule
+          ? {
+              google: "{{step_1['output']}}",
+              spreadsheet: "{{step_3['output'].spreadsheet}}",
+              jobs: "{{step_3['output'].websiteJobs}}",
+              commands: "{{step_3['output'].websiteCommands}}",
+              config: prepare.settings.input.config,
+            }
+          : {},
         sourceCode: {
           packageJson: "{}",
-          code: `export const code = async () => { try { const r = await fetch(${JSON.stringify(callback)}, { method: 'POST' }); return { notified: r.ok }; } catch { return { notified: false }; } };`,
+          code:
+            (requestedState.websiteSchedule ? snapshotCode : "") +
+            `export const code = async (inputs) => { ${requestedState.websiteSchedule ? "await websiteSnapshot(inputs);" : ""} try { const r = await fetch(${JSON.stringify(callback)}, { method: 'POST' }); return { notified: r.ok }; } catch { return { notified: false }; } };`,
         },
         errorHandlingOptions: {
           continueOnFailure: { value: true },

@@ -25,6 +25,8 @@ function createContext(inputs) {
   const now = new Date();
   const staleOverride = Number(inputs.lockStaleMinutes);
   return {
+    websiteJob: inputs.websiteJob && typeof inputs.websiteJob === "object" ? inputs.websiteJob : null,
+    quietQueue: inputs.quietQueue === true,
     accountName: cellText(inputs.accountName),
     publish: inputs.publish === undefined || inputs.publish === null || cellText(inputs.publish) === '' ? true : isYes(inputs.publish, true),
     testFault: cellText(inputs.testFault),
@@ -52,6 +54,9 @@ export const code = async (inputs) => {
   }
   try { await syncProducts(ctx); } catch (e) { ctx.result.notes.push(`products not updated: ${e.message}`); }
   await flush(ctx);
+  if (ctx.websiteJob) {
+    await websiteRequest(ctx.websiteJob.base, '/finish', {id:ctx.websiteJob.id,token:ctx.websiteJob.token,outcome:ctx.fatal ? 'error' : ctx.result.outcome});
+  }
   if (ctx.fatal) throw new Error(ctx.fatal);
   return ctx.result;
 };
@@ -59,6 +64,8 @@ export const code = async (inputs) => {
 // ---------------------------------------------------------------------------
 // Main flow
 // ---------------------------------------------------------------------------
+function inputsWebsite(ctx) { return Boolean(ctx.websiteJob); }
+
 async function run(ctx) {
   if (!ctx.gTok) {
     ctx.fatal = 'The Google connection could not be loaded. Reconnect it in Activepieces > Connections.';
@@ -94,6 +101,10 @@ async function run(ctx) {
     return wrongAccount(ctx, acc.username, connected);
   }
 
+  if (ctx.publish && inputsWebsite(ctx)) {
+    const allowed = await websiteRequest(ctx.websiteJob.base, '/authorize', {id:ctx.websiteJob.id,token:ctx.websiteJob.token});
+    if (!allowed.allowed) { ctx.result.outcome = 'cancelled by website'; return; }
+  }
   if (ctx.publish) await publishNext(ctx);
   else ctx.result.outcome = 'daily sync only (not a posting hour)';
   if (!ctx.stopMaintenance) await dailyMaintenance(ctx);
@@ -1041,7 +1052,7 @@ function pinterestDown(ctx, message) {
 function queueEmpty(ctx) {
   if (ctx.result.outcome === 'nothing to do') ctx.result.outcome = 'queue empty';
   if (![HEALTH.review].includes(ctx.state.health)) setHealth(ctx, HEALTH.queueEmpty);
-  if (alertOncePerDay(ctx, 'queueEmpty')) {
+  if (!ctx.quietQueue && alertOncePerDay(ctx, 'queueEmpty')) {
     ctx.emails.push({ alert: true, subject: `⚠️ ${ctx.acc.name}: no pins left to publish`, html: emailShell('No pins left to publish', `
       ${detailRows([
         ['Account', esc(`${ctx.acc.name} (@${ctx.acc.username || ctx.acc.name})`)],
@@ -1055,7 +1066,7 @@ function queueEmpty(ctx) {
 }
 
 function queueLow(ctx, left) {
-  if (alertOncePerDay(ctx, 'queueLow')) {
+  if (!ctx.quietQueue && alertOncePerDay(ctx, 'queueLow')) {
     const days = Math.max(1, Math.floor(left / (ctx.acc.dailyCap || 5)));
     ctx.emails.push({ alert: true, subject: `⚠️ ${ctx.acc.name}: only ${left} pins left`, html: emailShell('Queue running low', `
       <p>Only <b>${left}</b> Ready pins left in "${esc(ctx.acc.pinsTab)}" — about ${days} day${days === 1 ? '' : 's'} at ${ctx.acc.dailyCap} a day.</p>`, '#b45309') });

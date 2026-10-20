@@ -37,7 +37,11 @@ async function resolveConfig(
   a: Automation,
   configText: string,
 ) {
-  const config = { ...defaultState(), ...JSON.parse(configText) };
+  const config = {
+    ...defaultState(),
+    ...JSON.parse(configText),
+    websiteSchedule: Boolean(env.DISPATCH_KEY),
+  };
   const rows = (
     await env.DB.prepare(
       "SELECT * FROM connections WHERE integration_id=? AND user_id=?",
@@ -269,6 +273,18 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
     if (["starting", "applying"].includes(a.status)) return { pending: true };
     const { integration, key } = await getIntegration(env, userId, a);
     await resolveConfig(env, userId, a, a.config);
+    if (a.flow_id && a.applied_revision > 0 && a.flow_version_id) {
+      const remote = await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`);
+      if (
+        remote.publishedVersionId !== a.flow_version_id ||
+        remote.version?.id !== a.flow_version_id
+      )
+        throw new PublicError(
+          "external_change",
+          "This flow changed in Activepieces. Review its current version before updating it from the website.",
+          409,
+        );
+    }
     const config = JSON.parse(a.config);
     await checkExistingProfiles(env, userId, a, config);
     if (!config.accounts?.length)
@@ -384,13 +400,14 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
       true,
     );
     await env.DB.prepare(
-      "UPDATE automations SET flow_version_id=?,bootstrap=?,status=?,seed_run_id=? WHERE id=?",
+      "UPDATE automations SET flow_version_id=?,bootstrap=?,status=?,seed_run_id=?,scheduler_enabled=? WHERE id=?",
     )
       .bind(
         result.publishedVersionId,
         bootstrap ? 1 : 0,
         bootstrap ? "starting" : "applying",
         seed,
+        env.DISPATCH_KEY ? 1 : 0,
         a.id,
       )
       .run();
@@ -430,8 +447,26 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
 }
 export async function reconcile(env: Env, userId: string, raw: Automation) {
   const a = raw as DeployAutomation;
-  if (!["starting", "applying"].includes(a.status) || !a.flow_id)
-    return { status: a.status };
+  if (!a.flow_id) return { status: a.status };
+  if (!["starting", "applying"].includes(a.status)) {
+    const { key } = await getIntegration(env, userId, a);
+    const remote = await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`);
+    const changed =
+      a.flow_version_id &&
+      (remote.publishedVersionId !== a.flow_version_id ||
+        remote.version?.id !== a.flow_version_id);
+    const status = changed
+      ? "problem"
+      : remote.status === "ENABLED"
+        ? "running"
+        : "paused";
+    await env.DB.prepare(
+      "UPDATE automations SET status=?,error_code=? WHERE id=?",
+    )
+      .bind(status, changed ? "external_change" : null, a.id)
+      .run();
+    return { status };
+  }
   const { integration, key } = await getIntegration(env, userId, a);
   const list = await ap(
     key,
@@ -463,12 +498,13 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
         "The run finished, but its Google Sheet was not confirmed. Check the saved Google connection.",
         409,
       );
+    let installedVersion: string;
     {
       await ap(key, `/flows/${encodeURIComponent(a.flow_id!)}`, "POST", {
         type: "CHANGE_STATUS",
         request: { status: "DISABLED" },
       });
-      await install(
+      const installed = await install(
         env,
         userId,
         { ...a, applied_config: a.deploy_config!, sheet_url: sheet },
@@ -477,6 +513,7 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
         a.target_revision!,
         null,
       );
+      installedVersion = installed.publishedVersionId;
     }
     const flow = await ap(
       key,
@@ -494,16 +531,25 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
         502,
       );
     await env.DB.prepare(
-      "UPDATE automations SET status=?,bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,error_code=NULL WHERE id=?",
+      "UPDATE automations SET status=?,bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,flow_version_id=?,error_code=NULL WHERE id=?",
     )
       .bind(
         a.resume_after_apply ? "running" : "paused",
         a.target_revision,
         run.id,
         sheet,
+        installedVersion,
         a.id,
       )
       .run();
+    await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE schedule_jobs SET status='cancelled' WHERE automation_id=? AND status IN('pending','dispatched','claimed') AND schedule_revision<>?",
+      ).bind(a.id, a.target_revision),
+      env.DB.prepare(
+        "UPDATE automations SET planned_through=NULL WHERE id=?",
+      ).bind(a.id),
+    ]);
     const selected = JSON.parse(a.deploy_config!)
       .accounts.filter((x: any) => x.on)
       .map((x: any) => x.connection);
@@ -664,7 +710,7 @@ deployment.delete("/:id", async (c) => {
 });
 callbacks.post("/:id/:token", async (c) => {
   const a = await c.env.DB.prepare(
-    "SELECT * FROM automations WHERE id=? AND callback_hash=? AND user_id IN(SELECT id FROM users WHERE status='active')",
+    "SELECT * FROM automations WHERE id=? AND callback_hash=? AND archived_at IS NULL AND user_id IN(SELECT id FROM users WHERE status='active')",
   )
     .bind(c.req.param("id"), await hash(c.req.param("token")))
     .first<Automation>();
