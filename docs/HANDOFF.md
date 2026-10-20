@@ -1,7 +1,9 @@
 # Pinterest Autopilot Web — complete handoff
 
 Read this whole file before doing anything. It contains every decision the owner already made, what already exists and
-works, and exactly what to build next. Status updated 19 Oct 2026: **design research and API proof complete; prototype approved and real build/live deployment authorized. Final navigation corrections precede implementation.**
+works, and exactly what to build next. Current status, 20 Oct 2026: **the owner paused all application changes for a complete product review. Read `docs/REBUILD-PLAN.md` and the latest `docs/PROGRESS.md` entries before continuing. The new behavior and visual direction are proposals; do not code, clean production drafts, push or deploy until the owner approves the next stage.**
+
+The earlier prototype was approved and a real website is live. That approval does not override the owner's newer stop instruction. The review moves source URLs, optional briefs and example pins to New pins; keeps account settings collapsed; proposes mixed-source requests, catalog planning, clear queue coverage and varied scheduling. Earlier sections below record the original design and architecture. Where they conflict, the latest dated decisions and review plan take precedence. Existing unfinished source edits remain local and unverified; do not include them in a review-only release.
 
 ---
 

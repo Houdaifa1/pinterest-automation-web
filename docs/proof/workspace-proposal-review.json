@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-20",
+  "scope": "Design proposal and documentation review only",
+  "sample_data": true,
+  "live_changes": false,
+  "application_source_check": {
+    "files_compared": 51,
+    "changed_files": [],
+    "added_files": [],
+    "unchanged": true
+  },
+  "observed_browser_checks": {
+    "initial_mixed_total": 25,
+    "no_link_count_changed_to": 100,
+    "mixed_total_after_change": 120,
+    "category_product_portion_disabled_total": 108,
+    "account_settings_collapsed_initially": true,
+    "edit_shows_save": true,
+    "restore_original_value_hides_save": true,
+    "whole_card_opens_queue": true,
+    "create_offers_existing_and_new": true,
+    "new_preview_has_zero_pinterest_accounts": true,
+    "phone_browser_width": 320,
+    "phone_product_width": 288,
+    "new_pins_scroll_width": 288,
+    "new_pins_horizontal_overflow": false,
+    "queue_horizontal_overflow": false,
+    "optional_batch_notes_expanded": true
+  },
+  "screenshots": [
+    "docs/design-references/29-workspace-proposal.jpg",
+    "docs/design-references/30-mixed-new-pins-proposal.jpg",
+    "docs/design-references/31-new-pins-phone-proposal.jpg"
+  ],
+  "not_proved": [
+    "Real catalog discovery or product selection",
+    "Reference upload or delivery",
+    "Generation or queue receipt",
+    "Production save or deletion",
+    "Publishing, analytics sync or varied scheduling",
+    "Complete revised prototype, accessibility audit or beginner acceptance"
+  ],
+  "tests": "Application and engine tests not rerun: no application source changed during this review. Earlier uncommitted application changes remain unverified."
+}

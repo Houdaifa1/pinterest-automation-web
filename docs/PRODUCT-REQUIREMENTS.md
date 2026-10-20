@@ -1,8 +1,10 @@
-# Product requirements — 19 October 2026
+# Product requirements — updated 20 October 2026
+
+Current gate: application changes are paused at the owner's request. The complete latest behavior and proposed design are in [REBUILD-PLAN.md](REBUILD-PLAN.md). The earlier prototype was approved and released; the proposed redesign is not approved. The older account-level reference flow below is superseded: source URLs, optional batch notes and example pins belong in New pins, with optional reusable presets there. Do not make a written brief compulsory.
 
 ## Approved direction
 
-Home option B (clearer Geist) is approved. The full clickable prototype still needs separate approval after the API proof. Keep the owner-facing explanation short: one recommendation, one screen, one decision at a time.
+Home option B (clearer Geist) and the earlier prototype were approved. The owner now requests a new content-focused design and a complete problem review before more coding. Keep the owner-facing explanation short: one recommendation and clear decisions.
 
 ## Open sign-up and owner control
 

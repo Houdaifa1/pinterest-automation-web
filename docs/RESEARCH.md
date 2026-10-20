@@ -230,3 +230,51 @@ Evidence: [clarity walkthrough](prototype/clarity-review-results.json), [revised
 - Successful runs can identify the Sheet without returning credential-bearing outputs to the browser. Use allowlisted Sheet URLs and a matching flow identifier. Source: [get run](https://www.activepieces.com/docs/endpoints/flow-runs/get).
 - The approved test platform returned two recognizable saved posting flows. Local browser adoption preserved the original flow's published version, trigger hash and enabled state. Adding a second profile and applying its configuration is covered with simulated provider calls; the original live flow was not republished.
 - Discovery supports this project's posting-engine format, not arbitrary third-party flows. Projects above the bounded discovery limit return an explicit error. Category and website settings absent from old flow exports cannot be reconstructed exactly; retained local choices are preserved and inferred categories remain editable.
+
+## 20 October 2026 — content workspace review, not an implementation release
+
+The owner paused application work and requested one complete plan, corrections to unrealistic assumptions, and a new visual direction. The resulting proposal is [REBUILD-PLAN.md](REBUILD-PLAN.md). No live account was accessed or changed for this research. Existing unfinished application changes have not been validated or deployed by this review.
+
+### Real design references and comparison
+
+| Reference | Useful lesson for this product | Limitation |
+|---|---|---|
+| Approved Geist home, `design-references/7-vercel-style-home.png` and later option B | Clear hierarchy, restrained controls, readable type and predictable navigation | A deployment-dashboard structure foregrounds system objects rather than the member's next content task |
+| [Buffer Publish](https://buffer.com/publish) | Calendar/list switching, upcoming content and visible publishing schedules | Its full multi-channel product would add unnecessary concepts here |
+| [Planable approvals](https://help.planable.io/hc/en-us/articles/28555055158044-Reviewing-content-in-My-approvals-section) | A focused queue separates content waiting for review from approved work | Team and agency approval machinery is excessive for a single account owner |
+
+Judgment: the better direction for this audience is a content workspace with Geist's clarity. Show pins, queue coverage and the next post first. Keep connections and diagnostics secondary. Warm neutral surfaces, a restrained teal action and actual pin thumbnails can give the app character without decorative charts or glass. This is a recommendation, not a measured usability result. Independent beginner acceptance remains required.
+
+Real browser captures saved during the review:
+
+- `design-references/27-buffer-content-calendar.jpg`: the official Buffer Publish page at its calendar demonstration. A vendor marketing illustration of its product, not our interface.
+- `design-references/28-planable-review-queue.jpg`: the official Planable help page's opened product screenshot, showing review columns. A real vendor reference, not an invented competing screen.
+- `design-references/29-workspace-proposal.jpg`: our rendered Queue concept at a 1024px browser viewport.
+- `design-references/30-mixed-new-pins-proposal.jpg`: our rendered mixed-source concept, using five no-link pins, five product pins, twelve category-product pins and three category overview pins.
+- `design-references/31-new-pins-phone-proposal.jpg`: our rendered 320px browser view with optional batch notes/references expanded. The wrapper leaves 288px for the product itself.
+
+The last three are clearly labelled proposals with example counts, covers, products and times. They are not production screenshots or completed integration proof. The accompanying interactive proposal demonstrates only selected interface states; a complete revised clickable prototype follows owner agreement.
+
+### Catalog access and truthful planning
+
+The [Etsy developer documentation](https://developers.etsy.com/) describes different application access paths and prohibits retrieving data by sidestepping the API with screen scraping. Authorized catalog access or member-provided product data is the proposed route. A shop URL alone cannot promise complete listing discovery. The direct document render was intermittent during review; its official indexed content supplied the relevant access and scraping statements. No shop integration was created or tested.
+
+[Gumroad's API](https://gumroad.com/api) is the official integration starting point; its [account-settings help](https://gumroad.com/help/article/67-the-settings-menu.html) describes creating an application. The API page returned no useful extracted body in this review. Exact product-list access, pagination, permissions and private-sales access remain unverified. Do not claim a store URL provides them.
+
+[Pinterest organic reporting](https://developers.pinterest.com/docs/analytics-and-reports/organic-reporting/) documents analytics capabilities. It does not establish this member's granted permissions, complete historic pin coverage or access to every manually published pin. The current pins-list document returned only a page shell. Verify access and pagination in an isolated later proof. The planner must show history coverage, source dates and missing data; not found in an incomplete scan must not become never posted. Creative variation must preserve the actual product and supported claims.
+
+### Scheduling, access and cost
+
+[Pinterest's current guidelines](https://policy.pinterest.com/en/community-guidelines) prohibit unapproved automation, repetitive/deceptive content and evasion of spam controls. Vary times for sensible spacing and user preference; do not promise invisibility or account safety. A working connection does not prove production access approval. The page announces a November 12, 2026 update; that future policy was not treated as already effective on October 20.
+
+[Activepieces flow control](https://www.activepieces.com/docs/build-pieces/piece-reference/flow-control) documents persisted waitpoints and timed resumption. This is a custom-piece execution API, not proof that the existing code steps can pause simply by adding the same calls. [Execution limits](https://www.activepieces.com/docs/install/reference/limits) distinguish active runtime from paused delay time. Verify available pieces, cancellation and delayed-run behavior on the actual account before choosing this architecture.
+
+The official [webhook piece](https://www.activepieces.com/pieces/webhook) and [Cloudflare cron documentation](https://developers.cloudflare.com/workers/configuration/cron-triggers/) support investigating a durable website schedule that dispatches only due jobs to Activepieces. Reliability, signatures, ownership, leases, repeat protection, uncertain-result reconciliation, timing lateness and pause behavior are project requirements, not capabilities established merely by reading those pages.
+
+The current [Activepieces pricing page](https://www.activepieces.com/pricing) contradicts itself about free credit resets: its allowance/FAQ use monthly wording while its comparison/overage text also says daily. Do not infer the member's quota from these conflicting statements. Check the actual account later. High-frequency empty runs could waste the allowance. No paid plan or new service was purchased.
+
+### Review proof and limitations
+
+Observed in the rendered concept: mixed total 25; changing the no-link amount to 100 gives 120; removing the category's individual-product portion gives 108. Account settings start collapsed, a real edit shows Save changes, and restoring the original value hides Save. Whole-card navigation opens Queue; Create offers existing/new and the new preview contains no Pinterest accounts. Queue and New pins had no horizontal overflow at the narrow review width.
+
+These are local design interactions only. There is no catalog fetch, reference upload, prompt delivery, production save, deletion, publishing, analytics sync or scheduling execution behind this concept. The product-selection count is explicitly an example; the later prototype must show discovered product choices. Evidence: `docs/proof/workspace-proposal-review.json`. Application source fingerprints are compared separately to verify the review did not alter it. The existing engine tests were not rerun for a documentation/design-only step.
