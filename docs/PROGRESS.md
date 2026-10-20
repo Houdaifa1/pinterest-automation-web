@@ -14,7 +14,7 @@
 | 6. Live website, migration and beginner acceptance | website and push deployment verified; migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-Complete a separate receiving-session image-reference check and an unassisted beginner setup session. Review existing-flow migration before changing any original flow. The live website, public repository and automatic deployment on main are verified. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
+Release the checked existing-setup and account-addition corrections, then complete a separate receiving-session image-reference check and an unassisted beginner setup session. Review migration before changing any original flow. The live website, public repository and automatic deployment on main are verified. Live tests remain scoped to @stunningcrochet; @crochet_simplified is excluded.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -204,3 +204,10 @@ Complete a separate receiving-session image-reference check and an unassisted be
 - Existing Telegram setup is reused without extracting or returning the token. A new separate setup can verify a saved recipient through the execution service; missing or ambiguous recipients stop with an action to fix them. Settings-only checks suppress account posting and daily reports. Updates retain pause state and reject duplicate running profiles.
 - Proof: local browser found the real saved @stunningcrochet automation and adopted it into the local database. Read-back confirmed the original remote published version, trigger hash and enabled status are unchanged. No live flow, Sheet or Pinterest writes were made in this check.
 - Website interface changes and final release checks are in progress. Next: finish the phone walkthrough, commit the interface, push and verify the automatic production deployment. Remaining broader acceptance from the previous session still applies.
+
+## 20 October 2026 — clear setup and account updates
+
+- Existing users go straight to the saved-automation choice after connection discovery. Notifications retain the existing bot; its token form is hidden until Add or replace a bot. Back returns to Summary for a deployed automation. The update bar stays visible near the top while scrolling.
+- Add Pinterest account shows the exact connection steps and detects a saved profile automatically. A detected profile uses category and daily-count choices, then Add & update automation. Failed updates leave a saved draft and a visible retry action rather than trapping the account in the addition dialog.
+- Proof: 35 runtime tests, eight flow-execution tests and all 40 engine tests pass. The production build passes. Real browser checks cover read-only adoption, retained Telegram, Back navigation and the account-connection guide. English, French and Arabic measurements have 320px body/scroll widths; Arabic is right-to-left. Evidence: docs/proof/existing-setup-check.json and its real screenshots. The account-update integration tests use simulated services.
+- Done locally: the reported setup and account-update fixes. Next: push, verify both deployment jobs and check the live release. No original flow or Sheet has been changed; no pin has been published by these checks. Broader acceptance remains open.

@@ -1179,3 +1179,39 @@ footer {
 .pin-builder {
   overflow-anchor: none;
 }
+
+.apply-bar {
+  position: sticky;
+  top: 12px;
+  z-index: 10;
+  background: var(--surface);
+  box-shadow: 0 2px 12px #0001;
+}
+.existing-setup {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 12px 0;
+  cursor: pointer;
+}
+.existing-setup input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 3px;
+}
+.existing-setup small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.setup-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}

@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-20",
+  "scope": "Existing setup and Pinterest account update",
+  "automated": {
+    "websiteRuntime": 35,
+    "flowExecution": 8,
+    "engine": 40,
+    "failures": 0
+  },
+  "realProviderReadOnly": {
+    "existingAutomationsFound": 2,
+    "adoptionInLocalDatabase": true,
+    "existingTelegramWithoutToken": true,
+    "originalFlowStatusUnchanged": true,
+    "originalPublishedVersionUnchanged": true,
+    "originalTriggerHashUnchanged": true,
+    "liveFlowWrites": 0,
+    "liveSheetWrites": 0,
+    "livePinterestWrites": 0
+  },
+  "browser": {
+    "backReturnsToSummary": true,
+    "telegramTokenFormHiddenByDefault": true,
+    "addPinterestInstructionsAndPollingVisible": true,
+    "layout320": {
+      "english": {
+        "body": 320,
+        "scroll": 320
+      },
+      "french": {
+        "body": 320,
+        "scroll": 320
+      },
+      "arabic": {
+        "body": 320,
+        "scroll": 320,
+        "direction": "rtl"
+      }
+    }
+  },
+  "screenshots": [
+    "screenshots/existing-automation-review.jpg",
+    "screenshots/add-pinterest-phone.jpg",
+    "screenshots/existing-automation-arabic-phone.jpg"
+  ],
+  "limits": [
+    "Account-addition publishing checks used simulated provider calls.",
+    "Original remote flow was read only; no live configuration update was performed.",
+    "Broader publishing, reference-delivery and beginner acceptance remain separate."
+  ],
+  "productionRelease": "pending push verification"
+}

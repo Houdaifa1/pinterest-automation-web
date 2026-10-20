@@ -32,6 +32,7 @@ import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import { api, ApiError, setCSRF } from "./api";
 import { References } from "./references";
+import { detectedConfig, connectionsReady, newPinterestAccount } from "./setup";
 import { downloadBatch } from "./batch-package.mjs";
 import { translate, type Message } from "./i18n";
 import type {
@@ -630,6 +631,7 @@ function AutomationPage() {
       current.current = r.automation;
       setDraft({ ...defaults(user), ...r.automation.config });
       setError(null);
+      return r.automation;
     } catch (e) {
       setError(e);
     }
@@ -691,6 +693,7 @@ function AutomationPage() {
   }, [automation?.connected]);
   const action = async (name: string) => {
     setBusy(true);
+    setError(null);
     try {
       await flush();
       await api(
@@ -736,6 +739,8 @@ function AutomationPage() {
     );
   const base = `/automations/${id}`,
     tab = location.pathname.split("/")[3] || "summary";
+  const actionPending =
+    busy || ["starting", "applying"].includes(automation.status);
   return (
     <>
       <div className="automation-header">
@@ -796,7 +801,7 @@ function AutomationPage() {
             refresh={refreshConnections}
             connectionsUrl={connectionsUrl}
             action={action}
-            busy={busy}
+            busy={actionPending}
           />
         ) : (
           <>
@@ -809,13 +814,14 @@ function AutomationPage() {
                 <Status status={automation.status} />
               </div>
             </div>
-            {automation.revision > automation.appliedRevision &&
-              automation.status !== "draft" && (
+            {(automation.revision > automation.appliedRevision ||
+              pending.current) &&
+              automation.deployed && (
                 <div className="apply-bar">
                   <span>{t("readyChanges")}</span>
                   <button
                     className="primary"
-                    disabled={busy || saving}
+                    disabled={actionPending || saving}
                     onClick={() => void action("deploy")}
                   >
                     {t("apply")}
@@ -899,6 +905,9 @@ function AutomationPage() {
                   connections={connections}
                   refresh={refreshConnections}
                   connectionsUrl={connectionsUrl}
+                  updateAutomation={() => action("deploy")}
+                  busy={actionPending}
+                  deployed={automation.deployed}
                   compact
                 />
               </>
@@ -910,6 +919,9 @@ function AutomationPage() {
                 connections={connections}
                 refresh={refreshConnections}
                 connectionsUrl={connectionsUrl}
+                updateAutomation={() => action("deploy")}
+                busy={actionPending}
+                deployed={automation.deployed}
               />
             ) : tab === "settings" ? (
               <Settings
@@ -985,14 +997,21 @@ function Setup({
     navigate = useNavigate(),
     location = useLocation();
   const [step, setStep] = useState(
-      location.search.includes("reconnect=1")
-        ? 0
-        : location.search.includes("connections=1")
-          ? 2
-          : automation.sheetUrl ||
-              ["starting", "applying"].includes(automation.status)
-            ? 3
-            : Math.max(automation.setupStep || 0, automation.connected ? 1 : 0),
+      location.search.includes("notifications=1")
+        ? 1
+        : location.search.includes("review=1")
+          ? 3
+          : location.search.includes("reconnect=1")
+            ? 0
+            : location.search.includes("connections=1")
+              ? 2
+              : automation.sheetUrl ||
+                  ["starting", "applying"].includes(automation.status)
+                ? 3
+                : Math.max(
+                    automation.setupStep || 0,
+                    automation.connected ? 1 : 0,
+                  ),
     ),
     [key, setKey] = useState(""),
     [projects, setProjects] = useState<{ choice: string; name: string }[]>([]),
@@ -1002,49 +1021,59 @@ function Setup({
     [token, setToken] = useState(""),
     [botUrl, setBotUrl] = useState(""),
     [botStarted, setBotStarted] = useState(false),
-    [botReady, setBotReady] = useState(false);
+    [botReady, setBotReady] = useState(false),
+    [flows, setFlows] = useState<any[]>([]),
+    [flowChoice, setFlowChoice] = useState(""),
+    [discovering, setDiscovering] = useState(false),
+    [addingBot, setAddingBot] = useState(false);
+  const discovered = useRef(false);
+  const discover = async (config: Config) => {
+    setDiscovering(true);
+    try {
+      const result = await api(`/api/automations/${automation.id}/discovery`);
+      setFlows(result.flows);
+      setFlowChoice(result.flows[0]?.choice || "");
+      const next = detectedConfig(config, result.connections);
+      edit(next);
+      await flush();
+      await refresh();
+      const reusedBot = result.flows.some(
+        (f: any) =>
+          f.config.notifyTelegram &&
+          f.config.telegram === next.telegram &&
+          f.config.google === next.google,
+      );
+      if (
+        !location.search.includes("connections=1") &&
+        !location.search.includes("notifications=1")
+      )
+        setStep(
+          result.flows.length ||
+            connectionsReady(next, result.connections, reusedBot)
+            ? 3
+            : 2,
+        );
+    } catch (e) {
+      setError(e);
+    } finally {
+      setDiscovering(false);
+    }
+  };
+  useEffect(() => {
+    if (
+      !automation.connected ||
+      discovered.current ||
+      automation.deployed ||
+      location.search.includes("reconnect=1")
+    )
+      return;
+    discovered.current = true;
+    void discover(draft);
+  }, [automation.connected]);
   useEffect(() => {
     if (!connections.length) return;
-    const next = { ...draft };
-    let changed = false;
-    for (const service of ["google", "gmail"]) {
-      const matches = connections.filter(
-        (c: Connection) => c.service === service && c.status === "ACTIVE",
-      );
-      if (!next[service] && matches.length === 1) {
-        next[service] = matches[0].id;
-        changed = true;
-        if (service === "google" && matches[0].identity.includes("@"))
-          next.botEmail = matches[0].identity;
-      }
-    }
-    if (!next.accounts.length) {
-      const profiles = connections.filter(
-        (c: Connection) =>
-          c.service === "pinterest" &&
-          c.status === "ACTIVE" &&
-          /^[a-zA-Z0-9_]+$/.test(c.identity),
-      );
-      if (profiles.length) {
-        next.accounts = profiles.map((c: Connection) => ({
-          id: crypto.randomUUID(),
-          name: c.identity,
-          username: c.identity,
-          connection: c.id,
-          niche: "",
-          general: true,
-          category: "crochet",
-          source: "niche",
-          website: "",
-          pinsPerProduct: 6,
-          pinsPerDay: 5,
-          hours: spreadHours(5),
-          on: true,
-        }));
-        changed = true;
-      }
-    }
-    if (changed) edit(next);
+    const next = detectedConfig(draft, connections);
+    if (JSON.stringify(next) !== JSON.stringify(draft)) edit(next);
   }, [connections]);
   useEffect(() => {
     if (step !== 2) return;
@@ -1061,13 +1090,13 @@ function Setup({
   useEffect(() => {
     if (!automation.connected || !draft.notifyTelegram) return;
     const check = () =>
-      api(`/api/automations/${automation.id}/telegram-status`)
+      api(
+        `/api/automations/${automation.id}/telegram-status?connection=${encodeURIComponent(draft.telegram)}`,
+      )
         .then((r) => {
-          if (r.configured) {
-            setBotUrl(r.botUrl);
-            setBotStarted(r.started);
-            setBotReady(r.tested);
-          }
+          setBotUrl(r.botUrl || "");
+          setBotStarted(Boolean(r.started));
+          setBotReady(Boolean(r.tested || r.existing));
         })
         .catch(setError);
     void check();
@@ -1075,7 +1104,12 @@ function Setup({
       if (document.visibilityState === "visible") void check();
     }, 8000);
     return () => clearInterval(timer);
-  }, [automation.id, automation.connected, draft.notifyTelegram]);
+  }, [
+    automation.id,
+    automation.connected,
+    draft.notifyTelegram,
+    draft.telegram,
+  ]);
   const connectKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setWorking(true);
@@ -1090,8 +1124,10 @@ function Setup({
         return;
       }
       setKey("");
-      await load();
-      setStep(1);
+      discovered.current = true;
+      const saved = await load();
+      if (saved?.deployed) navigate(`/automations/${automation.id}/summary`);
+      else await discover({ ...draft, ...saved?.config });
     } catch (e) {
       setError(e);
     } finally {
@@ -1109,30 +1145,39 @@ function Setup({
       setError(e);
     }
   };
-  const ready = Boolean(
-    (draft.notifyEmail || draft.notifyTelegram) &&
-    draft.google &&
-    (!draft.notifyEmail || draft.gmail) &&
-    (!draft.notifyTelegram || (draft.telegram && botReady)) &&
-    draft.accounts.length,
+  const reusedBot = flows.some(
+    (f: any) =>
+      f.config.notifyTelegram &&
+      f.config.telegram === draft.telegram &&
+      f.config.google === draft.google,
   );
+  const ready = connectionsReady(draft, connections, botReady || reusedBot);
+  const selectedFlow = flows.find((f: any) => f.choice === flowChoice);
   return (
     <section className="wizard">
-      <div className="wizard-progress">
-        <span>
-          {t("step")} {step + 1} {t("of")} 4
-        </span>
-        <div>
-          {[0, 1, 2, 3].map((n) => (
-            <i key={n} className={n <= step ? "done" : ""} />
-          ))}
+      {!automation.deployed && (
+        <div className="wizard-progress">
+          <span>
+            {t("step")} {step + 1} {t("of")} 4
+          </span>
+          <div>
+            {[0, 1, 2, 3].map((n) => (
+              <i key={n} className={n <= step ? "done" : ""} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <h1>
-        {t((["connect", "notifications", "logins", "review"] as const)[step])}
+        {discovering
+          ? t("findingSetup")
+          : t(
+              (["connect", "notifications", "logins", "review"] as const)[step],
+            )}
       </h1>
       {error != null && <ErrorBox error={error} />}
-      {step === 0 ? (
+      {discovering ? (
+        <p role="status">{t("loading")}</p>
+      ) : step === 0 ? (
         <form onSubmit={connectKey}>
           <p>{t("connectCopy")}</p>
           <ol className="short-steps">
@@ -1207,39 +1252,67 @@ function Setup({
           )}
           {draft.notifyTelegram && (
             <>
-              <Field label={t("botToken")}>
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                />
-              </Field>
-              <button
-                disabled={!token || working}
-                onClick={async () => {
-                  setWorking(true);
-                  try {
-                    const r = await api(
-                      `/api/automations/${automation.id}/telegram`,
-                      "POST",
-                      { token },
-                    );
-                    setToken("");
-                    edit({ ...draft, telegram: r.connection });
-                    setBotUrl(r.botUrl);
-                    setBotReady(false);
-                    setBotStarted(false);
-                    await refresh();
-                  } catch (e) {
-                    setError(e);
-                  } finally {
-                    setWorking(false);
-                  }
-                }}
-              >
-                {t("connectBot")}
+              {connections.some(
+                (c: Connection) =>
+                  c.service === "telegram" && c.status === "ACTIVE",
+              ) &&
+                !addingBot && (
+                  <>
+                    <ConnectionSelect
+                      service="telegram"
+                      value={draft.telegram}
+                      connections={connections}
+                      onChange={(telegram) => edit({ ...draft, telegram })}
+                    />
+                    <Notice>
+                      {t(
+                        reusedBot || botReady
+                          ? "existingBotReady"
+                          : "existingBotNeedsSetup",
+                      )}
+                    </Notice>
+                  </>
+                )}
+              <button onClick={() => setAddingBot(!addingBot)}>
+                {t(addingBot ? "keepExistingBot" : "addDifferentBot")}
               </button>
+              {addingBot && (
+                <>
+                  <Field label={t("botToken")}>
+                    <input
+                      type="password"
+                      autoComplete="off"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                    />
+                  </Field>
+                  <button
+                    disabled={!token || working}
+                    onClick={async () => {
+                      setWorking(true);
+                      try {
+                        const r = await api(
+                          `/api/automations/${automation.id}/telegram`,
+                          "POST",
+                          { token },
+                        );
+                        setToken("");
+                        edit({ ...draft, telegram: r.connection });
+                        setBotUrl(r.botUrl);
+                        setBotReady(false);
+                        setBotStarted(false);
+                        await refresh();
+                      } catch (e) {
+                        setError(e);
+                      } finally {
+                        setWorking(false);
+                      }
+                    }}
+                  >
+                    {t("connectBot")}
+                  </button>
+                </>
+              )}
               {botUrl && (
                 <>
                   <External href={botUrl}>{t("openBot")}</External>
@@ -1337,54 +1410,162 @@ function Setup({
         </>
       ) : (
         <>
-          <p>{t("reviewCopy")}</p>
-          <div className="review-row">
-            <Check size={17} />
-            {t("readiness")}
-          </div>
-          {draft.accounts.map((a: Account) => (
-            <div className="review-row" key={a.id}>
-              <span className="pinterest-mark">P</span>
-              <bdi>@{a.username}</bdi>
-              <span>
-                {a.pinsPerDay} · {t("daily")}
-              </span>
+          {flows.length > 0 && !automation.deployed && (
+            <div className="existing-setups">
+              <h2>{t("existingAutomation")}</h2>
+              <p>{t("keepExistingSetup")}</p>
+              {flows.map((f: any) => (
+                <label className="existing-setup" key={f.choice}>
+                  <input
+                    type="radio"
+                    name="existing-flow"
+                    checked={flowChoice === f.choice}
+                    onChange={() => setFlowChoice(f.choice)}
+                  />
+                  <span>
+                    <strong>{f.name}</strong>
+                    <small>
+                      {f.config.accounts
+                        .map((a: Account) => "@" + a.username)
+                        .join(" · ")}{" "}
+                      · {t(f.status)}
+                    </small>
+                  </span>
+                </label>
+              ))}
+              {selectedFlow && (
+                <button
+                  className="primary"
+                  disabled={working}
+                  onClick={async () => {
+                    if (selectedFlow.websiteAutomationId) {
+                      navigate(
+                        `/automations/${selectedFlow.websiteAutomationId}/summary`,
+                      );
+                      return;
+                    }
+                    setWorking(true);
+                    setError(null);
+                    try {
+                      await flush();
+                      await api(
+                        `/api/automations/${automation.id}/adopt`,
+                        "POST",
+                        { choice: flowChoice },
+                      );
+                      await load();
+                      navigate(`/automations/${automation.id}/summary`);
+                    } catch (e) {
+                      setError(e);
+                    } finally {
+                      setWorking(false);
+                    }
+                  }}
+                >
+                  {t(
+                    selectedFlow.websiteAutomationId
+                      ? "open"
+                      : "useExistingAutomation",
+                  )}
+                </button>
+              )}
             </div>
-          ))}
-          <Notice>{t("firstRun")}</Notice>
-          <button
-            className="primary"
-            disabled={busy || !ready}
-            onClick={async () => {
-              if (await action("deploy"))
-                navigate(`/automations/${automation.id}/summary`);
-            }}
-          >
-            {busy ? t("loading") : t("deploy")}
-            <ArrowRight size={16} />
-          </button>
+          )}
+          {(!flows.length || !flowChoice || automation.deployed) && (
+            <>
+              <p>{t("reviewCopy")}</p>
+              <div className="review-row">
+                <Check size={17} />
+                {t("readiness")}
+              </div>
+              {draft.accounts.map((a: Account) => (
+                <div className="review-row" key={a.id}>
+                  <span className="pinterest-mark">P</span>
+                  <bdi>@{a.username}</bdi>
+                  <span>
+                    {a.pinsPerDay} · {t("daily")}
+                  </span>
+                </div>
+              ))}
+              {!automation.deployed && (
+                <>
+                  <Notice>{t("firstRun")}</Notice>
+                  <button
+                    className="primary"
+                    disabled={busy || !ready}
+                    onClick={async () => {
+                      if (await action("deploy"))
+                        navigate(`/automations/${automation.id}/summary`);
+                    }}
+                  >
+                    {busy ? t("loading") : t("deploy")}
+                    <ArrowRight size={16} />
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          <div className="setup-options">
+            {flows.length > 0 && !automation.deployed && (
+              <button
+                onClick={() => setFlowChoice(flowChoice ? "" : flows[0].choice)}
+              >
+                {t(
+                  flowChoice
+                    ? "createSeparateAutomation"
+                    : "useExistingAutomation",
+                )}
+              </button>
+            )}
+            <button onClick={() => setStep(1)}>
+              {t("changeNotifications")}
+            </button>
+            <button onClick={() => setStep(2)}>{t("reviewAccounts")}</button>
+          </div>
         </>
       )}
-      <div className="wizard-actions">
-        {step > 0 && (
-          <button onClick={() => setStep(step - 1)}>{t("back")}</button>
-        )}
-        {step > 0 && step < 3 && (
-          <button
-            className="primary"
-            disabled={
-              step === 1
-                ? (!draft.notifyEmail && !draft.notifyTelegram) ||
-                  (draft.notifyTelegram && !botReady)
-                : !ready
-            }
-            onClick={() => void next()}
-          >
-            {t("continue")}
-            <ArrowRight size={16} />
-          </button>
-        )}
-      </div>
+      {!discovering && (
+        <div className="wizard-actions">
+          {step > 0 && (
+            <button
+              onClick={() =>
+                automation.deployed
+                  ? navigate(`/automations/${automation.id}/summary`)
+                  : setStep(step - 1)
+              }
+            >
+              {t("back")}
+            </button>
+          )}
+          {automation.deployed && step > 0 && (
+            <button
+              className="primary"
+              disabled={busy || !ready}
+              onClick={async () => {
+                if (await action("deploy"))
+                  navigate(`/automations/${automation.id}/summary`);
+              }}
+            >
+              {t("apply")}
+            </button>
+          )}
+          {!automation.deployed && step > 0 && step < 3 && (
+            <button
+              className="primary"
+              disabled={
+                step === 1
+                  ? (!draft.notifyEmail && !draft.notifyTelegram) ||
+                    (draft.notifyTelegram && !botReady && !reusedBot)
+                  : !ready
+              }
+              onClick={() => void next()}
+            >
+              {t("continue")}
+              <ArrowRight size={16} />
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -1396,6 +1577,9 @@ function Accounts({
   connectionsUrl,
   compact = false,
   flush,
+  updateAutomation,
+  busy = false,
+  deployed = false,
 }: {
   draft: Config;
   edit: (v: Config) => void;
@@ -1404,6 +1588,9 @@ function Accounts({
   connectionsUrl: string;
   compact?: boolean;
   flush: () => Promise<void>;
+  updateAutomation?: () => Promise<boolean>;
+  busy?: boolean;
+  deployed?: boolean;
 }) {
   const { t } = useWorkspace(),
     location = useLocation();
@@ -1415,31 +1602,49 @@ function Accounts({
   const available = pins.filter(
     (c) => !draft.accounts.some((a) => a.connection === c.id),
   );
-  const add = () => {
+  const [addError, setAddError] = useState<unknown>(null),
+    [addingNow, setAddingNow] = useState(false),
+    [category, setCategory] = useState<Account["category"]>("other"),
+    [daily, setDaily] = useState(5);
+  useEffect(() => {
+    if (!adding) return;
+    void refresh();
+    const check = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    const timer = setInterval(check, 10000);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", check);
+    };
+  }, [adding]);
+  useEffect(() => {
+    if (available.length === 1 && !available.some((c) => c.id === chosen))
+      setChosen(available[0].id);
+  }, [connections, adding]);
+  const add = async () => {
     const c = available.find((c) => c.id === chosen);
     if (!c) return;
-    const username = (c.identity || c.label)
-      .replace(/^@/, "")
-      .replace(/[^a-zA-Z0-9_]/g, "")
-      .slice(0, 40);
-    const account: Account = {
-      id: crypto.randomUUID(),
-      name: username || "pinterest",
-      username,
-      connection: c.id,
-      niche: "",
-      general: true,
-      category: "crochet",
-      source: "niche",
-      website: "",
-      pinsPerProduct: 6,
-      pinsPerDay: 5,
-      hours: spreadHours(5),
-      on: true,
-    };
-    edit({ ...draft, accounts: [...draft.accounts, account] });
-    setAdding(false);
-    setChosen("");
+    setAddingNow(true);
+    setAddError(null);
+    try {
+      const account = {
+        ...newPinterestAccount(c),
+        category,
+        pinsPerDay: daily,
+        hours: spreadHours(daily),
+      };
+      edit({ ...draft, accounts: [...draft.accounts, account] });
+      await flush();
+      setAdding(false);
+      setChosen("");
+      if (deployed && updateAutomation) await updateAutomation();
+    } catch (e) {
+      setAddError(e);
+    } finally {
+      setAddingNow(false);
+    }
   };
   return (
     <section>
@@ -1469,12 +1674,10 @@ function Accounts({
         />
       ))}
       <Modal title={t("addAccount")} open={adding} onOpenChange={setAdding}>
-        <p>{t("loginsCopy")}</p>
-        <External href={connectionsUrl}>{t("openConnections")}</External>
-        <p className="muted">{t("connectionGuide")}</p>
-        <button onClick={refresh}>{t("refresh")}</button>
-        {available.length > 0 && (
+        {addError != null && <ErrorBox error={addError} />}
+        {available.length ? (
           <>
+            <p>{t("foundPinterest")}</p>
             <Field label={t("select")}>
               <select
                 value={chosen}
@@ -1482,15 +1685,79 @@ function Accounts({
               >
                 <option value="">{t("select")}</option>
                 {available.map((c) => (
-                  <option value={c.id} key={c.id}>
-                    {c.identity || c.label}
+                  <option key={c.id} value={c.id}>
+                    @{c.identity.replace(/^@/, "")}
                   </option>
                 ))}
               </select>
             </Field>
-            <button className="primary" onClick={add} disabled={!chosen}>
-              {t("continue")}
+            <div className="form-grid">
+              <Field label={t("category")}>
+                <select
+                  value={category}
+                  onChange={(e) =>
+                    setCategory(e.target.value as Account["category"])
+                  }
+                >
+                  {(
+                    [
+                      "crochet",
+                      "food",
+                      "home",
+                      "printables",
+                      "diy",
+                      "other",
+                    ] as const
+                  ).map((c) => (
+                    <option key={c} value={c}>
+                      {t(c)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t("daily")}>
+                <select
+                  value={daily}
+                  onChange={(e) => setDaily(Number(e.target.value))}
+                >
+                  {Array.from({ length: 18 }, (_, n) => (
+                    <option key={n} value={n + 1}>
+                      {n + 1}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <p className="muted">
+              {spreadHours(daily)
+                .map((h) => String(h).padStart(2, "0") + ":00")
+                .join(" / ")}
+            </p>
+            <button
+              className="primary"
+              disabled={!chosen || addingNow || busy}
+              onClick={() => void add()}
+            >
+              {t(
+                addingNow || busy
+                  ? "loading"
+                  : deployed
+                    ? "addAndUpdate"
+                    : "addAccount",
+              )}
             </button>
+            <details>
+              <summary>{t("connectAnotherPinterest")}</summary>
+              <p>{t("pinterestConnectionGuide")}</p>
+              <External href={connectionsUrl}>{t("connectPinterest")}</External>
+            </details>
+          </>
+        ) : (
+          <>
+            <p>{t("pinterestConnectionGuide")}</p>
+            <External href={connectionsUrl}>{t("connectPinterest")}</External>
+            <p role="status">{t("waitingPinterest")}</p>
+            <button onClick={refresh}>{t("refresh")}</button>
           </>
         )}
       </Modal>
@@ -1709,6 +1976,12 @@ function Settings({ draft, edit, automation, rename, connections }: any) {
           ))}
         </select>
       </Field>
+      <Link
+        className="button"
+        to={`/automations/${automation.id}/setup?notifications=1`}
+      >
+        {t("changeNotifications")}
+      </Link>
       <details>
         <summary>{t("logins")}</summary>
         {[

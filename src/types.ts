@@ -45,6 +45,8 @@ export interface Automation {
   status: string;
   sheetUrl: string | null;
   connected: boolean;
+  deployed: boolean;
+  imported: boolean;
   createdAt: number;
   updatedAt: number;
 }

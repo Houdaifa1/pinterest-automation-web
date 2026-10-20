@@ -13,6 +13,7 @@ A simple home for Pinterest posting. Connect your accounts, choose a schedule, s
 - Sign in with Google, without an invitation.
 - Keep each automation and its Pinterest profiles together.
 - Connect Activepieces once, with readable account names.
+- Find an existing automation and keep its Sheet, schedule and Telegram without entering another token.
 - Save posting times and apply a checked configuration.
 - Pause, resume, start a run and inspect its status.
 - Upload picture references for each profile.
@@ -21,6 +22,8 @@ A simple home for Pinterest posting. Connect your accounts, choose a schedule, s
 - Manage website members from the owner account.
 
 The website prepares instructions. Pins are created and reviewed in Codex, then added to the Sheet. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
+
+For an existing setup, enter your Activepieces key and choose **Use existing automation**. This reads the saved setup; it does not republish the flow. To add a profile, open **Pinterest accounts → Add Pinterest account**, connect it in Activepieces if needed, then choose **Add & update automation**. Saved settings use **Update automation**. A paused schedule stays paused.
 
 ## How it fits together
 

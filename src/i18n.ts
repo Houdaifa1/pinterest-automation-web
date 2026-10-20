@@ -1,4 +1,5 @@
 import type { Language } from "./types";
+import { setupMessages } from "./setup-messages";
 export const messages = {
   en: {
     automations: "Automations",
@@ -120,8 +121,6 @@ export const messages = {
     addImages: "Add example pins",
     on: "Posting enabled",
     off: "Posting paused",
-    apply: "Apply changes",
-    readyChanges: "Changes ready to apply",
     runNow: "Run now",
     pause: "Pause",
     resume: "Resume",
@@ -182,6 +181,7 @@ export const messages = {
     deleteAutomation: "Delete automation",
     deleteAutomationConfirm:
       "Delete this automation and its posting flow? Your Pinterest account stays connected. This cannot be undone.",
+    ...setupMessages.en,
   },
   fr: {
     automations: "Automatisations",
@@ -303,8 +303,6 @@ export const messages = {
     addImages: "Ajouter des exemples",
     on: "Publication activée",
     off: "Publication en pause",
-    apply: "Appliquer",
-    readyChanges: "Modifications prêtes à appliquer",
     runNow: "Lancer maintenant",
     pause: "Mettre en pause",
     resume: "Reprendre",
@@ -368,6 +366,7 @@ export const messages = {
     deleteAutomation: "Supprimer l’automatisation",
     deleteAutomationConfirm:
       "Supprimer cette automatisation et son flux de publication ? Votre compte Pinterest reste connecté. Cette action est définitive.",
+    ...setupMessages.fr,
   },
   ar: {
     automations: "الأتمتة",
@@ -485,8 +484,6 @@ export const messages = {
     addImages: "إضافة صور مرجعية",
     on: "النشر مفعّل",
     off: "النشر متوقف",
-    apply: "تطبيق التغييرات",
-    readyChanges: "تغييرات جاهزة للتطبيق",
     runNow: "التشغيل الآن",
     pause: "إيقاف مؤقت",
     resume: "استئناف",
@@ -548,6 +545,7 @@ export const messages = {
     deleteAutomation: "حذف الأتمتة",
     deleteAutomationConfirm:
       "حذف هذه الأتمتة وسير النشر الخاص بها؟ يبقى حساب Pinterest مرتبطًا. لا يمكن التراجع عن هذه الخطوة.",
+    ...setupMessages.ar,
   },
 };
 export type Message = keyof typeof messages.en;
