@@ -1,0 +1,60 @@
+{
+  "scope": "Local prototype download, not a live reference-delivery proof",
+  "zip_integrity": true,
+  "files": [
+    "prompt.txt",
+    "manifest.json",
+    "example-1.svg",
+    "example-2.svg",
+    "example-3.svg"
+  ],
+  "requested": 25,
+  "groups": [
+    {
+      "source": "free",
+      "title": "Niche ideas without links",
+      "amount": 5,
+      "url": ""
+    },
+    {
+      "source": "product",
+      "title": "Single product",
+      "amount": 5,
+      "url": "https://shop.example/products/woodland-fox"
+    },
+    {
+      "source": "product",
+      "title": "Woodland fox pattern",
+      "product": "fox",
+      "amount": 4,
+      "url": "https://shop.example/products/woodland-fox"
+    },
+    {
+      "source": "product",
+      "title": "Everyday crochet basket",
+      "product": "basket",
+      "amount": 4,
+      "url": "https://shop.example/products/crochet-basket"
+    },
+    {
+      "source": "product",
+      "title": "Autumn leaf garland",
+      "product": "leaves",
+      "amount": 4,
+      "url": "https://shop.example/products/autumn-leaf-garland"
+    },
+    {
+      "source": "category",
+      "title": "Category overview",
+      "amount": 3,
+      "url": "https://shop.example/collections/autumn"
+    }
+  ],
+  "reference_bytes_match": {
+    "example-1.svg": true,
+    "example-2.svg": true,
+    "example-3.svg": true
+  },
+  "prompt_has_reference_names": true,
+  "prompt_has_niche": true
+}

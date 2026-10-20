@@ -1,0 +1,346 @@
+{
+  "date": "2026-10-20",
+  "scope": "Local prototype only; all integrations simulated",
+  "checks": [
+    {
+      "name": "Whole card opens Queue",
+      "pass": true
+    },
+    {
+      "name": "Accounts start collapsed",
+      "pass": true
+    },
+    {
+      "name": "Restoring original value hides Save",
+      "pass": true
+    },
+    {
+      "name": "Account save collapses editor",
+      "pass": true
+    },
+    {
+      "name": "Changed daily amount updates planned slot count",
+      "pass": true
+    },
+    {
+      "name": "Failed account save preserves edits and retry",
+      "pass": true
+    },
+    {
+      "name": "Unsaved account edit prompts before leaving",
+      "pass": true
+    },
+    {
+      "name": "Amount 100 accepted above old cap",
+      "pass": true
+    },
+    {
+      "name": "Mixed category/product/no-link request totals 25",
+      "pass": true
+    },
+    {
+      "name": "Category review keeps distinct product and category links",
+      "pass": true
+    },
+    {
+      "name": "Repeated copy keeps one history entry",
+      "pass": true
+    },
+    {
+      "name": "Schedule edits retain published times",
+      "pass": true
+    },
+    {
+      "name": "Copying prompt does not claim creation started",
+      "pass": true
+    },
+    {
+      "name": "Prompt includes niche and all three named references",
+      "pass": true
+    },
+    {
+      "name": "Reopening unchanged builder reuses the batch",
+      "pass": true
+    },
+    {
+      "name": "Only reviewed received output increases ready queue",
+      "pass": true
+    },
+    {
+      "name": "Removed pin restores into review instead of auto-publishing",
+      "pass": true
+    },
+    {
+      "name": "Pause is secondary and preserves queue",
+      "pass": true
+    },
+    {
+      "name": "Opening and closing creation choice creates no draft",
+      "pass": true
+    },
+    {
+      "name": "New setup starts with zero selected Pinterest accounts",
+      "pass": true
+    },
+    {
+      "name": "Empty account selection blocks setup with clear action",
+      "pass": true
+    },
+    {
+      "name": "Back retains connection with Continue and Change key",
+      "pass": true
+    },
+    {
+      "name": "Existing Telegram skips token entry",
+      "pass": true
+    },
+    {
+      "name": "Automation deletion has visible recovery",
+      "pass": true
+    },
+    {
+      "name": "Restored automation remains paused",
+      "pass": true
+    },
+    {
+      "name": "Shop catalog explains access instead of claiming a live scan",
+      "pass": true
+    },
+    {
+      "name": "Large mixed request stays compact and resumable",
+      "pass": true
+    },
+    {
+      "name": "Large request advances through two parts without resetting progress",
+      "pass": true
+    },
+    {
+      "name": "In-place amount edit preserves scroll and focus",
+      "pass": true,
+      "before": 991.5,
+      "after": 991.5
+    },
+    {
+      "name": "Category mode toggle preserves scroll",
+      "pass": true,
+      "before": 805,
+      "after": 805
+    },
+    {
+      "name": "Local image upload creates a fourth reference preview",
+      "pass": true
+    },
+    {
+      "name": "Account menu exposes settings on a phone",
+      "pass": true
+    },
+    {
+      "name": "Owner can block and unblock an example member",
+      "pass": true
+    },
+    {
+      "name": "Public Google entry returns to home without an invite step",
+      "pass": true,
+      "scope": "Simulated sign-in only"
+    },
+    {
+      "name": "External-change review offers explicit remote or local choice",
+      "pass": true
+    },
+    {
+      "name": "Failed queue sync labels retained counts as stale",
+      "pass": true
+    },
+    {
+      "name": "Loading keeps last confirmed counts visible",
+      "pass": true
+    },
+    {
+      "name": "Expired connection does not display Scheduled as current status",
+      "pass": true
+    },
+    {
+      "name": "Empty queue has a useful refill action",
+      "pass": true
+    },
+    {
+      "name": "Keyboard skip link focuses content without losing route",
+      "pass": true
+    },
+    {
+      "name": "Escape closes modal and restores trigger focus",
+      "pass": true
+    },
+    {
+      "name": "Background is pure black and document is English only",
+      "pass": true
+    }
+  ],
+  "layouts": [
+    {
+      "screen": "Saved key",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "Queue",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "queue",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "accounts",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "activity",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "settings",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "Members",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "Members cards after phone review",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "Google entry",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "new",
+      "overflow": false,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "screen": "accounts",
+      "overflow": false,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "screen": "activity",
+      "overflow": false,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "screen": "settings",
+      "overflow": false,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "screen": "queue",
+      "overflow": false,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "screen": "new",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "screen": "accounts",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "screen": "activity",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "screen": "settings",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "screen": "queue",
+      "overflow": false,
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "screen": "Mixed New pins",
+      "overflow": false,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "screen": "Catalog selection dialog",
+      "dialogWidth": 282,
+      "overflow": false,
+      "scrollWidth": 280,
+      "width": 320
+    }
+  ],
+  "appearance": {
+    "background": "rgb(0, 0, 0)",
+    "language": "en",
+    "languagePicker": false
+  },
+  "summary": {
+    "checks": 42,
+    "passed": 42,
+    "layouts": 21,
+    "layoutOverflows": 0
+  },
+  "limitations": [
+    "All service actions are simulated; no production integration or publishing proof.",
+    "Browser access later remained blocked by a saved origin permission. The optional unverified sticky dialog-header/action CSS was removed, retaining the previously inspected layout.",
+    "No complete accessibility audit, real timezone-dispatch proof or unassisted beginner test."
+  ],
+  "browserConsoleErrors": [],
+  "application_source_check": {
+    "files_compared": 51,
+    "changed_files": [],
+    "added_files": [],
+    "unchanged": true
+  },
+  "engine_tests": {
+    "passed": 40,
+    "failed": 0,
+    "scope": "Existing engine tests with simulated providers"
+  },
+  "cleanup": {
+    "viewport_override_reset": true,
+    "preview_tab_retained": true,
+    "server_port": 8872,
+    "live_changes": false,
+    "push_or_deployment": false
+  },
+  "unverified_polish_removed": [
+    "Sticky dialog headers and actions"
+  ]
+}

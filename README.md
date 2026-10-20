@@ -8,6 +8,10 @@ A simple home for Pinterest posting. Connect your accounts, choose a schedule, s
 
 ![Automation website](docs/proof/screenshots/live-home.jpg)
 
+## Redesign preview
+
+The next interface uses a black background and English only. Its separate [clickable prototype](docs/prototype-v2/README.md) covers the revised setup, mixed pin requests, product selection, queue review, account editing and deletion recovery. It uses example data and is not deployed. Prototype approval and isolated integration proofs precede the production rebuild. See [progress](docs/PROGRESS.md) for the evidence and remaining acceptance work.
+
 ## What you can do
 
 - Sign in with Google, without an invitation.
@@ -96,11 +100,12 @@ Database changes must remain compatible with the previous website release. A Pag
 
 | Folder | Purpose |
 |---|---|
-| `src/` | Interface and English, French and Arabic text |
+| `src/` | Current website interface; the next revision uses English only |
 | `server/`, `functions/` | Authentication, ownership, integrations and API |
 | `migrations/` | Ordered database migrations |
 | `engine/` | Posting engine, prompt templates and engine tests |
 | `tests/` | Website security and integration checks |
 | `docs/` | Decisions, research, progress and visual proof |
+| `docs/prototype-v2/` | Separate black English-only redesign prototype and check results |
 
 See [progress](docs/PROGRESS.md) for checked results and remaining acceptance work. Report security issues privately to the repository owner; do not include keys, tokens, private references or raw run outputs in an issue.

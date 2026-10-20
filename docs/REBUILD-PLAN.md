@@ -1,6 +1,6 @@
 # Product and design proposal — 20 October 2026
 
-Status: PROTOTYPE WORK APPROVED, 20 October 2026. The owner requested starting work with a pure black background and English only. Complete the revised clickable prototype before approval of the production rebuild. Earlier unfinished application edits remain local and unapproved.
+Status: PROTOTYPE READY FOR REVIEW, 20 October 2026. The owner requested starting work with a pure black background and English only. The separate revised prototype is in docs/prototype-v2/. Forty-two browser checks passed; optional unverified dialog polish was removed after saved browser permissions blocked further inspection. Prototype approval still precedes the production rebuild. Earlier unfinished application edits remain local and unapproved.
 
 ## 1. What this product should feel like
 
@@ -133,4 +133,4 @@ Acceptance examples include amounts above the old limits; mixed product/category
 
 This is a proposed rebuild, not a claim that these features exist. The last verified application release is recorded in PROGRESS.md. Earlier partially written saved-key/creation/draft-removal code is still uncommitted and unpublished; do not deploy it as part of this design review. Do not delete the three production drafts during the review pause.
 
-Next action: build the complete black, English-only clickable prototype authorized by the owner, then obtain its approval before the production rebuild. No live-account change is required for this prototype stage.
+Next action: owner review and approval of the black English-only prototype, then the isolated integration proofs before the production rebuild. Further agent browser inspection requires fixing the saved origin permission; do not bypass it. No live-account change is required for prototype review. Local review: docs/prototype-v2/README.md.
