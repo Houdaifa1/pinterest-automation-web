@@ -181,6 +181,18 @@ function remote() {
     start() {
       status = "ENABLED";
     },
+    publishSettings(settings: any, hours?: number[]) {
+      let step = trigger;
+      while (step && step.name !== "step_3") step = step.nextAction;
+      const config = JSON.parse(step.settings.input.config);
+      Object.assign(config.settings, settings);
+      if (hours) {
+        config.accounts[0].hours = hours;
+        config.accounts[0].dailyCap = hours.length;
+      }
+      step.settings.input.config = JSON.stringify(config);
+      version++;
+    },
   };
 }
 it("discovers and adopts a saved setup using read-only calls, keeping Telegram, the Sheet and pause state", async () => {
@@ -209,6 +221,7 @@ it("discovers and adopts a saved setup using read-only calls, keeping Telegram, 
   expect(saved.status).toBe("paused");
   expect(saved.applied_revision).toBe(saved.revision);
   expect(JSON.parse(saved.config)).toMatchObject({
+    emailTo: "member@example.test",
     notifyEmail: true,
     notifyTelegram: true,
     telegram: expect.any(String),
@@ -218,6 +231,7 @@ it("discovers and adopts a saved setup using read-only calls, keeping Telegram, 
   ).json();
   expect(reopened.automation.config.notifyTelegram).toBe(true);
   expect(reopened.automation.config.notifyEmail).toBe(true);
+  expect(reopened.automation.config.emailTo).toBe("member@example.test");
   expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
   const bot: any = await (
     await request(`/api/automations/${a.id}/telegram-status`, s)
@@ -392,5 +406,144 @@ it("imports spaced legacy account names and a daily cap different from posting h
   ).toBe(200);
   const saved = await fresh(a.id);
   expect(JSON.parse(saved.config).accounts[0].name).toBe("Stunning Crochet");
+  expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
+});
+
+it("refreshes changed published settings from the provider without writing its flow or replacing website-only account metadata", async () => {
+  const provider = remote(),
+    s = await session(),
+    a = await draft(s);
+  const discovery: any = await (
+    await request(`/api/automations/${a.id}/discovery`, s)
+  ).json();
+  await request(`/api/automations/${a.id}/adopt`, s, "POST", {
+    choice: discovery.flows[0].choice,
+  });
+  const before = await fresh(a.id),
+    config = JSON.parse(before.config);
+  config.accounts[0].category = "crochet";
+  config.accounts[0].website = "https://example.test/catalog";
+  await env.DB.prepare(
+    "UPDATE automations SET config=?,applied_config=? WHERE id=?",
+  )
+    .bind(JSON.stringify(config), JSON.stringify(config), a.id)
+    .run();
+  await env.DB.prepare(
+    "INSERT INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status) VALUES('old-provider-slot',?,?,?, ?,?,'2026-10-21','pending')",
+  )
+    .bind(
+      a.id,
+      config.accounts[0].id,
+      config.accounts[0].name,
+      before.applied_revision,
+      Math.floor(Date.now() / 1000) + 3600,
+    )
+    .run();
+  provider.publishSettings(
+    { emailTo: "reports@example.test", notifyTelegram: false, reportHour: 20 },
+    [8, 12, 17],
+  );
+  expect(await reconcile(env, s.user.id, await fresh(a.id))).toMatchObject({
+    status: "paused",
+    synced: true,
+  });
+  const saved = await fresh(a.id),
+    current = JSON.parse(saved.config);
+  expect(current).toMatchObject({
+    emailTo: "reports@example.test",
+    notifyTelegram: false,
+    reportHour: 20,
+  });
+  expect(current.accounts[0]).toMatchObject({
+    id: config.accounts[0].id,
+    category: "crochet",
+    website: "https://example.test/catalog",
+    hours: [8, 12, 17],
+  });
+  expect(saved.revision).toBe(before.revision + 1);
+  expect(saved.applied_revision).toBe(saved.revision);
+  expect(saved.sheet_url).toBe(before.sheet_url);
+  expect(saved.flow_id).toBe(before.flow_id);
+  expect(
+    (
+      await env.DB.prepare(
+        "SELECT status FROM schedule_jobs WHERE id='old-provider-slot'",
+      ).first<any>()
+    ).status,
+  ).toBe("cancelled");
+  expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
+});
+it("refreshing identical provider settings does not create revisions or shuffle pending jobs", async () => {
+  const provider = remote(),
+    s = await session(),
+    a = await draft(s);
+  const discovery: any = await (
+    await request(`/api/automations/${a.id}/discovery`, s)
+  ).json();
+  await request(`/api/automations/${a.id}/adopt`, s, "POST", {
+    choice: discovery.flows[0].choice,
+  });
+  const before = await fresh(a.id);
+  const response = await request(`/api/automations/${a.id}/sync`, s, "POST", {
+    revision: before.revision,
+  });
+  expect(response.status).toBe(200);
+  expect((await fresh(a.id)).revision).toBe(before.revision);
+  expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
+});
+it("protects pending website edits and requires an explicit revision-checked choice to reload provider settings", async () => {
+  const provider = remote(),
+    s = await session(),
+    a = await draft(s);
+  const discovery: any = await (
+    await request(`/api/automations/${a.id}/discovery`, s)
+  ).json();
+  await request(`/api/automations/${a.id}/adopt`, s, "POST", {
+    choice: discovery.flows[0].choice,
+  });
+  await env.DB.prepare("UPDATE automations SET revision=revision+1 WHERE id=?")
+    .bind(a.id)
+    .run();
+  provider.publishSettings({ emailTo: "fresh@example.test" });
+  const before = await fresh(a.id);
+  expect(await reconcile(env, s.user.id, before)).toMatchObject({
+    status: "problem",
+  });
+  expect((await fresh(a.id)).config).toBe(before.config);
+  expect(
+    (
+      await request(`/api/automations/${a.id}/sync`, s, "POST", {
+        revision: before.revision,
+      })
+    ).status,
+  ).toBe(409);
+  expect(
+    (
+      await request(`/api/automations/${a.id}/sync`, s, "POST", {
+        revision: before.revision - 1,
+        discard: true,
+      })
+    ).status,
+  ).toBe(409);
+  const other = await session("member-b");
+  expect(
+    (
+      await request(`/api/automations/${a.id}/sync`, other, "POST", {
+        revision: before.revision,
+        discard: true,
+      })
+    ).status,
+  ).toBe(404);
+  expect(
+    (
+      await request(`/api/automations/${a.id}/sync`, s, "POST", {
+        revision: before.revision,
+        discard: true,
+      })
+    ).status,
+  ).toBe(200);
+  expect(JSON.parse((await fresh(a.id)).config).emailTo).toBe(
+    "fresh@example.test",
+  );
   expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
 });

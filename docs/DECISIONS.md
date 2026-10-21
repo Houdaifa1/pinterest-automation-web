@@ -152,3 +152,7 @@ The owner requested the selected Pinterest account's schedule beside content cre
 ## 21 October 2026 — edit the selected saved setup after adoption
 
 Existing-flow review must show its saved notification choices, never a blank setup's defaults. Opening notification/account edits first adopts the selected flow read-only, then edits the actual imported settings. Returning to the key keeps the saved connection. Existing-only intent never creates a replacement remote flow.
+
+## 21 October 2026 — published Activepieces settings are authoritative
+
+The owner explicitly rejects replacing imported settings with sign-in defaults or hardcoded values. Read the selected published flow and connection metadata through Activepieces. Automatically refresh clean website state when the published version changes; retain website-only metadata. Conflicts need an explicit choice before discarding website drafts. A visible Refresh from Activepieces action reloads published settings; unpublished provider drafts are excluded. Unsupported structure/workspace/website-scheduler changes fail clearly. Saved requests and website-only media/history remain website data.

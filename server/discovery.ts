@@ -97,7 +97,7 @@ export function readExistingFlow(
     const schedule = scheduleSchema.safeParse(a.websiteSchedule);
     accounts.push({
       ...before,
-      ...(schedule.success ? { schedule: schedule.data } : {}),
+      schedule: schedule.success ? schedule.data : undefined,
       id: before?.id || connection.id,
       name: a.name,
       username: connection.identity.replace(/^@/, ""),
@@ -132,6 +132,8 @@ export function readExistingFlow(
       .slice(0, 60),
     config: parsed.data,
     workspace,
+    executionEndpoint:
+      typeof raw.settings.website === "string" ? raw.settings.website : null,
   };
 }
 async function providerFlows(key: string, projectId: string) {

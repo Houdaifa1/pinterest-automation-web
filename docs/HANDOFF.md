@@ -15,6 +15,8 @@ Current creation policy, 21 October: the owner explicitly removed the member-app
 
 Current schedule UI, 21 October: New pins now has a collapsed Posting schedule control scoped to the selected profile. Shared controls also remain in account settings and creation. Save & update uses the existing flow/Sheet deployment and preserves pause state. Automatic spacing recalculates from daily amount/window (09:00–21:00: five/day=120m, ten/day=65m, twelve/day=55m); custom gaps/exact minute fields are available. Varied slots are spread with bounded randomness and overnight spacing, then stored. Schedule updates atomically preserve unaffected profiles' future jobs, cancel replaced jobs and allow cancelled future timestamps to be reused safely. Creation amount stays independent. These are scheduling defaults, not a ranking or evasion guarantee.
 
+Current existing-settings policy, 21 October: existing-flow review shows saved API notification choices. Opening edits adopts the selected flow read-only first, preserving its recipient independently of website sign-in. Published provider changes refresh clean website settings on open; Refresh from Activepieces supports explicit reload, with revision-checked discard for conflicting website drafts. Unsupported workspace/structure/website-scheduler changes stop safely. Refresh never writes the remote flow. Website-only metadata/history remain local.
+
 ---
 
 ## 1. Who the owner is and how to work with him

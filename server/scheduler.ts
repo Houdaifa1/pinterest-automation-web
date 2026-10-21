@@ -80,6 +80,7 @@ export function pendingPlanChanges(
   configText: string,
   revision: number,
   at = now(),
+  operation?: string,
 ) {
   const old = JSON.parse(previous.applied_config || "{}"),
     next = JSON.parse(configText);
@@ -109,22 +110,31 @@ export function pendingPlanChanges(
       return account.on && before && key(old, before) === key(next, account);
     })
     .map((a: any) => a.id);
-  return [
+  const prepared = (sql: string, ...values: any[]) =>
     env.DB.prepare(
+      sql +
+        (operation
+          ? " AND EXISTS(SELECT 1 FROM automations guard WHERE guard.id=? AND guard.operation_id=? AND guard.applied_revision=?)"
+          : ""),
+    ).bind(...values, ...(operation ? [previous.id, operation, revision] : []));
+  return [
+    prepared(
       "UPDATE schedule_jobs SET schedule_revision=? WHERE automation_id=? AND status='pending' AND planned_at>=? AND schedule_revision=? AND account_id IN(SELECT value FROM json_each(?))",
-    ).bind(
       revision,
       previous.id,
       at,
       previous.applied_revision,
       JSON.stringify(keep),
     ),
-    env.DB.prepare(
+    prepared(
       "UPDATE schedule_jobs SET status='cancelled' WHERE automation_id=? AND status IN('pending','dispatched','claimed') AND schedule_revision<>?",
-    ).bind(previous.id, revision),
-    env.DB.prepare(
+      previous.id,
+      revision,
+    ),
+    prepared(
       "UPDATE automations SET planned_through=NULL WHERE id=?",
-    ).bind(previous.id),
+      previous.id,
+    ),
   ];
 }
 export async function dispatchAutomation(env: Env, a: ScheduledAutomation) {

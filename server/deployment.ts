@@ -6,8 +6,18 @@ import { defaultState } from "../engine/panel/generator.js";
 import { owned } from "./access";
 import { pendingPlanChanges } from "./scheduler";
 import { verifiedBotChat } from "./telegram";
-import { existingTelegramSheet, checkExistingProfiles } from "./discovery";
-import { ap, getIntegration, safeSheet, type Connection } from "./activepieces";
+import {
+  existingTelegramSheet,
+  checkExistingProfiles,
+  readExistingFlow,
+} from "./discovery";
+import {
+  ap,
+  getIntegration,
+  safeSheet,
+  syncConnections,
+  type Connection,
+} from "./activepieces";
 import {
   decrypt,
   encrypt,
@@ -452,6 +462,164 @@ export async function deploy(env: Env, userId: string, raw: Automation) {
     await unlock(env, a, operation);
   }
 }
+async function refreshPublishedSettings(
+  env: Env,
+  userId: string,
+  raw: DeployAutomation,
+  discard = false,
+) {
+  const operation = await lock(env, raw);
+  try {
+    const a = await env.DB.prepare(
+      "SELECT * FROM automations WHERE id=? AND user_id=?",
+    )
+      .bind(raw.id, userId)
+      .first<DeployAutomation>();
+    if (
+      !a ||
+      a.revision !== raw.revision ||
+      ["starting", "applying"].includes(a.status)
+    )
+      throw new PublicError(
+        "conflict",
+        "Settings changed. Reload before refreshing Activepieces.",
+        409,
+      );
+    if (!discard && a.revision !== a.applied_revision)
+      throw new PublicError(
+        "external_change",
+        "Activepieces and this website both have changes. Choose which settings to keep.",
+        409,
+      );
+    const { integration, key } = await getIntegration(env, userId, a);
+    let remote = await ap(key, `/flows/${encodeURIComponent(a.flow_id!)}`);
+    if (
+      remote.version?.id !== remote.publishedVersionId &&
+      remote.publishedVersionId
+    )
+      remote = await ap(
+        key,
+        `/flows/${encodeURIComponent(a.flow_id!)}?versionId=${encodeURIComponent(remote.publishedVersionId)}`,
+      );
+    await syncConnections(env, userId, integration, key);
+    const rows = (
+      await env.DB.prepare(
+        "SELECT * FROM connections WHERE user_id=? AND integration_id=?",
+      )
+        .bind(userId, integration.id)
+        .all<Connection>()
+    ).results;
+    const parsed =
+      remote.projectId === integration.project_id &&
+      readExistingFlow(remote, rows, JSON.parse(a.config));
+    if (!parsed || parsed.workspace !== (a.workspace_id ?? a.id))
+      throw new PublicError(
+        "external_change",
+        "The published flow changed its structure or workspace. Review it in Activepieces before updating here.",
+        409,
+      );
+    if ((a as any).scheduler_enabled) {
+      const callback = a.encrypted_callback
+        ? await decrypt(env, a.encrypted_callback, userId)
+        : null;
+      if (
+        !callback ||
+        parsed.executionEndpoint !==
+          callback.replace("/api/callback/", "/api/execute/")
+      )
+        throw new PublicError(
+          "external_change",
+          "This flow changed its website scheduling connection. Review it before syncing.",
+          409,
+        );
+    }
+    const config = JSON.stringify(parsed.config);
+    if (
+      config === a.config &&
+      a.revision === a.applied_revision &&
+      parsed.name === a.name &&
+      remote.publishedVersionId === a.flow_version_id
+    ) {
+      await env.DB.prepare(
+        "UPDATE automations SET status=?,error_code=NULL WHERE id=? AND operation_id=?",
+      )
+        .bind(
+          remote.status === "ENABLED" ? "running" : "paused",
+          a.id,
+          operation,
+        )
+        .run();
+      return {
+        status: remote.status === "ENABLED" ? "running" : "paused",
+        synced: true,
+      };
+    }
+    const revision = a.revision + 1;
+    const guard =
+      "EXISTS(SELECT 1 FROM automations WHERE id=? AND operation_id=? AND revision=? AND applied_revision=? AND flow_version_id=?)";
+    const args = [
+      a.id,
+      operation,
+      revision,
+      revision,
+      remote.publishedVersionId,
+    ];
+    const statements = [
+      env.DB.prepare(
+        "UPDATE automations SET name=?,config=?,applied_config=?,revision=?,applied_revision=?,flow_version_id=?,status=?,error_code=NULL,updated_at=? WHERE id=? AND user_id=? AND revision=? AND operation_id=?",
+      ).bind(
+        parsed.name,
+        config,
+        config,
+        revision,
+        revision,
+        remote.publishedVersionId,
+        remote.status === "ENABLED" ? "running" : "paused",
+        now(),
+        a.id,
+        userId,
+        a.revision,
+        operation,
+      ),
+      env.DB.prepare(
+        "INSERT INTO versions SELECT ?,?,?,?,?,? WHERE " + guard,
+      ).bind(id(), userId, a.id, revision, config, now(), ...args),
+      env.DB.prepare(
+        "DELETE FROM profile_claims WHERE automation_id=? AND " + guard,
+      ).bind(a.id, ...args),
+      ...parsed.config.accounts
+        .filter((p) => p.on)
+        .map((p) =>
+          env.DB.prepare(
+            "INSERT INTO profile_claims SELECT ?,?,? WHERE " + guard,
+          ).bind(userId, p.connection, a.id, ...args),
+        ),
+      ...pendingPlanChanges(env, a, config, revision, now(), operation),
+    ];
+    let result;
+    try {
+      result = await env.DB.batch(statements);
+    } catch {
+      throw new PublicError(
+        "sync_conflict",
+        "These profiles are already managed by another automation. Review the Activepieces change before syncing.",
+        409,
+      );
+    }
+    if (result[0].meta.changes !== 1)
+      throw new PublicError(
+        "conflict",
+        "Settings changed while syncing. Reload and try again.",
+        409,
+      );
+    return {
+      status: remote.status === "ENABLED" ? "running" : "paused",
+      synced: true,
+    };
+  } finally {
+    await unlock(env, raw, operation);
+  }
+}
 export async function reconcile(env: Env, userId: string, raw: Automation) {
   const a = raw as DeployAutomation;
   if (!a.flow_id) return { status: a.status };
@@ -459,9 +627,9 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
     const { key } = await getIntegration(env, userId, a);
     const remote = await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`);
     const changed =
-      a.flow_version_id &&
-      (remote.publishedVersionId !== a.flow_version_id ||
-        remote.version?.id !== a.flow_version_id);
+      a.flow_version_id && remote.publishedVersionId !== a.flow_version_id;
+    if (changed && a.revision === a.applied_revision && !a.operation_id)
+      return refreshPublishedSettings(env, userId, a);
     const status = changed
       ? "problem"
       : remote.status === "ENABLED"
@@ -575,6 +743,22 @@ deployment.post("/:id/deploy", async (c) => {
 deployment.post("/:id/reconcile", async (c) =>
   c.json(await reconcile(c.env, c.get("user").id, await owned(c))),
 );
+deployment.post("/:id/sync", async (c) => {
+  const a = (await owned(c)) as DeployAutomation;
+  const body = z
+    .object({ revision: z.number().int(), discard: z.boolean().default(false) })
+    .parse(await c.req.json());
+  if (!a.flow_id || body.revision !== a.revision)
+    throw new PublicError(
+      "conflict",
+      "Reload this automation before syncing.",
+      409,
+    );
+  await rateLimit(c, `sync-settings:${a.id}`, 12, 600);
+  return c.json(
+    await refreshPublishedSettings(c.env, c.get("user").id, a, body.discard),
+  );
+});
 for (const action of ["pause", "resume"] as const)
   deployment.post(`/:id/${action}`, async (c) => {
     const a = await owned(c);

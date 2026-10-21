@@ -781,7 +781,7 @@ const defaults = (user: User): Config => ({
 function AutomationPage() {
   const { id } = useParams(),
     location = useLocation();
-  const { user, t } = useWorkspace();
+  const { user, t, notify } = useWorkspace();
   const [automation, setAutomation] = useState<Automation | null>(null),
     [draft, setDraft] = useState<Config>(defaults(user)),
     [error, setError] = useState<unknown>(null),
@@ -1004,6 +1004,47 @@ function AutomationPage() {
             <ArrowLeft size={15} />
             {t("all")}
           </Link>
+          {automation.deployed && (
+            <button
+              disabled={actionPending || saving}
+              onClick={async () => {
+                const hasEdits =
+                  automation.revision !== automation.appliedRevision ||
+                  pending.current ||
+                  Object.values(accountEdits).some(Boolean);
+                if (
+                  hasEdits &&
+                  !window.confirm(
+                    "Replace website edits with the published Activepieces settings? Your saved versions remain in History.",
+                  )
+                )
+                  return;
+                setBusy(true);
+                try {
+                  await flush();
+                  await api(`/api/automations/${id}/sync`, "POST", {
+                    revision: current.current!.revision,
+                    discard: Boolean(hasEdits),
+                  });
+                  await load();
+                  setError(null);
+                  notify("Loaded published Activepieces settings.");
+                } catch (e) {
+                  setError(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Refresh from Activepieces
+            </button>
+          )}
+          {automation.errorCode === "external_change" && (
+            <Notice>
+              Activepieces changed. Refresh from Activepieces to load its
+              published settings before applying website edits.
+            </Notice>
+          )}
           {error != null && (
             <ErrorBox
               error={error}
