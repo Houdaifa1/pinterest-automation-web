@@ -1,6 +1,6 @@
 # Release status — 21 October 2026
 
-All committed website fixes through d93debf are deployed at https://automation.houdaifa.dev. GitHub run 39582332517 passed Build and test and Deploy production. The checked release includes 78 runtime checks, ten flow-execution checks and 41 engine checks. Public health, private-access and development-login restrictions pass.
+All committed website fixes through d076e4b are deployed at https://automation.houdaifa.dev. GitHub run 39612556967 passed Build and test and Deploy production. The checked release includes 87 runtime checks, ten flow-execution checks and 41 engine checks. Public health, private-access and development-login restrictions pass.
 
 ## Bugs found and fixed
 
@@ -25,8 +25,14 @@ All committed website fixes through d93debf are deployed at https://automation.h
 | Creative instructions allowed repetitive scenes or unsupported offer claims | Require source comparison, distinct underlying imagery, exact products and verified free/paid/file-type facts | Delivered prompt inspected; rendered image quality is not yet verified |
 | Large repeated instructions wasted request space | Shared compact workflow, reusable dated research and bounded order preview | Same saved 64-pin prompt: 26,225 → 11,259 characters, 57% shorter; billed usage not measured |
 | Automatic product selection could change when resuming | Save/reuse resolved batch product URL/count/order plan before images; hold unavailable products | Delivered revision 2026-10-21.7 and automated directive check; execution acceptance remains open |
-| Changing a schedule could block replacement slots or reroll other accounts | Atomic revision/job migration, future cancelled-slot replacement and unchanged-account job preservation | Automated multi-account regression; actual revised-schedule publication remains unverified |
+| Changing a schedule could block replacement slots or reroll other accounts | Atomic revision/job migration, future cancelled-slot replacement and unchanged-account job preservation | Automated multi-account regression; real one-slot publication verified; broader generated-content acceptance remains open |
 | Schedule editing required leaving content creation | Collapsed New pins controls shared with account setup/settings, adaptive gaps and exact clocks | Local real UI/API checks at 320/390/1440px; same-flow running/paused updates with simulated provider |
+| Notification editing before import displayed blank sign-in defaults | Adopt the selected API flow before editing and show saved notification choices during review | Real production recipient/channel check, original remote notification settings preserved |
+| Later published Activepieces changes only produced a conflict | Read-only published-settings refresh for clean state, explicit revision-checked reload for conflicting website edits | Automated recipient/channel/time changes, isolation and idempotent refresh; production refresh/import source verified |
+| A website reset left an existing managed flow pointing to a deleted callback | Detect reconnect state and provide same-flow/same-Sheet settings-only repair | Actual original flow reconnected; successful suppressed-publishing check and complete 84 Ready/15 Done snapshots |
+| Missing home/queue progress hid whether work was scheduled or finished | Per-account home counts, stored next slots, ordered filtered queue and actual recent slot outcomes | Actual Chrome home and queue data verified; no new publication receipt claimed by the sync |
+| First 500 historical rows hid newer Ready pins | Prioritize Ready/held rows in bounded previews and include row/date/product/health metadata | 511 Done plus one later Ready row regression; full bounded counts retained |
+| A one-off timing test required changing daily settings | Inline Change time for one pending slot on its existing day | Protected API move and validation tests; owner saved 14:10; real existing-content publication completed at 14:11:11, one Done and 83 Ready afterward |
 | Hour-only scheduling could not represent requested minutes/varied times | Stored minute jobs, spacing, single-use claims, pause/version checks, missed-slot skips and uncertain-response holds | Automated scheduler/engine checks; dispatcher deployed; actual revised-schedule publication still unverified |
 
 These are confirmed code mechanisms and verified release changes. They do not prove the exact cause of every error on a friend's inaccessible account. New capabilities and prompt requirements are identified above where the issue was a missing feature rather than an observed provider failure.
@@ -37,13 +43,13 @@ Google sign-up is open. Friends can sign in, reconnect their Activepieces projec
 
 Existing remote automations are not automatically rebuilt by deploying this website. Read-only import preserves their original engine and schedule. Updating a remote flow is a separate explicit member action.
 
-Remaining before a broad unattended-use recommendation: actual generated-pin fidelity, revised-scheduler live publication, deployed-flow deletion/recovery and automatic dispatcher releases. Full Etsy/Gumroad server inventory access is not certified. The real Gumroad server scan remains unavailable, with an explicit research/manual-link recovery.
+Remaining before a broad unattended-use recommendation: actual generated-pin fidelity, deployed-flow deletion/recovery and automatic dispatcher releases. Full Etsy/Gumroad server inventory access is not certified. The real Gumroad server scan remains unavailable, with an explicit research/manual-link recovery.
 
 ## Fresh database
 
-The owner requested clearing all website data on 21 October. A private verified backup was saved first. All 20 application-data tables now have zero rows, including members, sessions, automations, integrations, saved requests and scheduling jobs. Schema and migration history remain. See proof/database-reset-2026-10-21.json.
+The owner requested clearing all website data on 21 October. A private verified backup was saved first. At the reset checkpoint, all 20 application-data tables had zero rows, including members, sessions, automations, integrations, saved requests and scheduling jobs. Schema and migration history remain. See proof/database-reset-2026-10-21.json.
 
-Everyone must sign in and reconnect/import again. External Activepieces flows, Google Sheets and Pinterest accounts were not deleted or edited. Independently scheduled remote flows can continue; the database reset removes website-managed jobs and saved access, not external schedules.
+Members have since signed in and imported again. Website-managed remote flows referencing removed website records must reconnect their callback and scheduler through Connect live queue; the real owner flow has completed that repair. External Activepieces flows, Google Sheets and Pinterest accounts were not deleted or edited. Independently scheduled remote flows can continue; the database reset removes website-managed jobs and saved access, not external schedules.
 
 ## Automatic Ready policy update
 

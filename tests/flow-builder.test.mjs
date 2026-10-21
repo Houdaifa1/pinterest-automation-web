@@ -573,3 +573,108 @@ test("the website contract publishes once and confirms the actual queue receipt"
     globalThis.fetch = originalFetch;
   }
 });
+
+test("a verified extra-day allowance publishes beyond the recurring cap without rewriting that cap", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    w.pinterestUsers["p-token-1"] = "testprofile";
+    w.boards.push({
+      id: "b-main",
+      name: "Main board",
+      privacy: "PUBLIC",
+      owner: "p-token-1",
+    });
+    const s = state();
+    s.websiteSchedule = true;
+    s.timeZone = "UTC";
+    s.accounts[0] = {
+      ...s.accounts[0],
+      id: "profile",
+      on: true,
+      pinsPerDay: 1,
+      hours: [9],
+    };
+    const flow = buildWebsiteFlow(
+      template,
+      s,
+      "11111111-1111-4111-8111-111111111111",
+      "Day slots",
+      "v-day",
+      "https://example.test/api/callback/11111111-1111-4111-8111-111111111111/secret",
+    );
+    const providerFetch = globalThis.fetch;
+    const job = {
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "testprofile",
+      accountId: "profile",
+      token: "lease",
+    };
+    globalThis.fetch = async (url, opts) => {
+      if (String(url).endsWith("/claim"))
+        return Response.json({ jobs: [job], commands: [] });
+      if (String(url).endsWith("/authorize"))
+        return Response.json({ allowed: true, dailyCap: 2 });
+      if (String(url).endsWith("/finish")) return Response.json({ ok: true });
+      return providerFetch(url, opts);
+    };
+    const prep = codeStep(flow, "step_3");
+    const load = (step) =>
+      import(
+        "data:text/javascript;base64," +
+          Buffer.from(step.settings.sourceCode.code).toString("base64")
+      );
+    const prepared = await (
+      await load(prep)
+    ).code({
+      google: { access_token: w.tokens.google },
+      gmail: { access_token: w.tokens.gmail },
+      config: prep.settings.input.config,
+    });
+    const accounts = w.rows("Accounts"),
+      folder =
+        accounts[1][accounts[0].indexOf("Media folder")].match(
+          /folders\/([^/?]+)/,
+        )[1];
+    w.addImage(folder, "new.jpg");
+    const rows = w.rows("Pins – testprofile");
+    const pins = [
+      {
+        "Pin ID": "old-pin",
+        Status: "Done",
+        "Posted at": new Date().toISOString().slice(0, 10) + " 08:00",
+        Media: "old.jpg",
+        Title: "Earlier pin",
+      },
+      {
+        "Pin ID": "extra-pin",
+        Status: "Ready",
+        "Media type": "Image",
+        Media: "new.jpg",
+        Title: "New crochet bag",
+        Description: "A new bag idea.",
+        Link: "https://example.test/new",
+        Board: "Main board",
+      },
+    ];
+    for (const pin of pins) rows.push(rows[0].map((h) => pin[h] || ""));
+    const step = codeStep(flow, "step_4").firstLoopAction.nextAction;
+    const result = await (
+      await load(step)
+    ).code({
+      google: { access_token: w.tokens.google },
+      gmail: { access_token: w.tokens.gmail },
+      pinterest: { access_token: "p-token-1" },
+      accountName: "testprofile",
+      publish: true,
+      quietQueue: true,
+      websiteJob: prepared.due.find((d) => d.publish).websiteJob,
+    });
+    assert.equal(result.outcome, "published");
+    assert.equal(w.pins.length, 1);
+    assert.equal(Number(accounts[1][accounts[0].indexOf("Daily cap")]), 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

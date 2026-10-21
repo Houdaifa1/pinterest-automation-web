@@ -564,3 +564,112 @@ it("rejects past, invalid, conflicting, unowned and already-started slot edits",
     ).planned_at,
   ).toBe(original);
 });
+
+it("adds a single day's extra slot repeat-safely and authorizes its increased day allowance without changing recurring settings", async () => {
+  const { a, request, callback } = await setup();
+  await env.DB.prepare("UPDATE automations SET day_slots_enabled=1 WHERE id=?")
+    .bind(a.id)
+    .run();
+  const day = new Date((now() + 86400) * 1000).toISOString().slice(0, 10);
+  const before: any = await (
+    await request(`/api/automations/${a.id}/queue?day=${day}`)
+  ).json();
+  expect(before.daySlots).toHaveLength(3);
+  const requestId = crypto.randomUUID(),
+    body = { requestId, accountId: "profile", time: day + "T00:01" };
+  expect(
+    (await request(`/api/automations/${a.id}/queue/schedule`, "POST", body))
+      .status,
+  ).toBe(200);
+  expect(
+    (await request(`/api/automations/${a.id}/queue/schedule`, "POST", body))
+      .status,
+  ).toBe(200);
+  expect(
+    (
+      await request(`/api/automations/${a.id}/queue/schedule`, "POST", {
+        ...body,
+        time: day + "T00:02",
+      })
+    ).status,
+  ).toBe(409);
+  const after: any = await (
+    await request(`/api/automations/${a.id}/queue?day=${day}`)
+  ).json();
+  expect(after.daySlots).toHaveLength(4);
+  expect(
+    JSON.parse(
+      (
+        await env.DB.prepare("SELECT config FROM automations WHERE id=?")
+          .bind(a.id)
+          .first<any>()
+      ).config,
+    ).accounts[0].pinsPerDay,
+  ).toBe(3);
+  await env.DB.prepare(
+    "INSERT INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,detail,origin) VALUES(?,?,?,?,?,?,?,'completed','published','manual')",
+  )
+    .bind(
+      crypto.randomUUID(),
+      a.id,
+      "profile",
+      "profile",
+      a.applied_revision,
+      Date.parse(day + "T00:02:00Z") / 1000,
+      day,
+    )
+    .run();
+  await env.DB.prepare(
+    "UPDATE schedule_jobs SET status='dispatched' WHERE id=?",
+  )
+    .bind(requestId)
+    .run();
+  const claimed: any = await (await callback("claim")).json(),
+    job = claimed.jobs.find((j: any) => j.id === requestId);
+  const allowed: any = await (
+    await callback("authorize", { id: job.id, token: job.token })
+  ).json();
+  expect(allowed).toMatchObject({ allowed: true, dailyCap: 4 });
+  expect(
+    (
+      await request(
+        `/api/automations/${a.id}/queue/schedule/${requestId}`,
+        "DELETE",
+        { expectedAt: Date.parse(day + "T00:01:00Z") / 1000 },
+      )
+    ).status,
+  ).toBe(409);
+});
+it("removes a future slot without changing its pins and keeps next-day planning separate from the near-term horizon", async () => {
+  const { a, request } = await setup();
+  const day = new Date((now() + 5 * 86400) * 1000).toISOString().slice(0, 10);
+  const result: any = await (
+    await request(`/api/automations/${a.id}/queue?day=${day}`)
+  ).json();
+  expect(result.daySlots).toHaveLength(3);
+  const stored = await env.DB.prepare(
+    "SELECT planned_through FROM automations WHERE id=?",
+  )
+    .bind(a.id)
+    .first<any>();
+  expect(stored.planned_through < day).toBe(true);
+  const j = result.daySlots[0];
+  expect(
+    (
+      await request(
+        `/api/automations/${a.id}/queue/schedule/${j.id}`,
+        "DELETE",
+        { expectedAt: j.planned_at },
+      )
+    ).status,
+  ).toBe(200);
+  const refreshed: any = await (
+    await request(`/api/automations/${a.id}/queue?day=${day}`)
+  ).json();
+  expect(refreshed.daySlots.find((s: any) => s.id === j.id).status).toBe(
+    "cancelled",
+  );
+  expect(
+    (await request(`/api/automations/${a.id}/queue?day=2026-99-99`)).status,
+  ).toBe(400);
+});

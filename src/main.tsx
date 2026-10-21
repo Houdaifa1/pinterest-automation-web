@@ -35,6 +35,7 @@ import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import { api, ApiError, setCSRF } from "./api";
 import { Queue } from "./queue";
+import { PinProgress } from "./pin-progress";
 import {
   ScheduleControls,
   PostingScheduleEditor,
@@ -623,14 +624,27 @@ function Home() {
                               {summary ? (
                                 <>
                                   <span>
-                                    <strong>{summary.ready}</strong> ready
+                                    <strong className="stat-ready">
+                                      {summary.ready}
+                                    </strong>{" "}
+                                    ready
                                   </span>
                                   <span>
-                                    <strong>{summary.published}</strong> posted
+                                    <strong className="stat-posted">
+                                      {summary.published}
+                                    </strong>{" "}
+                                    posted
                                   </span>
                                   {summary.held > 0 && (
                                     <span>{summary.held} held</span>
                                   )}
+                                  <PinProgress
+                                    ready={summary.ready}
+                                    posted={summary.published}
+                                    held={summary.held}
+                                    total={summary.total}
+                                    compact
+                                  />
                                   <small>
                                     {a.status === "paused" || !account.on
                                       ? "Posting paused"

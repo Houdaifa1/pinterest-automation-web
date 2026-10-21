@@ -1597,3 +1597,26 @@ footer {
 .slot-editor > button {padding-inline:10px;font-size:12px;}
 .slot-edit-fields {display:flex;flex-wrap:wrap;gap:8px;width:100%;min-width:0;}
 .slot-edit-fields input {width:100%;min-width:0;}
+.day-nav {display:flex;gap:6px;align-items:center;margin:16px 0 8px;min-width:0;}
+.day-nav button {min-width:44px;padding:8px;font-size:22px;}
+.day-nav input {min-width:0;width:100%;flex:1;padding-inline:8px;}
+.pin-progress { display:flex; align-items:center; gap:28px; margin:24px 0; min-width:0; }
+.pin-ring { width:132px; height:132px; flex-shrink:0; padding:10px; border-radius:50%; }
+.pin-ring > div { border-radius:50%; width:100%; height:100%; background:var(--panel,#0b0b0b); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.pin-ring strong { font-size:28px; font-weight:550; font-variant-numeric:tabular-nums; }
+.pin-ring span { font-size:12px; color:var(--muted); }
+.pin-progress-details { flex:1; min-width:0; }
+.pin-progress-track { display:flex; height:10px; border-radius:10px; overflow:hidden; background:#333; gap:2px; }
+.pin-progress-track span { min-width:0; flex-shrink:0; }
+.pin-progress .posted { background:#4ade80; }
+.pin-progress .ready { background:#60a5fa; }
+.pin-progress .attention { background:#fbbf24; }
+.pin-legend { display:flex; flex-wrap:wrap; gap:12px 20px; margin-top:16px; font-size:13px; color:var(--muted); }
+.pin-legend span { display:flex; align-items:center; gap:7px; }
+.pin-legend i { width:8px; height:8px; border-radius:50%; background:#555; }
+.pin-progress.compact { flex-basis:100%; width:100%; margin:4px 0; }
+.pin-progress.compact .pin-progress-track { height:6px; }
+.queue-stats .stat-ready strong, .home-queue-summary strong.stat-ready { color:#60a5fa; }
+.queue-stats .stat-posted strong, .home-queue-summary strong.stat-posted { color:#4ade80; }
+.queue-stats .stat-attention strong { color:#fbbf24; }
+@media(max-width:480px) { .pin-progress { gap:18px; flex-wrap:wrap; } .pin-ring { width:108px; height:108px; padding:8px; } .pin-progress-details { flex-basis:120px; } .pin-legend { gap:10px; } }

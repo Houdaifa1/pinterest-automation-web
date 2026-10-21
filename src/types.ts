@@ -57,6 +57,7 @@ export interface Automation {
   deployed: boolean;
   imported: boolean;
   schedulerEnabled: boolean;
+  daySlotsEnabled: boolean;
   queueSummary?: {
     accountId: string;
     ready: number;

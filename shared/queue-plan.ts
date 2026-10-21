@@ -4,6 +4,11 @@ export const displayZone = (zone: string, at = Date.now() / 1000) =>
 export function slotInput(at: number, zone: string) {
   return localStamp(at, zone).replace(" ", "T");
 }
+export function shiftDay(day: string, amount: number) {
+  return new Date(Date.parse(day + "T12:00:00Z") + amount * 86400000)
+    .toISOString()
+    .slice(0, 10);
+}
 export function slotTime(at: number, zone: string) {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: displayZone(zone, at),

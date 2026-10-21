@@ -14,7 +14,7 @@
 | 6. Live website, migration and beginner acceptance | website and push deployment verified; migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-The black English-only real workspace and 21 October import/catalog/prompt corrections are deployed. The designated hhdrahm@gmail.com account and @stunningcrochet import were verified before the owner requested a complete fresh start on 21 October. All website member data and sessions are now cleared with a verified private backup; sign in and reimport to continue. No replacement remote flow was created. Finish generated-image quality checks and isolated live publication through the revised minute scheduler, then deployed-flow deletion/recovery acceptance. Keep the original external resources intact outside the approved test scope. Add checked dispatcher releases to CI after the deployment token's Worker permission is explicitly granted. Existing website push deployment is verified. The old local prototype browser block remains respected.
+The live owner queue is reconnected on its original flow and Sheet. The owner's existing 15:00 slot was moved to 14:10 and published successfully at 14:11:11, with 83 Ready and one Done afterward. Finish releasing and checking day-by-day Add/Change/Remove time controls and colored queue charts. Remaining independent acceptance: generated-image fidelity, deployed-flow deletion/recovery and dispatcher automatic releases. Preserve the original external resources; do not reset the website database again.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -27,11 +27,9 @@ The black English-only real workspace and 21 October import/catalog/prompt corre
 - No app implementation or live-account access. Original approved references unchanged. Next step: authorized API proof on the confirmed test setup.
 
 ## Open problems
-- Push-driven deployment is verified. The limited credential is active in GitHub’s production environment. Remaining work is acceptance and existing-flow migration.
-- The explicit prompt-and-images attachment package is checked. Automatic image access from a separate content-creation session remains unproved.
-- Existing production-flow migration and an unassisted beginner setup session remain pending. Test scope is @stunningcrochet only; Crochet Simplified is excluded.
-- Real Google sign-in, isolated first run, Run now, pause/resume and the live domain are verified. A new pin-publication test and a live website Telegram test have not been completed.
-- Run now depends on a scheduled seed; first-run and expiry recovery are implemented and checked. Provider run outputs remain private and responses allowlisted.
+- Generated-image fidelity and complete storefront access remain separate acceptance; blocked Gumroad server scans expose recovery.
+- Live deployed-flow deletion/recovery and unassisted beginner setup are not certified. Push-driven Pages deployment is verified; dispatcher automatic releases still need scoped Worker permission.
+- The original owner queue is repaired. The explicitly requested existing-content timing test on Crochet Simplified succeeded; no unrelated test pins were injected. Other live-account changes require the owner's authorized scope.
 
 ## Product requirements update — 2026-10-19
 - Owner approved home option B; reaffirmed open Google sign-up, moderation control and fast, brief beginner-friendly flows.
@@ -466,3 +464,10 @@ The black English-only real workspace and 21 October import/catalog/prompt corre
 - Owner explicitly requested moving the 15:00 posting slot to 14:12 for a test. Added inline Change time/Save time per stored upcoming slot, on its existing date. This moves one pending job without changing recurring settings, remote flow/version or other slots. Ownership, expected timestamp, current revision, busy/started state, future bounds, date validity, spacing and an atomic final conflict recheck protect changes. Errors stay beside the time field; unchanged values disable Save. Daily recurring edits remain in New pins → Posting schedule.
 - Checks: 87 runtime, ten flow and 41 engine tests passed (138 total), plus production build. New tests exercise a real API slot move, preserved recurring configuration/revision, stale retries, invalid/past dates, cross-day refusal, missing jobs, spacing conflicts and already-started jobs. New UI release and the requested real 14:12 execution check are next.
 - The disposable hhdrahm test draft was removed recoverably and its tab closed; its original imported flow remains. Deployed-flow deletion acceptance was deferred when the owner redirected work to queue repair.
+
+## 21 October 2026 — real publication and daily calendar
+
+- Real owner timing test completed: the existing Crochet Simplified slot moved from 15:00 to 14:10. Job d840a72e-470c-4a62-a442-0851e2cdf57c started at 14:10:59 and completed at 14:11:11; provider run c8x95JTNze6lc1ysYJMB7 published the existing Belted Granny Cardigan pin. Subsequent snapshot: one Done, 83 Ready, health OK. Public proof: docs/proof/live-slot-publication-2026-10-21.json. No new test content was injected.
+- Owner requested individual posting days, additional times and clear colored statistics. Added previous/next day and date selection, one-day Add/Change/Remove controls and protected same-day allowances. Recurring caps/settings remain unchanged. Old engines require the explicit same-flow settings-only Enable day controls update before extra slots are accepted.
+- Removed-day markers survive unrelated settings updates; far-future calendar views do not skip near-term planning. Repeat requests and started/stale/spacing-conflicting edits are protected. Queue charts use actual recorded totals with green Posted, blue Ready, amber Needs attention and gray other states, with text counts and accessible descriptions. Home cards use the same color key. No fabricated trends or activity are shown.
+- Validation: 89 runtime, 11 flow-execution and 41 engine checks passed (141 total), plus production build. The extra-day flow test publishes beyond the recurring cap while retaining the Sheet cap; completed manual runs do not inflate day allowances. Release follows. Production calendar enablement and add/remove acceptance remain pending; do not infer them from the completed earlier publication test.

@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-21T14:13:23.210Z",
+  "job": {
+    "id": "d840a72e-470c-4a62-a442-0851e2cdf57c",
+    "account_name": "crochet",
+    "status": "completed",
+    "planned_at": 1792591800,
+    "started_at": 1792591859,
+    "finished_at": 1792591871,
+    "detail": "published",
+    "remote_run_id": "c8x95JTNze6lc1ysYJMB7"
+  },
+  "publishedPin": {
+    "title": "Belted Granny Cardigan: The Belted Granny Cardigan | Free PDF",
+    "pinUrl": "https://www.pinterest.com/pin/845762005071934289/",
+    "postedAt": "2026-10-21 14:10"
+  },
+  "source": "Website job receipt and verified engine Sheet snapshot",
+  "newTestContentCreated": false
+}

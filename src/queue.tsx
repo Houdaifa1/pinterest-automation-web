@@ -3,7 +3,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock, RefreshCw } from "lucide-react";
 import { api } from "./api";
-import { plannedPins, slotTime, slotInput } from "../shared/queue-plan";
+import { PinProgress } from "./pin-progress";
+import {
+  plannedPins,
+  slotTime,
+  slotInput,
+  shiftDay,
+} from "../shared/queue-plan";
 import type { Automation, Config } from "./types";
 export function Queue({
   automation,
@@ -27,14 +33,36 @@ export function Queue({
     [visible, setVisible] = useState(50),
     [moving, setMoving] = useState<any>(null),
     [moveTime, setMoveTime] = useState(""),
-    [moveError, setMoveError] = useState<unknown>(null);
+    [moveError, setMoveError] = useState<unknown>(null),
+    [day, setDay] = useState(() =>
+      slotInput(Date.now() / 1000, config.timeZone).slice(0, 10),
+    ),
+    [addingTime, setAddingTime] = useState(false),
+    [addClock, setAddClock] = useState(""),
+    [addError, setAddError] = useState<unknown>(null);
+  const addId = useRef(crypto.randomUUID()),
+    loadId = useRef(0);
+  const today = slotInput(Date.now() / 1000, config.timeZone).slice(0, 10);
+  const chooseDay = (value: string) => {
+    setDay(value);
+    setMoving(null);
+    setAddingTime(false);
+    setMoveError(null);
+    setAddError(null);
+  };
   const pollUntil = useRef(0);
   const load = async () => {
+    const seq = ++loadId.current;
     try {
-      setData(await api(`/api/automations/${automation.id}/queue`));
-      setError(null);
+      const next = await api(
+        `/api/automations/${automation.id}/queue?day=${encodeURIComponent(day)}`,
+      );
+      if (seq === loadId.current) {
+        setData(next);
+        setError(null);
+      }
     } catch (e) {
-      setError(e);
+      if (seq === loadId.current) setError(e);
     }
   };
   useEffect(() => {
@@ -52,6 +80,8 @@ export function Queue({
     automation.appliedRevision,
     automation.status,
     automation.schedulerEnabled,
+    automation.daySlotsEnabled,
+    day,
   ]);
   const run = async (sync: boolean) => {
     if (
@@ -133,6 +163,18 @@ export function Queue({
       }) as Record<string, string>
     )[j.status] || j.status;
 
+  const daySlots = (data?.daySlots || []).filter(
+    (j: any) =>
+      j.account_id === accountId &&
+      !["cancelled", "skipped"].includes(j.status),
+  );
+  const allowance = Math.max(
+    profile?.legacyDailyCap || profile?.pinsPerDay || 1,
+    daySlots.filter(
+      (j: any) =>
+        j.origin !== "manual" && !["missed", "review"].includes(j.status),
+    ).length,
+  );
   const command = async (pin: any, changes: any) => {
     setWorking(true);
     setError(null);
@@ -190,6 +232,7 @@ export function Queue({
               <span>Pinterest account</span>
               <select
                 value={accountId}
+                disabled={working || busy}
                 onChange={(e) => setAccountId(e.target.value)}
               >
                 {config.accounts.map((a) => (
@@ -300,11 +343,11 @@ export function Queue({
           ) : (
             <>
               <div className="queue-stats">
-                <div>
+                <div className="stat-ready">
                   <span>Ready to post</span>
                   <strong>{ready.toLocaleString()}</strong>
                 </div>
-                <div>
+                <div className="stat-posted">
                   <span>Posted</span>
                   <strong>{published.toLocaleString()}</strong>
                 </div>
@@ -312,7 +355,7 @@ export function Queue({
                   <span>Total tracked</span>
                   <strong>{total.toLocaleString()}</strong>
                 </div>
-                <div>
+                <div className="stat-attention">
                   <span>Needs attention</span>
                   <strong>{review.toLocaleString()}</strong>
                 </div>
@@ -329,20 +372,12 @@ export function Queue({
                     {new Date(snap.syncedAt * 1000).toLocaleString("en")}
                   </small>
                 </div>
-                <div
-                  className="coverage-track"
-                  role="img"
-                  aria-label={`${published} published and ${ready} ready out of ${total} tracked pins`}
-                >
-                  <span
-                    style={{
-                      width: `${total ? (100 * published) / total : 0}%`,
-                    }}
-                  />
-                  <i
-                    style={{ width: `${total ? (100 * ready) / total : 0}%` }}
-                  />
-                </div>
+                <PinProgress
+                  ready={ready}
+                  posted={published}
+                  held={review}
+                  total={total}
+                />
                 <p className="inline-help">
                   Counts reflect recorded Sheet rows. Ready pins still pass
                   publishing checks.{" "}
@@ -519,13 +554,136 @@ export function Queue({
                 </div>
                 <aside className="panel upcoming-plan">
                   <h3>
-                    <Clock size={16} /> Upcoming times
+                    <Clock size={16} /> Posting days
                   </h3>
-                  {future.length ? (
-                    future.slice(0, 12).map((j: any) => (
+                  <div className="day-nav">
+                    <button
+                      aria-label="Previous posting day"
+                      disabled={day <= shiftDay(today, -30) || working || busy}
+                      onClick={() => chooseDay(shiftDay(day, -1))}
+                    >
+                      ‹
+                    </button>
+                    <input
+                      aria-label="Posting day"
+                      type="date"
+                      disabled={working || busy}
+                      value={day}
+                      min={shiftDay(today, -30)}
+                      max={shiftDay(today, 30)}
+                      onChange={(e) => {
+                        if (e.target.value) chooseDay(e.target.value);
+                      }}
+                    />
+                    <button
+                      aria-label="Next posting day"
+                      disabled={day >= shiftDay(today, 30) || working || busy}
+                      onClick={() => chooseDay(shiftDay(day, 1))}
+                    >
+                      ›
+                    </button>
+                  </div>
+                  <p className="inline-help">
+                    {day === today ? "Today" : day} · {daySlots.length} slots ·
+                    up to {allowance} pins
+                  </p>
+                  {day >= today && (
+                    <button
+                      disabled={working || busy}
+                      onClick={() => {
+                        setAddingTime(!addingTime);
+                        setAddClock("");
+                        setAddError(null);
+                        addId.current = crypto.randomUUID();
+                      }}
+                    >
+                      Add time
+                    </button>
+                  )}
+                  {addingTime && (
+                    <div className="slot-edit-fields">
+                      {!data.daySlotsEnabled ? (
+                        <>
+                          <p>
+                            Update this flow once to enable extra day slots.
+                          </p>
+                          <button
+                            disabled={working || busy}
+                            onClick={() => void action("deploy")}
+                          >
+                            Enable day controls
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <input
+                            aria-label="Extra posting time"
+                            type="time"
+                            value={addClock}
+                            onChange={(e) => setAddClock(e.target.value)}
+                            onInput={(e) => {
+                              setAddClock(e.currentTarget.value);
+                              setAddError(null);
+                            }}
+                            disabled={working}
+                          />
+                          <button
+                            disabled={working || !addClock}
+                            onClick={async () => {
+                              setWorking(true);
+                              setAddError(null);
+                              try {
+                                await api(
+                                  `/api/automations/${automation.id}/queue/schedule`,
+                                  "POST",
+                                  {
+                                    requestId: addId.current,
+                                    accountId,
+                                    time: day + "T" + addClock,
+                                  },
+                                );
+                                setAddingTime(false);
+                                setNotice(
+                                  "Time added for this day. Its posting allowance updates automatically.",
+                                );
+                                await load();
+                              } catch (e) {
+                                setAddError(e);
+                              } finally {
+                                setWorking(false);
+                              }
+                            }}
+                          >
+                            {working ? "Saving…" : "Add this time"}
+                          </button>
+                        </>
+                      )}
+                      {addError != null && (
+                        <p className="image-error" role="alert">
+                          {addError instanceof Error
+                            ? addError.message
+                            : "This time could not be added."}
+                        </p>
+                      )}
+                      <button
+                        disabled={working || busy}
+                        onClick={() => setAddingTime(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {daySlots.length ? (
+                    daySlots.map((j: any) => (
                       <div className="slot-editor" key={j.id}>
                         <time>{slotTime(j.planned_at, config.timeZone)}</time>
-                        {moving?.id === j.id ? (
+                        {j.status !== "pending" ||
+                        j.planned_at < Date.now() / 1000 ? (
+                          <small>
+                            {jobLabel(j)}
+                            {j.detail ? ` · ${j.detail}` : ""}
+                          </small>
+                        ) : moving?.id === j.id ? (
                           <div className="slot-edit-fields">
                             <input
                               type="time"
@@ -563,7 +721,7 @@ export function Queue({
                                     `/api/automations/${automation.id}/queue/schedule/${j.id}`,
                                     "POST",
                                     {
-                                      expectedAt: j.planned_at,
+                                      expectedAt: moving.planned_at,
                                       time:
                                         slotInput(
                                           j.planned_at,
@@ -584,6 +742,34 @@ export function Queue({
                               }}
                             >
                               {working ? "Saving…" : "Save time"}
+                            </button>
+                            <button
+                              disabled={working}
+                              onClick={async () => {
+                                if (
+                                  !window.confirm(
+                                    "Remove this upcoming time? Your pins stay in the queue.",
+                                  )
+                                )
+                                  return;
+                                setWorking(true);
+                                setMoveError(null);
+                                try {
+                                  await api(
+                                    `/api/automations/${automation.id}/queue/schedule/${j.id}`,
+                                    "DELETE",
+                                    { expectedAt: moving.planned_at },
+                                  );
+                                  setMoving(null);
+                                  await load();
+                                } catch (e) {
+                                  setMoveError(e);
+                                } finally {
+                                  setWorking(false);
+                                }
+                              }}
+                            >
+                              Remove time
                             </button>
                             <button
                               disabled={working}
@@ -614,7 +800,7 @@ export function Queue({
                       </div>
                     ))
                   ) : (
-                    <p>No future posting times confirmed yet.</p>
+                    <p>No posting slots on this day.</p>
                   )}
                   <small>
                     {config.timeZone} · saved slots

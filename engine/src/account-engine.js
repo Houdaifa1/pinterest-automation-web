@@ -104,6 +104,8 @@ async function run(ctx) {
   if (ctx.publish && inputsWebsite(ctx)) {
     const allowed = await websiteRequest(ctx.websiteJob.base, '/authorize', {id:ctx.websiteJob.id,token:ctx.websiteJob.token});
     if (!allowed.allowed) { ctx.result.outcome = 'cancelled by website'; return; }
+    // A verified website job can add slots for this day without changing the recurring Sheet cap.
+    if (Number.isInteger(allowed.dailyCap) && allowed.dailyCap > 0 && allowed.dailyCap <= 1440) ctx.acc.dailyCap = Math.max(ctx.acc.dailyCap, allowed.dailyCap);
   }
   if (ctx.publish) await publishNext(ctx);
   else ctx.result.outcome = 'daily sync only (not a posting hour)';

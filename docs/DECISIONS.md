@@ -164,3 +164,9 @@ The owner requires per-account counts on home cards, queue order, stored posting
 ## 21 October 2026 — move one upcoming time without changing daily settings
 
 The owner requested a 15:00 → 14:12 test. Provide an inline per-slot time editor for the slot's existing date; leave recurring settings and other slots untouched. The website dispatcher already reads stored due jobs, so a one-slot edit does not require rebuilding or running Activepieces. Save is revision/timestamp checked and refuses past, started or conflicting slots. Daily schedule edits remain a separate control in New pins. The requested real publication test uses the owner's existing content, not newly injected test pins.
+
+## 21 October 2026 — manage individual posting days
+
+The owner requests previous/next day navigation, optional date selection and additional editable posting minutes per day. Keep recurring defaults separate. Extra slots increase only the protected allowance for that day; the engine accepts this only from its existing single-use website authorization. Enable the updated engine through a same-flow settings-only update, preserving content and recurring Sheet caps. Removing a time leaves its pins queued. Stored added/removed/moved slots survive unrelated settings changes.
+
+Statistics use a consistent green Posted / blue Ready / amber Needs attention color key, a ring with the tracked total and a segmented bar on account cards. Keep numbers, labels and accessible descriptions. Charts summarize verified Sheet snapshots; they do not imply an unrecorded trend or forecast.

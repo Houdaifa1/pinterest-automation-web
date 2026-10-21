@@ -16,12 +16,18 @@ export type ScheduledAutomation = Automation & {
   planned_through: string | null;
   flow_version_id: string | null;
 };
-export async function ensurePlan(env: Env, a: ScheduledAutomation, at = now()) {
+export async function ensurePlan(
+  env: Env,
+  a: ScheduledAutomation,
+  at = now(),
+  requestedDay?: string,
+) {
   if (!a.scheduler_enabled || !a.applied_config) return;
   const config = JSON.parse(a.applied_config),
-    today = localDay(at, config.timeZone),
-    through = nextDay(today, 2);
-  if (a.planned_through && a.planned_through >= through) return;
+    today = requestedDay || localDay(at, config.timeZone),
+    through = nextDay(today, requestedDay ? 1 : 2);
+  if (!requestedDay && a.planned_through && a.planned_through >= through)
+    return;
   const rows: any[] = [];
   for (const account of config.accounts.filter((x: any) => x.on)) {
     const schedule = scheduleSchema.parse(
@@ -35,7 +41,7 @@ export async function ensurePlan(env: Env, a: ScheduledAutomation, at = now()) {
     );
     for (let d = today; d < through; d = nextDay(d)) {
       const exists = await env.DB.prepare(
-        "SELECT id FROM schedule_jobs WHERE automation_id=? AND account_id=? AND local_day=? AND schedule_revision=? AND detail IS NOT 'manual' LIMIT 1",
+        "SELECT id FROM schedule_jobs WHERE automation_id=? AND account_id=? AND local_day=? AND schedule_revision=? AND origin='scheduled' LIMIT 1",
       )
         .bind(a.id, account.id, d, a.applied_revision)
         .first();
@@ -68,11 +74,12 @@ export async function ensurePlan(env: Env, a: ScheduledAutomation, at = now()) {
       )
       .run();
   }
-  await env.DB.prepare(
-    "UPDATE automations SET planned_through=? WHERE id=? AND applied_revision=?",
-  )
-    .bind(through, a.id, a.applied_revision)
-    .run();
+  if (!requestedDay)
+    await env.DB.prepare(
+      "UPDATE automations SET planned_through=? WHERE id=? AND applied_revision=?",
+    )
+      .bind(through, a.id, a.applied_revision)
+      .run();
 }
 export function pendingPlanChanges(
   env: Env,
@@ -119,7 +126,7 @@ export function pendingPlanChanges(
     ).bind(...values, ...(operation ? [previous.id, operation, revision] : []));
   return [
     prepared(
-      "UPDATE schedule_jobs SET schedule_revision=? WHERE automation_id=? AND status='pending' AND planned_at>=? AND schedule_revision=? AND account_id IN(SELECT value FROM json_each(?))",
+      "UPDATE schedule_jobs SET schedule_revision=? WHERE automation_id=? AND (status='pending' OR (status='cancelled' AND detail='Removed from this day')) AND planned_at>=? AND schedule_revision=? AND account_id IN(SELECT value FROM json_each(?))",
       revision,
       previous.id,
       at,
@@ -319,11 +326,27 @@ scheduleCallbacks.post("/:id/:token/authorize", async (c) => {
   if (a.status !== "running" || !a.scheduler_enabled)
     return c.json({ allowed: false });
   const job = await c.env.DB.prepare(
-    "UPDATE schedule_jobs SET status='started',started_at=? WHERE id=? AND automation_id=? AND status='claimed' AND lease_token=? AND schedule_revision=? RETURNING id",
+    "UPDATE schedule_jobs SET status='started',started_at=? WHERE id=? AND automation_id=? AND status='claimed' AND lease_token=? AND schedule_revision=? RETURNING id,account_id,local_day",
   )
     .bind(now(), jobId, a.id, token, a.applied_revision)
     .first();
-  return c.json({ allowed: Boolean(job) });
+  let dailyCap: number | undefined;
+  if (job && (a as any).day_slots_enabled) {
+    const config = JSON.parse(a.applied_config || a.config),
+      account = config.accounts.find((p: any) => p.id === job.account_id);
+    if (account) {
+      const count = await c.env.DB.prepare(
+        "SELECT COUNT(*) AS n FROM schedule_jobs WHERE automation_id=? AND account_id=? AND local_day=? AND status NOT IN('cancelled','missed','skipped') AND origin='scheduled'",
+      )
+        .bind(a.id, job.account_id, job.local_day)
+        .first<any>();
+      dailyCap = Math.min(
+        1440,
+        Math.max(account.legacyDailyCap || account.pinsPerDay, count.n),
+      );
+    }
+  }
+  return c.json({ allowed: Boolean(job), ...(dailyCap ? { dailyCap } : {}) });
 });
 scheduleCallbacks.post("/:id/:token/finish", async (c) => {
   const a = current(c),
@@ -437,6 +460,30 @@ queue.get("/:id/queue", async (c) => {
   const a = (await owned(c)) as ScheduledAutomation;
   if (a.scheduler_enabled && ["running", "paused"].includes(a.status))
     await ensurePlan(c.env, a);
+  const config = JSON.parse(a.applied_config || a.config),
+    today = localDay(now(), config.timeZone || "UTC"),
+    day = c.req.query("day") || today;
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+    !Number.isFinite(Date.parse(day + "T12:00:00Z")) ||
+    new Date(day + "T12:00:00Z").toISOString().slice(0, 10) !== day ||
+    day < nextDay(today, -30) ||
+    day > nextDay(today, 30)
+  )
+    throw new PublicError("day", "Choose a date within 30 days of today.");
+  if (
+    a.scheduler_enabled &&
+    day >= today &&
+    ["running", "paused"].includes(a.status)
+  )
+    await ensurePlan(c.env, a, now(), day);
+  const daySlots = (
+    await c.env.DB.prepare(
+      "SELECT id,account_id,planned_at,status,detail,origin FROM schedule_jobs WHERE automation_id=? AND local_day=? AND account_id<>'_sync' ORDER BY planned_at",
+    )
+      .bind(a.id, day)
+      .all()
+  ).results;
   const snapshots = (
     await c.env.DB.prepare(
       "SELECT * FROM queue_snapshots WHERE automation_id=?",
@@ -467,6 +514,9 @@ queue.get("/:id/queue", async (c) => {
   ).results;
   return c.json({
     schedulerEnabled: Boolean(a.scheduler_enabled),
+    daySlotsEnabled: Boolean((a as any).day_slots_enabled),
+    day,
+    daySlots,
     recent,
     snapshots: snapshots.map((s) => ({
       accountId: s.account_id,
@@ -477,6 +527,155 @@ queue.get("/:id/queue", async (c) => {
     schedule,
     commands,
   });
+});
+queue.post("/:id/queue/schedule", async (c) => {
+  const a = (await owned(c)) as ScheduledAutomation;
+  const body = z
+    .object({
+      requestId: z.uuid(),
+      accountId: z.string().max(80),
+      time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+    })
+    .parse(await c.req.json());
+  if (!(a as any).day_slots_enabled)
+    throw new PublicError(
+      "day_update",
+      "Update this automation once to enable extra day slots.",
+      409,
+    );
+  if (
+    !a.scheduler_enabled ||
+    !["running", "paused"].includes(a.status) ||
+    a.operation_id
+  )
+    throw new PublicError(
+      "schedule_busy",
+      "Finish the current update before adding a time.",
+      409,
+    );
+  const config = JSON.parse(a.applied_config || a.config),
+    account = config.accounts.find((p: any) => p.id === body.accountId);
+  if (!account)
+    throw new PublicError(
+      "account",
+      "Choose an account from this automation.",
+      404,
+    );
+  const existing = await c.env.DB.prepare(
+    "SELECT id,automation_id,account_id,planned_at,status FROM schedule_jobs WHERE id=?",
+  )
+    .bind(body.requestId)
+    .first<any>();
+  if (existing) {
+    if (
+      existing.automation_id !== a.id ||
+      existing.account_id !== body.accountId ||
+      existing.status === "cancelled" ||
+      existing.planned_at !==
+        utcFor(
+          body.time.slice(0, 10),
+          Number(body.time.slice(11, 13)) * 60 +
+            Number(body.time.slice(14, 16)),
+          config.timeZone,
+        )
+    )
+      throw new PublicError(
+        "conflict",
+        "Refresh before adding another time.",
+        409,
+      );
+    return c.json({ saved: true });
+  }
+  const [day, clock] = body.time.split("T"),
+    [h, m] = clock.split(":").map(Number);
+  if (
+    h > 23 ||
+    m > 59 ||
+    !Number.isFinite(Date.parse(day + "T12:00:00Z")) ||
+    new Date(day + "T12:00:00Z").toISOString().slice(0, 10) !== day
+  )
+    throw new PublicError("time", "Choose a valid date and time.");
+  const target = utcFor(day, h * 60 + m, config.timeZone);
+  if (target === null || target < now() + 60 || target > now() + 30 * 86400)
+    throw new PublicError(
+      "time",
+      "Choose a future time, at least one minute away and within 30 days.",
+    );
+  await ensurePlan(c.env, a, now(), day);
+  const gap = Math.max(1, account.schedule?.minSpacing || 1) * 60;
+  await rateLimit(c, `day-add:${a.id}`, 30, 600);
+  const result = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "DELETE FROM schedule_jobs WHERE automation_id=? AND account_id=? AND planned_at=? AND status='cancelled'",
+    ).bind(a.id, body.accountId, target),
+    c.env.DB.prepare(
+      "INSERT INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,detail) SELECT ?,?,?,?,?,?,?,'pending','Added for this day' WHERE EXISTS(SELECT 1 FROM automations WHERE id=? AND applied_revision=? AND operation_id IS NULL AND status IN('running','paused')) AND NOT EXISTS(SELECT 1 FROM schedule_jobs WHERE automation_id=? AND account_id=? AND status NOT IN('cancelled','missed','skipped') AND ABS(planned_at-?)<?) ON CONFLICT(id) DO NOTHING RETURNING id",
+    ).bind(
+      body.requestId,
+      a.id,
+      body.accountId,
+      account.name,
+      a.applied_revision,
+      target,
+      day,
+      a.id,
+      a.applied_revision,
+      a.id,
+      body.accountId,
+      target,
+      gap,
+    ),
+  ]);
+  if (!result[1].results.length) {
+    const repeated = await c.env.DB.prepare(
+      "SELECT id FROM schedule_jobs WHERE id=? AND automation_id=? AND account_id=? AND planned_at=?",
+    )
+      .bind(body.requestId, a.id, body.accountId, target)
+      .first();
+    if (repeated) return c.json({ saved: true, plannedAt: target });
+    throw new PublicError(
+      "slot_spacing",
+      "This time conflicts with another slot or the schedule changed. Choose another minute or refresh.",
+      409,
+    );
+  }
+  return c.json({ saved: true, plannedAt: target });
+});
+queue.delete("/:id/queue/schedule/:jobId", async (c) => {
+  const a = (await owned(c)) as ScheduledAutomation;
+  const body = z
+    .object({ expectedAt: z.number().int().positive() })
+    .parse(await c.req.json());
+  if (
+    !a.scheduler_enabled ||
+    a.operation_id ||
+    !["running", "paused"].includes(a.status)
+  )
+    throw new PublicError(
+      "schedule_busy",
+      "Finish the current update before removing a time.",
+      409,
+    );
+  const result = await c.env.DB.prepare(
+    "UPDATE schedule_jobs SET status='cancelled',detail='Removed from this day' WHERE id=? AND automation_id=? AND status='pending' AND planned_at=? AND planned_at>? AND schedule_revision=? AND EXISTS(SELECT 1 FROM automations WHERE id=? AND applied_revision=? AND operation_id IS NULL AND status IN('running','paused')) RETURNING id",
+  )
+    .bind(
+      c.req.param("jobId"),
+      a.id,
+      body.expectedAt,
+      now(),
+      a.applied_revision,
+      a.id,
+      a.applied_revision,
+    )
+    .first();
+  if (!result)
+    throw new PublicError(
+      "slot_changed",
+      "This slot changed or started. Refresh the queue.",
+      409,
+    );
+  return c.json({ saved: true });
 });
 queue.post("/:id/queue/schedule/:jobId", async (c) => {
   const a = (await owned(c)) as ScheduledAutomation;
@@ -622,7 +821,7 @@ queue.post("/:id/queue/run", async (c) => {
   await rateLimit(c, `manual:${a.id}`, 3, 300);
   const at = now();
   await c.env.DB.prepare(
-    "INSERT OR IGNORE INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,detail) VALUES(?,?,?,?,?,?,?,'pending',?)",
+    "INSERT OR IGNORE INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,detail,origin) VALUES(?,?,?,?,?,?,?,'pending',?,?)",
   )
     .bind(
       body.requestId,
@@ -632,6 +831,7 @@ queue.post("/:id/queue/run", async (c) => {
       a.applied_revision,
       at,
       localDay(at, config.timeZone),
+      body.sync ? "sync" : "manual",
       body.sync ? "sync" : "manual",
     )
     .run();
