@@ -114,7 +114,7 @@ export function planSources(raw: unknown) {
     );
   return { version: 2, sources, destinations, total };
 }
-export const researchPromptRevision = "2026-10-21.7";
+export const researchPromptRevision = "2026-10-21.8";
 export function researchPrompt(
   snapshot: any,
   batchId: string,
@@ -127,7 +127,7 @@ export function researchPrompt(
     : "CONTENT WITHOUT DESTINATION LINKS: research this account's topic and audience, then create original niche content. No shop, product, price, mockup or offer badge is required. Leave every destination empty.";
   return `PINTEREST — RESEARCH, PLAN AND CREATE ${batch.total} PINS
 Workflow revision: ${researchPromptRevision}
-Batch: ${batchId}. Complete verified research, planning, original visuals and saved Draft rows. Growth is a goal, not a promised result.
+Batch: ${batchId}. Complete verified research, planning, original visuals and verified Ready rows without a member-approval step. Growth is a goal, not a promised result.
 
 REQUEST GOAL
 ${requestGoal}

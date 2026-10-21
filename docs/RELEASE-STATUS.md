@@ -31,7 +31,7 @@ These are confirmed code mechanisms and verified release changes. They do not pr
 
 ## Can friends start?
 
-Google sign-up is open. Friends can sign in, reconnect their Activepieces project and choose an existing automation or a separate new setup. Start with a small reviewed batch. The website prepares research/creation instructions; it does not create images in the background. Review created Draft rows before marking content Ready.
+Google sign-up is open. Friends can sign in, reconnect their Activepieces project and choose an existing automation or a separate new setup. Start with a small reviewed batch. The website prepares research/creation instructions; it does not create images in the background. The creation session checks its Google Drive/Sheets access first, verifies uploaded media and saved rows and marks passing pins Ready automatically. Incomplete pins remain Draft with a reason; no member-approval step is required for verified pins.
 
 Existing remote automations are not automatically rebuilt by deploying this website. Read-only import preserves their original engine and schedule. Updating a remote flow is a separate explicit member action.
 
@@ -42,3 +42,7 @@ Remaining before a broad unattended-use recommendation: actual generated-pin fid
 The owner requested clearing all website data on 21 October. A private verified backup was saved first. All 20 application-data tables now have zero rows, including members, sessions, automations, integrations, saved requests and scheduling jobs. Schema and migration history remain. See proof/database-reset-2026-10-21.json.
 
 Everyone must sign in and reconnect/import again. External Activepieces flows, Google Sheets and Pinterest accounts were not deleted or edited. Independently scheduled remote flows can continue; the database reset removes website-managed jobs and saved access, not external schedules.
+
+## Automatic Ready policy update
+
+The owner explicitly changed the previous Draft-review policy on 21 October. Workflow revision 2026-10-21.8 verifies the creation session's Google identity/access and exact Sheet/folder permissions before research/images, then marks only verified batch rows Ready with saved-status read-back. It does not promote unrelated old Drafts or directly publish. Internal Pin IDs may be supplied uniquely by the batch; the engine fills blanks. Pinterest Pin ID is a separate engine-managed result, never invented by the prompt.

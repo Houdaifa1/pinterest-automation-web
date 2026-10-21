@@ -332,7 +332,7 @@ it("builds one immutable mixed request with correct individual and category dest
   expect(batch.input.destinations.map((d:any)=>d.count)).toEqual([5,5,4,4,4,3]);
   expect(batch.input.destinations[2].url).toBe("https://shop.example.com/one");
   expect(batch.input.destinations[5].url).toBe("https://shop.example.com/summer");
-  expect(batch.prompt).toContain("Keep new Sheet rows as Draft for review");
+  expect(batch.prompt).toContain("set that pin's Status to Ready in the same run without asking for approval");
   expect(batch.prompt).toContain("Warm backgrounds");
   for (const requirement of [
     "https://www.pinterest.com/testprofile/",
@@ -343,7 +343,7 @@ it("builds one immutable mixed request with correct individual and category dest
     "believable on-body fashion mockups", "Small crochet color variations are allowed",
     "Keep the exact artwork, words, proportions and colors", "genuine screenshots",
   ]) expect(batch.prompt.toLowerCase()).toContain(requirement.toLowerCase());
-  expect(batch.prompt).not.toContain("Status: Ready");
+  expect(batch.prompt).not.toContain("Keep new Sheet rows as Draft for review");
 
   const again=await (await request(base+"/batches",user,"POST",input)).json() as any;
   expect(again.batch.id).toBe(batch.id);
@@ -385,7 +385,7 @@ it("delivers a 64-pin mixed-product rotation rather than eight product blocks",a
  expect(batch.prompt).toContain("free shipping");
  expect(batch.prompt).toContain("positive minimum is paid");
  expect(batch.prompt).toContain("Continue the same rotation across 25-pin part boundaries");
- expect(batch.prompt).toContain("Generate, upload and append Draft rows in this mixed order");
+ expect(batch.prompt).toContain("Generate, upload and append rows in this mixed order, then verify and set passing rows Ready automatically");
 });
 
 it("adapts no-link animal and food requests without requiring products or an offer",async()=>{
@@ -433,4 +433,41 @@ it("keeps a standard mixed-product prompt within a compact instruction budget",a
  const {batch}=await(await request(base+"/batches",user,"POST",{accountId:"profile",sources})).json() as any;
  expect(batch.prompt.length).toBeLessThan(16000);
  expect(batch.prompt).toContain("read only needed");
+});
+
+
+it("delivers access-first automatic Ready instructions for both prompt formats and refreshes older Draft requests", async () => {
+  const { user, base } = await setup();
+  for (const input of [
+    { accountId: "profile", lines: [{ kind: "free", count: 2 }] },
+    { accountId: "profile", sources: [{ kind: "catalog", url: "https://shop.example.com/patterns/", count: 2 }] },
+  ]) {
+    const response = await request(base + "/batches", user, "POST", input);
+    expect(response.status).toBe(200);
+    const { batch } = await response.json() as any;
+    const check = (prompt: string) => {
+      for (const requirement of [
+        "Pin ID is an internal queue key", "the engine fills it if blank", "Never invent a Pinterest Pin ID",
+        "Before research or image generation", "Google Drive and Google Sheets are connected in this creation session",
+        "Website sign-in and an Activepieces Google connection do not prove this session has access",
+        "Confirm Sheet edit and folder upload permissions", "stop before generation",
+        "Stage new rows as Draft only while verifying", "set that pin's Status to Ready in the same run without asking for approval",
+        "Count it as Ready only when the read-back confirms Ready", "never reset it to Ready", "Leave any incomplete or failed pin Draft",
+        "never bulk-promote unrelated old Drafts", "Do not call Pinterest publishing or Run now",
+        "Work through all parts in one run without asking for approval",
+      ]) expect(prompt).toContain(requirement);
+      expect(prompt).toContain("bot@example.test");
+      expect(prompt).toContain("https://docs.google.com/spreadsheets/d/testsheet/edit");
+      expect(prompt).not.toContain("Keep new Sheet rows as Draft for review");
+      expect(prompt).not.toContain("never set Ready");
+      expect(prompt.indexOf("1. Access first")).toBeLessThan(prompt.indexOf("6. Create and inspect"));
+    };
+    check(batch.prompt);
+    await env.DB.prepare("UPDATE batches SET prompt=? WHERE id=?")
+      .bind("Workflow revision: 2026-10-21.7\nKeep new Sheet rows as Draft for review", batch.id).run();
+    const refreshed = await (await request(base + `/batches/${batch.id}`, user)).json() as any;
+    expect(refreshed.batch.id).toBe(batch.id);
+    expect(refreshed.batch.total).toBe(2);
+    check(refreshed.batch.prompt);
+  }
 });

@@ -1,0 +1,53 @@
+{
+  "checkedAt": "2026-10-21T09:20:14.574Z",
+  "tab": "Pins – crochet",
+  "range": "A2:AI85",
+  "total": 84,
+  "statuses": {
+    "Ready": 84
+  },
+  "duplicateIds": [],
+  "duplicateMedia": [],
+  "missingIds": [],
+  "missingRequired": [],
+  "wrongAccount": [],
+  "titleOver90": [],
+  "altOver400": [],
+  "alreadyPublished": [],
+  "errors": [],
+  "products": [
+    "Belted Granny Cardigan",
+    "Cotton Granny Jacket",
+    "Daisy Flower Cardigan",
+    "Diamond Granny Jacket",
+    "Flower Motif Granny Cardigan",
+    "Flower Panel Cotton Jacket",
+    "Fringed Granny Square Coat",
+    "Hexagon Granny Cardigan",
+    "Jewel Granny Jacket",
+    "Oversized Granny Pocket Cardigan",
+    "Two Tone Granny Jacket",
+    "Wheel Lace Cardigan"
+  ],
+  "media": {
+    "listedFiles": 84,
+    "matched": 84,
+    "missing": [],
+    "ambiguous": [],
+    "over5MB": [],
+    "wrongType": []
+  },
+  "repair": {
+    "tab": "Products",
+    "range": "A2:D13",
+    "rows": 12,
+    "pinsWanted": 84,
+    "readBackVerified": true,
+    "visualVerified": true
+  },
+  "existingPinIdsChanged": false,
+  "pinStatusesChanged": false,
+  "remoteFlowsChanged": false,
+  "pinsPublishedByThisCheck": 0,
+  "note": "Internal queue IDs are valid. Media metadata matched; this is not a rendered-image fidelity or new-publication test."
+}

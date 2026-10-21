@@ -11,6 +11,8 @@ Outstanding acceptance: real generated image fidelity, actual revised-scheduler 
 
 Source URLs, optional briefs and example pins belong in New pins; account settings stay collapsed; mixed-source requests, catalog planning, clear queue coverage and varied scheduling follow REBUILD-PLAN.md. Black replaces the green canvas; English-only replaces French/Arabic requirements. Do not claim readiness without passing checks and actual publication evidence.
 
+Current creation policy, 21 October: the owner explicitly removed the member-approval gate. New prompts must check this creation session's Google Drive/Sheets connections, exact Sheet/account/folder and write/upload permissions before research or images, then create, verify uploads and saved rows and set passing pins Ready automatically in the same run. Draft is temporary or for incomplete/failed pins only. Never promote unrelated old Drafts or directly publish from the content prompt. Older Draft-review requirements below are superseded. Access failures require the exact missing connection/permission; website sign-in is not creation-session Google access.
+
 ---
 
 ## 1. Who the owner is and how to work with him

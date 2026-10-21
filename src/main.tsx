@@ -3201,7 +3201,7 @@ function Pins({
                 <p>
                   {selected.total.toLocaleString()} pins for @
                   {selected.username}. The prompt creates the content; copying
-                  it does not queue or publish pins.
+                  it does not queue or publish pins. Running the prompt checks access, creates the pins and marks verified pins Ready.
                 </p>
                 {selected.selectionPending && <p>Product selection happens during research. The final product links and mixed order are checked before creating pins.</p>}
                 <div className="destination-review">
@@ -3243,7 +3243,7 @@ function Pins({
                         {},
                       );
                       notify(
-                        "Prompt copied. Create and review the pins before publishing.",
+                        "Prompt copied. Run it to create, check and mark the pins Ready.",
                       );
                     } catch (e) {
                       setError(e);

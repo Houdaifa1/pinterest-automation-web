@@ -236,6 +236,23 @@ test('publishes one image pin, verifies it, records it by Pin ID, emails with pi
   assert.equal(w.boards.length, 2, 'no board created');
 });
 
+test('keeps batch queue IDs while assigning missing IDs and storing Pinterest IDs separately', async () => {
+  const w = await makeWorld();
+  const batchPinId = '11111111-2222-4333-8444-555555555555-001';
+  addRows(w, [readyRow(1, { 'Pin ID': batchPinId }), { Status: 'Draft', Media: 'draft.jpg', Title: 'Unfinished pin' }]);
+  files(w, ['p1.jpg']);
+  await runEngine(w);
+  assert.equal(w.pins.length, 1);
+  assert.equal(rowAt(w, 2)['Pin ID'], batchPinId);
+  assert.equal(rowAt(w, 2)['Pinterest Pin ID'], w.pins[0].id);
+  assert.notEqual(rowAt(w, 2)['Pinterest Pin ID'], batchPinId);
+  assert.equal(rowAt(w, 3)['Pin ID'], 'HDRAHM-0001');
+  assert.equal(rowAt(w, 3)['Pinterest Pin ID'], '');
+  await runEngine(w);
+  assert.equal(w.pins.length, 1, 'a received batch row is not published twice');
+  assert.equal(rowAt(w, 2)['Pin ID'], batchPinId);
+});
+
 test('carousel: 2–5 images become ONE multi-image pin with card titles and links', async () => {
   const w = await makeWorld();
   addRows(w, [{ ...readyRow(1), 'Media type': 'Carousel', Media: 'c1.jpg, c2.png, c3.jpg', 'Card titles': 'Bowl | Salad | Dressing', 'Card links': 'https://a.com | https://b.com | https://c.com' }]);

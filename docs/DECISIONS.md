@@ -138,3 +138,9 @@ A store/category request begins with a research scope rather than invented produ
 ## 21 October 2026 — complete website fresh start requested again
 
 The owner explicitly requested emptying all website member data so everyone can start fresh. Back up and verify before clearing application data, retain schema/migrations and leave external Activepieces flows, Sheets and Pinterest untouched. All website sessions and stored schedule jobs are removed. Members must sign in and reconnect/import; independently scheduled remote flows are not stopped by a website database reset.
+
+## 21 October 2026 — verified pins become Ready without a member-approval step
+
+The owner explicitly changed the Draft-review policy. Before content research or image generation, verify this creation session's Google Drive/Sheets connections, correct identity or delegated access, exact Sheet/account/folder, edit/upload permissions and required tools/references. A website Google login or Activepieces connection alone is insufficient. Stop on required missing access with the specific connection/permission needed.
+
+Create and inspect each pin, upload it, stage the new row as Draft during verification, read back media/row/order and set only passing batch rows Ready in the same run. Read back Ready before counting success. No approval or continue message between internal parts. Failed/incomplete pins remain Draft with a reason; do not promote unrelated old Drafts, rewrite already received pins, alter schedules or publish directly. Ready means eligible under the existing active schedule, not proof of posting. Saved requests refresh to the new workflow on recopy without changing identity or inputs.

@@ -29,11 +29,11 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Discover real product links across supported catalog pages, with visible partial-access limits.
 - Prepare audience-specific research and creation instructions for fresh scenes, wearable mockups, exact artwork mockups and digital-resource previews.
 - Emphasize verified free offers with readable image text; distinguish paid products, paid PDFs, samples and optional-payment resources.
-- Review synced Draft pins, then mark approved content Ready; inspect actual Sheet counts and sync coverage.
+- The creation session checks Google/Drive/Sheets access first, verifies uploaded images and saved rows, then marks passing pins Ready automatically. Incomplete pins stay Draft with a reason.
 - Recopy a saved batch, make a similar batch, and restore saved settings.
 - Manage website members from the owner account.
 
-The website prepares instructions; it does not generate images or perform trend research in the background. Use the prompt in a content-creation session with web, image, Drive and Sheets access. That session researches the designated account and sources, creates and checks the images, and saves Draft rows. Review them in the website before marking them Ready. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
+The website prepares instructions; it does not generate images or perform trend research in the background. Use the prompt in a content-creation session with web, image, Drive and Sheets access. That session first verifies its own Google Drive and Sheets connections and the exact Sheet/folder permissions. It then researches the designated account and sources, creates and checks the images, saves rows, and marks verified pins Ready in the same run without a member-approval step. Incomplete pins remain Draft with a reason. Website Google sign-in and saved Activepieces connections do not grant a separate creation session access; connect the required Google tools there if missing. Ready pins become eligible for the existing active schedule; they are not proof of a completed Pinterest post. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
 
 For a shop request, open **New pins → My website or store**, paste the shop/catalog URL, keep **Choose products for me**, choose the amount and click **Review request**. Individual product links are resolved during creation research. If a manual scan cannot read a store, **Use automatic research** continues without pretending the scan succeeded. You can also paste exact product links. Automatic selections are saved as a batch plan before image creation so a resumed batch keeps the same products and mixed order.
 
@@ -54,9 +54,9 @@ flowchart LR
   Sheet --> Pinterest[Pinterest]
   Web --> Prompt[Content prompt and references]
   Prompt --> Review[Create and review pins in Codex]
-  Review --> Draft[Draft rows in Sheet]
-  Draft --> Approve[Review and mark Ready]
-  Approve --> Sheet
+  Review --> Verify[Verify media and saved rows]
+  Verify --> Ready[Mark passing pins Ready]
+  Ready --> Sheet
 ```
 
 React, TypeScript and Vite power the interface. Hono runs the API in Cloudflare Pages Functions. D1 stores private member data. The automation engine is in `engine/`.
