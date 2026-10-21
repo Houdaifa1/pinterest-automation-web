@@ -3293,7 +3293,8 @@ function Pins({
                 pins
               </strong>
               <small>
-                Creation amount · separate from {chosen?.pinsPerDay} daily posts
+                Creation amount · separate from{" "}
+                {batchSchedule?.pinsPerDay || chosen?.pinsPerDay} daily posts
               </small>
             </div>
             <button
