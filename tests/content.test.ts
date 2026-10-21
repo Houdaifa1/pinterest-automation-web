@@ -370,3 +370,18 @@ it("supports large resumable requests and rejects fractional, unsafe and empty a
   for(const url of ["http://example.com","https://127.0.0.1/","https://user:password@example.com/","https://example.com:8443/"])
     expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"product",url}]})).status).toBe(400);
 });
+
+it("delivers a 64-pin mixed-product rotation rather than eight product blocks",async()=>{
+ const {user,base}=await setup();
+ const sources=[{kind:"category",url:"https://shop.example.com/flowers",products:Array.from({length:8},(_,i)=>({url:`https://shop.example.com/product-${i+1}`,title:`Product ${i+1}`})),perProduct:8,categoryCount:0}];
+ const result=await request(base+"/batches",user,"POST",{accountId:"profile",sources});
+ expect(result.status).toBe(200);const {batch}=await result.json() as any;
+ expect(batch.total).toBe(64);
+ expect(batch.postingOrder.map((p:any)=>p.group)).toEqual(Array.from({length:25},(_,i)=>i%8+1));
+ expect(batch.postingOrder[24]).toMatchObject({sequence:25,group:1,groupPin:4});
+ expect(batch.prompt).toContain("FREE CROCHET PATTERN");
+ expect(batch.prompt).toContain("free shipping");
+ expect(batch.prompt).toContain("positive minimum is paid");
+ expect(batch.prompt).toContain("Continue the same rotation across 25-pin part boundaries");
+ expect(batch.prompt).toContain("Generate, upload and append Draft rows in this mixed order");
+});

@@ -1,3 +1,5 @@
+import { contentStrategy } from "./pin-content-strategy";
+import { orderInstructions } from "./pin-order";
 import { creativeDirection } from "./pin-creative-direction";
 import { z } from "zod";
 import { PublicError } from "./security";
@@ -111,7 +113,7 @@ export function planSources(raw: unknown) {
     );
   return { version: 2, sources, destinations, total };
 }
-export const researchPromptRevision = "2026-10-21.3";
+export const researchPromptRevision = "2026-10-21.4";
 export function researchPrompt(
   snapshot: any,
   batchId: string,
@@ -136,6 +138,8 @@ EXACT DESTINATION PLAN
 ${batch.destinations.map((d: any, i: number) => `${i + 1}. ${d.count} × ${d.kind}: ${d.url || "NO DESTINATION LINK"}${d.title ? " — " + d.title : ""}`).join("\n")}
 Keep these groups and counts exact. Product pins link to the individual product, never its parent category. A category overview links to that category and features only products verified inside it. Rotate featured products and compositions between overview pins. A no-link pin has an empty Link and no download, visit or offer claim. Do not replace selected products with trending alternatives. If any selected product is inaccessible or unsuitable, report the affected allocation instead of filling it with something else.
 
+${orderInstructions(batch.destinations)}
+
 1. CHECK ACCESS BEFORE CREATING
 Open the exact Sheet, account row, pin tab and linked media folder; verify read and upload access. Check image creation, web research and any necessary PDF access. Read headers before writing. Stop the affected work with a plain explanation if essential access is missing. Do not invent tabs, a substitute Sheet or successful uploads. If public Pinterest or analytics access is incomplete, state the coverage and continue only with verified material; never imply that private history was inspected.
 
@@ -157,8 +161,10 @@ ${references.length ? "Reference images (links expire in 24 hours):\n" + referen
 
 ${creativeDirection}
 
+${contentStrategy}
+
 7. PLAN EACH PIN BEFORE RENDERING
-Show a compact table for the current part: sequence, source group, exact product, destination, target keyword, angle, format, layout, scene, headline, CTA and board. One message and a clear focal point per pin. Vary meaningful formats: product hero, contextual use, detail close-up, verified comparison, collection or educational idea where appropriate. Do not invent a tutorial or an included collection. Keep headlines brief, specific and readable at phone size, generally 2–6 words. For link pins, use an honest action suited to the landing page, such as View pattern or Explore collection. No fake discount, unsupported FREE/PDF label or CTA on no-link pins. Show the first-part plan and a small visual sample before continuing a large request; the member can correct the creative direction. Continue the verified plan without adding an approval gate; Draft review controls publication.
+Show a compact table for the current part: sequence, source group, exact product, destination, target keyword, angle, format, layout, scene, headline, CTA and board. One message and a clear focal point per pin. Vary meaningful formats: product hero, contextual use, detail close-up, verified comparison, collection or educational idea where appropriate. Do not invent a tutorial or an included collection. Keep headlines brief, specific and readable at phone size, generally 2–6 words. For link pins, use an honest action suited to the landing page, such as View pattern or Explore collection. Make verified free offers prominent according to the offer rules above. No fake discount, unsupported FREE/PDF label or CTA on no-link pins. Show the first-part plan and a small visual sample before continuing a large request; the member can correct the creative direction. Continue the verified plan without adding an approval gate; Draft review controls publication.
 
 8. CREATE, INSPECT AND SAVE ONE PIN AT A TIME
 Write a precise image brief for each planned pin: exact subject and verified product details, composition, lighting, background, palette, typography, negative space and CTA. Use image creation/editing tools with the relevant product and style references. Do not represent an invented finished object as the exact item being sold. If faithful product depiction is not possible, stop that pin and explain rather than delivering a misleading image.

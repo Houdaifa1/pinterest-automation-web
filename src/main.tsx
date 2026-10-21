@@ -3190,6 +3190,19 @@ function Pins({
                     </div>
                   ))}
                 </div>
+                {selected.postingOrder?.length > 0 && (
+                  <>
+                    <p>One pin per product, then repeat. Products stay mixed in the new queue.</p>
+                    <details>
+                      <summary>See the first {selected.postingOrder.length} posting slots</summary>
+                      <ol>
+                        {selected.postingOrder.map((pin: any) => (
+                          <li key={pin.sequence}>{pin.title} · variation {pin.productPin}</li>
+                        ))}
+                      </ol>
+                    </details>
+                  </>
+                )}
                 <PackageDownload batch={selected} />
                 <details>
                   <summary>Read the prompt</summary>

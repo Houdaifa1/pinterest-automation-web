@@ -117,3 +117,9 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Owner explicitly rejected one product photograph repeatedly placed into different text templates. Content requests must call for genuinely different underlying scenes: camera angles, arrangements, poses, lighting, background and relevant use contexts.
 - Wearable crochet should include believable on-body fashion mockups that preserve the garment. Print artwork should remain exact inside appropriate clothing, mug, bottle or other intended-use mockups. Digital resources need accurate previews/use scenes for their actual content; the selling platform does not determine the treatment.
 - Small crochet color changes are allowed as creative inspiration. Do not advertise an imagined color as an available purchase option. Construction, silhouette and pattern remain exact; artwork lettering and design remain exact unless an edit is explicitly requested. Every output must be compared to source assets and to recent pins.
+
+## 21 October 2026 — mixed product order and verified offer emphasis
+
+- Owner requires product rotation within the saved queue. Eight selected products with eight pins each must rotate A1–H1, A2–H2 and so on, with exact per-product counts. Continue the sequence across resumable parts. Do not group rows by product or reorder existing live content implicitly.
+- Make a genuinely free linked crochet pattern obvious in the image using a readable headline or badge. Product imagery remains prominent. Verify the actual offer; distinguish free web instructions, paid PDFs, samples, free shipping and zero-minimum optional-payment resources. Paid products use accurate product/benefit text instead.
+- Adapt research, imagery and copy to actual item type, audience and each account's micro-niche. A platform name alone does not determine the product or its creative treatment. Complete access to Etsy/Gumroad catalogs remains a separate integration requirement.
