@@ -412,6 +412,7 @@ it("accepts a whole shop URL without product selection and does not invent final
   expect(batch.total).toBe(12);expect(batch.selectionPending).toBe(true);expect(batch.postingOrder).toEqual([]);
   expect(batch.input.destinations).toEqual([{kind:"research-selected products",count:12,url,auto:true,scope:"catalog",title:"Choose products during research"}]);
   expect(batch.prompt).toContain("not final pin destinations");
+  expect(batch.prompt).toContain("Reuse that resolved plan on resume");
   expect(batch.prompt).toContain("recent listings");
   expect(batch.prompt).toContain("reuse verified facts");
  }

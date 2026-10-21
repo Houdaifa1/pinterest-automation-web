@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-21T02:43:57.188Z",
+  "etsy": {
+    "store": "https://www.etsy.com/shop/ChouaibCreator",
+    "acceptedWithoutProductLinks": true,
+    "resolvesIndividualProducts": true,
+    "pendingOrder": true,
+    "recentAndCoverage": true,
+    "nicheAdaptive": true
+  },
+  "gumroad": {
+    "store": "https://sunnysheet.gumroad.com/",
+    "acceptedWithoutProductLinks": true,
+    "pendingOrder": true,
+    "requiresEvidence": true
+  },
+  "catalog": {
+    "source": "https://crochetsimplified.com/patterns/",
+    "acceptedWithoutProductLinks": true,
+    "individualProductLinks": true,
+    "coverageAndRecency": true
+  },
+  "testedRelease": "d4a3ecc",
+  "creativeWorkExecuted": false
+}

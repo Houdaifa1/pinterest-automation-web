@@ -114,7 +114,7 @@ export function planSources(raw: unknown) {
     );
   return { version: 2, sources, destinations, total };
 }
-export const researchPromptRevision = "2026-10-21.6";
+export const researchPromptRevision = "2026-10-21.7";
 export function researchPrompt(
   snapshot: any,
   batchId: string,
