@@ -24,8 +24,10 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Pause, resume, start a run and inspect its status.
 - Upload picture references for each profile.
 - Mix no-link pins, individual products, category overview pins and selected store products in one request.
+- Preview a product rotation that continues across creation parts, instead of grouping every product's pins into a block.
 - Discover real product links across supported catalog pages, with visible partial-access limits.
-- Prepare research and creation instructions for fresh scenes, wearable mockups, exact artwork mockups and digital-resource previews.
+- Prepare audience-specific research and creation instructions for fresh scenes, wearable mockups, exact artwork mockups and digital-resource previews.
+- Emphasize verified free offers with readable image text; distinguish paid products, paid PDFs, samples and optional-payment resources.
 - Review synced Draft pins, then mark approved content Ready; inspect actual Sheet counts and sync coverage.
 - Recopy a saved batch, make a similar batch, and restore saved settings.
 - Manage website members from the owner account.
