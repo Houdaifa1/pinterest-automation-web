@@ -104,8 +104,9 @@ async function run(ctx) {
   if (ctx.publish && inputsWebsite(ctx)) {
     const allowed = await websiteRequest(ctx.websiteJob.base, '/authorize', {id:ctx.websiteJob.id,token:ctx.websiteJob.token});
     if (!allowed.allowed) { ctx.result.outcome = 'cancelled by website'; return; }
-    // A verified website job can add slots for this day without changing the recurring Sheet cap.
-    if (Number.isInteger(allowed.dailyCap) && allowed.dailyCap > 0 && allowed.dailyCap <= 1440) ctx.acc.dailyCap = Math.max(ctx.acc.dailyCap, allowed.dailyCap);
+    if (allowed.batchPolicy && typeof allowed.batchPolicy.batchId === 'string' && Array.isArray(allowed.batchPolicy.excludedBatches)) ctx.websitePolicy = allowed.batchPolicy;
+    // Only the protected posting authorization can override the runtime cap. Sheet defaults stay intact.
+    if (Number.isInteger(allowed.dailyCap) && allowed.dailyCap > 0 && allowed.dailyCap <= 1440) ctx.acc.dailyCap = ctx.websitePolicy ? allowed.dailyCap : Math.max(ctx.acc.dailyCap, allowed.dailyCap);
   }
   if (ctx.publish) await publishNext(ctx);
   else ctx.result.outcome = 'daily sync only (not a posting hour)';
@@ -149,7 +150,7 @@ async function publishNext(ctx) {
   }
 
   // 5. Pick, check and publish the next Ready pin
-  const ready = rows.filter((r) => r.status === 'ready' && !r.productPaused);
+  const ready = rows.filter((r) => r.status === 'ready' && !r.productPaused && (!ctx.websitePolicy || (ctx.websitePolicy.batchId ? r.batch === ctx.websitePolicy.batchId : !ctx.websitePolicy.excludedBatches.includes(r.batch))));
   if (!ready.length) {
     queueEmpty(ctx);
     log(ctx, '', 'Queue empty', '', '', '', 'No rows with Status Ready');
@@ -348,6 +349,7 @@ async function readPins(ctx) {
       description: cellText(g('Description')),
       keywords: cellText(g('Keywords')),
       product: cellText(g('Product')),
+      batch: cellText(g('Batch')),
       link: cellText(g('Link')),
       board: cellText(g('Board')),
       section: cellText(g('Board section')),

@@ -174,3 +174,11 @@ Statistics use a consistent green Posted / blue Ready / amber Needs attention co
 ## 21 October 2026 — simplify day controls after reported failure
 
 Owner explicitly removed the extra-time addition/update controls. Keep date selection, day arrows and existing slot edits/removal. Do not require a remote flow update just to use the calendar. Preserve the colored statistics. Busy reconciliation is a pending status, not a page failure; status reads must retain the loaded automation while another update finishes.
+
+## 21 October 2026 — batch posting overrides return to account defaults
+
+Owner clarified that New pins scheduling belongs to that batch, not a permanent account change. Save an optional batch-specific daily amount and varied/exact schedule with the request. Keep account defaults in account settings/creation. Activate only when actual matching Ready rows reach the queue; retain the active batch while its eligible Ready rows remain, even when other batches are interleaved. When it is finished/held, use the next batch's schedule or the account default. New Ready rows can reactivate their saved batch policy. A copied prompt alone never activates it.
+
+Store exact daily slot plans so polls, overlapping planners and temporary policy changes do not reroll times or lose edited/removed default slots. A protected publishing authorization supplies the exact batch and runtime cap; it cannot silently use another batch or permanently change the Sheet cap. Older engines receive one settings-only update through the existing flow before overrides activate. Queue controls allow correcting an already queued batch, including one whose website request history was cleared.
+
+Owner also requires exact verified destinations and a matching visit message for linked content. Product allocations link to the individual product, overview allocations to the category/store. Verified free linked products/resources need visible Free text with accurate conditions. Omit prices by default; include a verified current price/currency only when useful to audience and design, without fabricated conversion evidence. No-link content remains exempt from links and offer/visit claims.

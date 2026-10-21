@@ -35,10 +35,10 @@ import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import { api, ApiError, setCSRF } from "./api";
 import { Queue } from "./queue";
+import { BatchSchedulePicker } from "./batch-schedule";
 import { PinProgress } from "./pin-progress";
 import {
   ScheduleControls,
-  PostingScheduleEditor,
   accountSchedule,
   type ScheduleValue,
 } from "./posting-schedule";
@@ -978,29 +978,6 @@ function AutomationPage() {
     setAutomation(r.automation);
     setDraft({ ...defaults(user), ...r.automation.config });
   };
-  const savePostingSchedule = async (
-    accountId: string,
-    value: ScheduleValue,
-  ) => {
-    await flush();
-    const account = current.current?.config.accounts?.find(
-      (a) => a.id === accountId,
-    );
-    if (!account)
-      throw new Error(
-        "This Pinterest account is no longer available. Reload the page.",
-      );
-    await saveAccount({
-      ...account,
-      ...value,
-      hours: spreadHours(Math.min(18, value.pinsPerDay)),
-      legacyDailyCap: undefined,
-    });
-    if (current.current?.deployed && !(await action("deploy", true)))
-      throw new Error(
-        "Schedule saved. The automation update did not finish; use Retry update.",
-      );
-  };
   const action = async (name: string, scoped = false) => {
     setBusy(true);
     setError(null);
@@ -1253,7 +1230,7 @@ function AutomationPage() {
                   automation={automation}
                   draft={draft}
                   flush={flush}
-                  savePostingSchedule={savePostingSchedule}
+                  activateBatchSchedule={() => action("deploy", true)}
                   applying={actionPending}
                 />
               )}
@@ -2833,22 +2810,19 @@ function Pins({
   automation,
   draft,
   flush,
-  savePostingSchedule,
+  activateBatchSchedule,
   applying,
 }: {
   automation: Automation;
   draft: Config;
   flush: () => Promise<void>;
-  savePostingSchedule: (
-    accountId: string,
-    value: ScheduleValue,
-  ) => Promise<void>;
+  activateBatchSchedule: () => Promise<boolean>;
   applying: boolean;
 }) {
   const { t, notify } = useWorkspace();
-  const setAccountEdits = useContext(AccountEditsContext);
-  const [postingDirty, setPostingDirty] = useState(false);
-  const [postingOpen, setPostingOpen] = useState(false);
+  const [batchSchedule, setBatchSchedule] = useState<ScheduleValue | null>(
+    null,
+  );
   const location = useLocation();
   const preset = location.state as any;
   const [accountId, setAccountId] = useState(
@@ -2862,7 +2836,7 @@ function Pins({
     [scanning, setScanning] = useState<string | null>(null);
   const variant = useRef(preset?.variant);
   const key = `automation-request:${automation.id}:${accountId}`;
-  const loadedKey = useRef("");
+  const [loadedKey, setLoadedKey] = useState("");
   useEffect(() => {
     let stored: any = null;
     try {
@@ -2898,14 +2872,20 @@ function Pins({
         preset?.input?.notes ||
         "",
     );
+    setBatchSchedule(
+      stored?.postingSchedule || preset?.input?.postingSchedule || null,
+    );
     setError(null);
     setSelected(null);
-    loadedKey.current = key;
+    setLoadedKey(key);
   }, [key]);
   useEffect(() => {
-    if (loadedKey.current === key && sources.length)
-      localStorage.setItem(key, JSON.stringify({ sources, notes }));
-  }, [key, sources, notes]);
+    if (loadedKey === key && sources.length)
+      localStorage.setItem(
+        key,
+        JSON.stringify({ sources, notes, postingSchedule: batchSchedule }),
+      );
+  }, [key, sources, notes, batchSchedule, loadedKey]);
   const change = (id: string, patch: any) =>
     setSources((ss) => ss.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const automatic = (s: any) =>
@@ -2921,15 +2901,8 @@ function Pins({
     0,
   );
   const chosen = draft.accounts.find((a) => a.id === accountId);
-  useEffect(() => {
-    const id = `posting-${accountId}`;
-    setAccountEdits((old) => ({ ...old, [id]: postingDirty }));
-    return () => setAccountEdits((old) => ({ ...old, [id]: false }));
-  }, [postingDirty, accountId, setAccountEdits]);
   return (
-    <section
-      className={`content-workspace ${postingOpen ? "editing-posting" : ""}`}
-    >
+    <section className="content-workspace">
       <div className="section-heading">
         <div>
           <h2>Make your next batch</h2>
@@ -2952,11 +2925,7 @@ function Pins({
             <select
               value={accountId}
               onChange={(e) => {
-                if (
-                  !postingDirty ||
-                  window.confirm("Discard unsaved schedule changes?")
-                )
-                  setAccountId(e.target.value);
+                setAccountId(e.target.value);
               }}
             >
               {draft.accounts.map((a) => (
@@ -2967,19 +2936,12 @@ function Pins({
             </select>
           </Field>
           {chosen && (
-            <PostingScheduleEditor
-              key={chosen.id}
+            <BatchSchedulePicker
               account={chosen}
+              value={batchSchedule}
+              onChange={setBatchSchedule}
               timeZone={draft.timeZone}
-              applying={applying}
-              needsUpdate={
-                automation.deployed &&
-                automation.revision > automation.appliedRevision
-              }
-              deployed={automation.deployed}
-              save={savePostingSchedule}
-              onDirty={setPostingDirty}
-              onOpenChange={setPostingOpen}
+              disabled={busy || applying}
             />
           )}
           <div className="source-stack">
@@ -3338,7 +3300,11 @@ function Pins({
               className="primary"
               disabled={
                 busy ||
-                postingDirty ||
+                (Boolean(batchSchedule) &&
+                  !validSchedule(
+                    batchSchedule!.schedule,
+                    batchSchedule!.pinsPerDay,
+                  )) ||
                 applying ||
                 !sources.length ||
                 !Number.isSafeInteger(total) ||
@@ -3355,6 +3321,7 @@ function Pins({
                     {
                       accountId,
                       variant: variant.current,
+                      postingSchedule: batchSchedule,
                       notes,
                       sources: sources.map(
                         ({
@@ -3376,6 +3343,10 @@ function Pins({
                       ),
                     },
                   );
+                  if (r.needsScheduleUpdate && !(await activateBatchSchedule()))
+                    throw new Error(
+                      "Batch saved. Its schedule update needs a retry before posting.",
+                    );
                   setSelected(r.batch);
                 } catch (e) {
                   setError(e);
@@ -3386,11 +3357,9 @@ function Pins({
             >
               {busy
                 ? "Preparing…"
-                : postingDirty
-                  ? "Save schedule first"
-                  : applying
-                    ? "Updating schedule…"
-                    : "Review request"}
+                : applying
+                  ? "Updating schedule…"
+                  : "Review request"}
               <ArrowRight size={16} />
             </button>
           </div>

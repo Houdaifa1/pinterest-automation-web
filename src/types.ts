@@ -58,6 +58,7 @@ export interface Automation {
   imported: boolean;
   schedulerEnabled: boolean;
   daySlotsEnabled: boolean;
+  batchScheduleEnabled: boolean;
   queueSummary?: {
     accountId: string;
     ready: number;

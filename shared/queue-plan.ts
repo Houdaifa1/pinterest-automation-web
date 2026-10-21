@@ -57,7 +57,11 @@ export function plannedPins(
     .sort((a, b) => a.planned_at - b.planned_at)) {
     const stamp = localStamp(slot.planned_at, zone);
     const i = remaining.findIndex(
-      (p) => !p.publishAfter || p.publishAfter <= stamp,
+      (p) =>
+        (!p.publishAfter || p.publishAfter <= stamp) &&
+        (slot.batch_id
+          ? p.batch === slot.batch_id
+          : !(slot.excludedBatches || []).includes(p.batch)),
     );
     if (i < 0) continue;
     plan.push({ pin: remaining.splice(i, 1)[0], slot });

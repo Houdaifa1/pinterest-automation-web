@@ -75,7 +75,8 @@ export function planSources(raw: unknown) {
       destinations.push({ kind: "exact product", count: s.count, url: s.url });
       continue;
     }
-    const automatic = s.selection === "auto" ||
+    const automatic =
+      s.selection === "auto" ||
       (!s.selection && s.kind === "catalog" && !s.products.length);
     if (automatic) s.products = [];
     const seen = new Set<string>();
@@ -90,14 +91,32 @@ export function planSources(raw: unknown) {
     else delete s.selection;
     if (automatic) {
       s.products = [];
-      destinations.push({kind:"research-selected products",count:s.count,url:s.url,auto:true,scope:s.kind,title:"Choose products during research"});
+      destinations.push({
+        kind: "research-selected products",
+        count: s.count,
+        url: s.url,
+        auto: true,
+        scope: s.kind,
+        title: "Choose products during research",
+      });
     } else {
       if (s.kind === "catalog" && !s.products.length)
-        throw new PublicError("products", "Select products, add their links, or choose automatic selection.");
+        throw new PublicError(
+          "products",
+          "Select products, add their links, or choose automatic selection.",
+        );
       if (s.kind === "category" && !s.products.length && !s.categoryCount)
-        throw new PublicError("products", "Choose products, overview pins, or automatic selection.");
+        throw new PublicError(
+          "products",
+          "Choose products, overview pins, or automatic selection.",
+        );
       for (const p of s.products)
-        destinations.push({kind:"category product",count:s.perProduct,url:p.url,title:p.title});
+        destinations.push({
+          kind: "category product",
+          count: s.perProduct,
+          url: p.url,
+          title: p.title,
+        });
     }
     if (s.categoryCount)
       destinations.push({
@@ -114,7 +133,7 @@ export function planSources(raw: unknown) {
     );
   return { version: 2, sources, destinations, total };
 }
-export const researchPromptRevision = "2026-10-21.8";
+export const researchPromptRevision = "2026-10-21.9";
 export function researchPrompt(
   snapshot: any,
   batchId: string,
@@ -127,10 +146,12 @@ export function researchPrompt(
     : "CONTENT WITHOUT DESTINATION LINKS: research this account's topic and audience, then create original niche content. No shop, product, price, mockup or offer badge is required. Leave every destination empty.";
   return `PINTEREST — RESEARCH, PLAN AND CREATE ${batch.total} PINS
 Workflow revision: ${researchPromptRevision}
-Batch: ${batchId}. Complete verified research, planning, original visuals and verified Ready rows without a member-approval step. Growth is a goal, not a promised result.
+Batch: ${batchId}. Set the Sheet Batch column to exactly this ID on every new row. Complete verified research, planning, original visuals and verified Ready rows without a member-approval step. Growth is a goal, not a promised result.
 
 REQUEST GOAL
 ${requestGoal}
+POSTING
+${batch.postingSchedule ? `${batch.postingSchedule.pinsPerDay}/day, ${batch.postingSchedule.schedule.mode === "varied" ? `varied within ${batch.postingSchedule.schedule.start}–${batch.postingSchedule.schedule.end}` : batch.postingSchedule.schedule.times.join(", ")}. This batch only; the website restores the account default after its queue is finished.` : "Use the account default."} Never edit operational settings or invent Publish after dates; the website owns posting times.
 ACCOUNT
 Pinterest: ${profileURL}
 Account row: ${account.name}. Username: @${account.username}.
@@ -139,12 +160,12 @@ Sheet: ${snapshot.sheetUrl}
 Google connection: ${config.botEmail || "the selected account"}.
 
 ALLOCATIONS — exact counts, not posting blocks
-${batch.destinations.map((d:any,i:number)=>`${i+1}. ${d.count} × ${d.kind}: ${d.url || "NO LINK"}${d.title?" — "+d.title:""}${d.auto?` (research scope: ${d.scope}; resolve individual products before creating pins)`:""}`).join("\n")}
+${batch.destinations.map((d: any, i: number) => `${i + 1}. ${d.count} × ${d.kind}: ${d.url || "NO LINK"}${d.title ? " — " + d.title : ""}${d.auto ? ` (research scope: ${d.scope}; resolve individual products before creating pins)` : ""}`).join("\n")}
 
 ${orderInstructions(batch.destinations)}
 
 REFERENCES
-${references.length ? "Open every image; infer style, not product identity. Links expire in 24 hours:\n"+references.join("\n")+"\nIf access fails, request a refreshed prompt-and-images package; do not silently ignore references." : "Use the verified saved identity or infer it from the profile and niche."}
+${references.length ? "Open every image; infer style, not product identity. Links expire in 24 hours:\n" + references.join("\n") + "\nIf access fails, request a refreshed prompt-and-images package; do not silently ignore references." : "Use the verified saved identity or infer it from the profile and niche."}
 
 ${pinWorkflow}
 

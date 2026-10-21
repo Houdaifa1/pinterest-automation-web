@@ -678,3 +678,142 @@ test("a verified extra-day allowance publishes beyond the recurring cap without 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("batch authorization limits the exact batch and daily amount, then returns to default publishing", async () => {
+  const w = new FakeWorld(),
+    originalFetch = globalThis.fetch;
+  w.install();
+  try {
+    w.pinterestUsers["p-token-1"] = "testprofile";
+    w.boards.push({
+      id: "b-main",
+      name: "Main board",
+      privacy: "PUBLIC",
+      owner: "p-token-1",
+    });
+    const s = state();
+    s.websiteSchedule = true;
+    s.timeZone = "UTC";
+    s.accounts[0] = {
+      ...s.accounts[0],
+      id: "profile",
+      on: true,
+      pinsPerDay: 10,
+      hours: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    };
+    const flow = buildWebsiteFlow(
+      template,
+      s,
+      "11111111-1111-4111-8111-111111111111",
+      "Day slots",
+      "v-day",
+      "https://example.test/api/callback/11111111-1111-4111-8111-111111111111/secret",
+    );
+    const providerFetch = globalThis.fetch;
+    const job = {
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "testprofile",
+      accountId: "profile",
+      token: "lease",
+    };
+    let useDefault = false;
+    globalThis.fetch = async (url, opts) => {
+      if (String(url).endsWith("/claim"))
+        return Response.json({ jobs: [job], commands: [] });
+      if (String(url).endsWith("/authorize"))
+        return Response.json({
+          allowed: true,
+          dailyCap: useDefault ? 10 : 2,
+          batchPolicy: {
+            batchId: useDefault ? "" : "batch-six",
+            excludedBatches: ["batch-six"],
+          },
+        });
+      if (String(url).endsWith("/finish")) return Response.json({ ok: true });
+      return providerFetch(url, opts);
+    };
+    const prep = codeStep(flow, "step_3");
+    const load = (step) =>
+      import(
+        "data:text/javascript;base64," +
+          Buffer.from(step.settings.sourceCode.code).toString("base64")
+      );
+    const prepared = await (
+      await load(prep)
+    ).code({
+      google: { access_token: w.tokens.google },
+      gmail: { access_token: w.tokens.gmail },
+      config: prep.settings.input.config,
+    });
+    const accounts = w.rows("Accounts"),
+      folder =
+        accounts[1][accounts[0].indexOf("Media folder")].match(
+          /folders\/([^/?]+)/,
+        )[1];
+    w.addImage(folder, "new.jpg");
+    w.addImage(folder, "default.jpg");
+    const rows = w.rows("Pins – testprofile");
+    const pins = [
+      {
+        "Pin ID": "default-pin",
+        Batch: "",
+        Status: "Ready",
+        "Media type": "Image",
+        Media: "default.jpg",
+        Title: "Default crochet bag",
+        Description: "Default idea.",
+        Link: "https://example.test/default",
+        Board: "Main board",
+      },
+      {
+        "Pin ID": "old-pin",
+        Status: "Done",
+        "Posted at": new Date().toISOString().slice(0, 10) + " 08:00",
+        Media: "old.jpg",
+        Title: "Earlier pin",
+      },
+      {
+        "Pin ID": "extra-pin",
+        Batch: "batch-six",
+        Status: "Ready",
+        "Media type": "Image",
+        Media: "new.jpg",
+        Title: "New crochet bag",
+        Description: "A new bag idea.",
+        Link: "https://example.test/new",
+        Board: "Main board",
+      },
+    ];
+    pins.push({
+      ...pins[2],
+      "Pin ID": "another-custom",
+      Title: "Another custom bag",
+    });
+    for (const pin of pins) rows.push(rows[0].map((h) => pin[h] || ""));
+    const step = codeStep(flow, "step_4").firstLoopAction.nextAction;
+    const execute = async () =>
+      (await load(step)).code({
+        google: { access_token: w.tokens.google },
+        gmail: { access_token: w.tokens.gmail },
+        pinterest: { access_token: "p-token-1" },
+        accountName: "testprofile",
+        publish: true,
+        quietQueue: true,
+        websiteJob: prepared.due.find((d) => d.publish).websiteJob,
+      });
+    const result = await execute();
+    assert.equal(result.outcome, "published");
+    assert.equal(w.pins[0].payload.title, "New crochet bag");
+    const held = await execute();
+    assert.match(held.outcome, /daily cap reached \(2\/2\)/);
+    const reordered = w.rows("Pins – testprofile");
+    reordered.push(reordered.splice(1, 1)[0]);
+    useDefault = true;
+    assert.equal((await execute()).outcome, "published");
+    assert.equal(w.pins[0].payload.title, "Default crochet bag");
+    assert.equal(w.pins.length, 2);
+    assert.equal(Number(accounts[1][accounts[0].indexOf("Daily cap")]), 10);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -471,3 +471,63 @@ it("delivers access-first automatic Ready instructions for both prompt formats a
     check(refreshed.batch.prompt);
   }
 });
+
+it("saves a temporary batch schedule repeat-safely without replacing account defaults", async () => {
+  const { user, automation, base } = await setup();
+  const postingSchedule = {
+    pinsPerDay: 6,
+    schedule: {
+      mode: "varied",
+      start: "09:00",
+      end: "21:00",
+      spacingMode: "auto",
+      minSpacing: 100,
+      times: [],
+    },
+  };
+  const body = {
+    accountId: "profile",
+    sources: [{ kind: "free", count: 12 }],
+    postingSchedule,
+  };
+  const response = await request(base + "/batches", user, "POST", body);
+  expect(response.status).toBe(200);
+  const data: any = await response.json();
+  expect(data.needsScheduleUpdate).toBe(true);
+  expect(data.batch.input.postingSchedule).toMatchObject({
+    pinsPerDay: 6,
+    schedule: { mode: "varied" },
+  });
+  expect(data.batch.prompt).toContain(
+    `Set the Sheet Batch column to exactly this ID`,
+  );
+  expect(data.batch.prompt).toContain("This batch only");
+  expect(data.batch.prompt).toContain('Product pins must have the verified individual product URL in Link');
+  expect(data.batch.prompt).toContain('Every verified free linked product or resource needs an obvious FREE');
+  expect(data.batch.prompt).toContain('Omit prices by default');
+  expect(data.batch.prompt).toContain('Visit site, View pattern or Explore collection');
+  const again: any = await (
+    await request(base + "/batches", user, "POST", body)
+  ).json();
+  expect(again.batch.id).toBe(data.batch.id);
+  const saved: any = await env.DB.prepare(
+    "SELECT * FROM batch_schedules WHERE automation_id=?",
+  )
+    .bind(automation.id)
+    .first();
+  expect(saved.pins_per_day).toBe(6);
+  const config: any = await env.DB.prepare(
+    "SELECT config FROM automations WHERE id=?",
+  )
+    .bind(automation.id)
+    .first();
+  expect(JSON.parse(config.config).accounts[0].pinsPerDay).toBe(5);
+  expect(
+    (
+      await request(base + "/batches", user, "POST", {
+        ...body,
+        postingSchedule: { ...postingSchedule, pinsPerDay: 0 },
+      })
+    ).status,
+  ).toBe(400);
+});

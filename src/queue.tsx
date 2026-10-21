@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock, RefreshCw } from "lucide-react";
 import { api } from "./api";
+import { QueuedBatchSchedule } from "./batch-schedule";
 import { PinProgress } from "./pin-progress";
 import {
   plannedPins,
@@ -75,6 +76,7 @@ export function Queue({
     automation.status,
     automation.schedulerEnabled,
     automation.daySlotsEnabled,
+    automation.batchScheduleEnabled,
     day,
   ]);
   const run = async (sync: boolean) => {
@@ -117,9 +119,17 @@ export function Queue({
       (counts?.Draft || 0) +
       (counts?.["Needs review"] || 0) +
       (counts?.Error || 0),
-    future = (data?.schedule || []).filter(
-      (s: any) => s.account_id === accountId && s.status === "pending",
-    ),
+    future = (data?.schedule || [])
+      .filter((s: any) => s.account_id === accountId && s.status === "pending")
+      .map((s: any) => ({
+        ...s,
+        excludedBatches: automation.batchScheduleEnabled
+          ? (
+              data?.batchSchedules?.find((p: any) => p.accountId === accountId)
+                ?.overrides || []
+            ).map((o: any) => o.batchId)
+          : [],
+      })),
     profile = config.accounts.find((a) => a.id === accountId),
     stale = snap && Date.now() / 1000 - snap.syncedAt > 900;
   useEffect(() => {
@@ -161,6 +171,12 @@ export function Queue({
     (j: any) =>
       j.account_id === accountId &&
       !["cancelled", "skipped"].includes(j.status),
+  );
+  const batchPolicy = data?.batchSchedules?.find(
+    (p: any) => p.accountId === accountId,
+  );
+  const currentBatch = batchPolicy?.overrides.find(
+    (p: any) => p.batchId === batchPolicy.nextBatchId,
   );
   const allowance = Math.max(
     profile?.legacyDailyCap || profile?.pinsPerDay || 1,
@@ -277,6 +293,9 @@ export function Queue({
                       : "No confirmed future slot"}
               </strong>
               <small>
+                {batchPolicy?.batchId
+                  ? `This batch · ${batchPolicy.pinsPerDay}/day · ${batchPolicy.schedule.mode === "varied" ? "Varied daily" : "Exact times"} · then account default. `
+                  : ""}
                 {config.timeZone} ·{" "}
                 {ready
                   ? `${ready} ready pins`
@@ -358,7 +377,7 @@ export function Queue({
                 <div className="section-heading">
                   <strong>
                     {profile?.on && profile.pinsPerDay
-                      ? `About ${Math.floor(ready / profile.pinsPerDay)} days ready`
+                      ? `About ${Math.floor(ready / (batchPolicy?.pinsPerDay || profile.pinsPerDay))} days ready`
                       : "Posting is off"}
                   </strong>
                   <small>
@@ -550,6 +569,43 @@ export function Queue({
                   <h3>
                     <Clock size={16} /> Posting days
                   </h3>
+                  {profile && batchPolicy?.nextBatchId && (
+                    <QueuedBatchSchedule
+                      key={
+                        accountId +
+                        batchPolicy.nextBatchId +
+                        JSON.stringify(currentBatch)
+                      }
+                      account={profile}
+                      initial={
+                        currentBatch
+                          ? {
+                              pinsPerDay: currentBatch.pinsPerDay,
+                              schedule: currentBatch.schedule,
+                            }
+                          : null
+                      }
+                      timeZone={config.timeZone}
+                      disabled={working || busy}
+                      save={async (posting) => {
+                        setWorking(true);
+                        try {
+                          const result = await api(
+                            `/api/automations/${automation.id}/accounts/${accountId}/batch-schedule`,
+                            "PUT",
+                            { batchId: batchPolicy.nextBatchId, posting },
+                          );
+                          if (result.needsUpdate && !(await action("deploy")))
+                            throw new Error(
+                              "Schedule saved. Retry the update before posting.",
+                            );
+                          await load();
+                        } finally {
+                          setWorking(false);
+                        }
+                      }}
+                    />
+                  )}
                   <div className="day-nav">
                     <button
                       aria-label="Previous posting day"

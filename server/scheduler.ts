@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { owned } from "./access";
+import {
+  batchPolicies,
+  batchPostingSchema,
+  saveBatchSchedule,
+} from "./batch-schedule";
 import { ap, getIntegration } from "./activepieces";
 import {
   dailyMinutes,
@@ -22,64 +27,141 @@ export async function ensurePlan(
   at = now(),
   requestedDay?: string,
 ) {
-  if (!a.scheduler_enabled || !a.applied_config) return;
+  if (
+    !a.scheduler_enabled ||
+    !a.applied_config ||
+    a.operation_id ||
+    !["running", "paused"].includes(a.status)
+  )
+    return;
   const config = JSON.parse(a.applied_config),
+    policies = await batchPolicies(env, a),
     today = requestedDay || localDay(at, config.timeZone),
     through = nextDay(today, requestedDay ? 1 : 2);
-  if (!requestedDay && a.planned_through && a.planned_through >= through)
+  const keys = await Promise.all(
+    policies.map(async (p: any) => ({
+      ...p,
+      key: await hash(JSON.stringify([p.batchId, p.pinsPerDay, p.schedule])),
+    })),
+  );
+  const scope = JSON.stringify(keys.map((p) => [p.accountId, p.key]));
+  if (
+    !requestedDay &&
+    (a as any).plan_scope === scope &&
+    a.planned_through &&
+    a.planned_through >= through
+  )
     return;
-  const rows: any[] = [];
   for (const account of config.accounts.filter((x: any) => x.on)) {
-    const schedule = scheduleSchema.parse(
-      account.schedule || {
-        mode: "fixed",
-        times: account.hours.map(
-          (h: number) => `${String(h).padStart(2, "0")}:00`,
-        ),
-        minSpacing: 1,
-      },
+    const policy = keys.find((p) => p.accountId === account.id)!;
+    const mutations = [
+      env.DB.prepare(
+        "INSERT INTO account_batch_state VALUES(?,?,?) ON CONFLICT(automation_id,account_id) DO UPDATE SET batch_id=excluded.batch_id",
+      ).bind(a.id, account.id, policy.batchId),
+    ];
+    // Adopt existing default slots without rerolling saved times or losing removals.
+    if (!policy.batchId)
+      mutations.push(
+        env.DB.prepare(
+          "UPDATE schedule_jobs SET plan_key=? WHERE automation_id=? AND account_id=? AND plan_key='' AND batch_id='' AND schedule_revision=?",
+        ).bind(policy.key, a.id, account.id, a.applied_revision),
+      );
+    mutations.push(
+      env.DB.prepare(
+        "UPDATE schedule_jobs SET status='cancelled',detail='Posting policy changed' WHERE automation_id=? AND account_id=? AND origin='scheduled' AND status IN('pending','dispatched','claimed') AND plan_key<>? AND planned_at>=?",
+      ).bind(a.id, account.id, policy.key, at),
+    );
+    mutations.push(
+      env.DB.prepare(
+        "UPDATE schedule_jobs SET status='pending',detail=NULL,schedule_revision=? WHERE automation_id=? AND account_id=? AND origin='scheduled' AND status='cancelled' AND (detail='Posting policy changed' OR (schedule_revision<>? AND detail IS NOT 'Removed from this day')) AND plan_key=? AND planned_at>=?",
+      ).bind(
+        a.applied_revision,
+        a.id,
+        account.id,
+        a.applied_revision,
+        policy.key,
+        at,
+      ),
     );
     for (let d = today; d < through; d = nextDay(d)) {
-      const exists = await env.DB.prepare(
-        "SELECT id FROM schedule_jobs WHERE automation_id=? AND account_id=? AND local_day=? AND schedule_revision=? AND origin='scheduled' LIMIT 1",
-      )
-        .bind(a.id, account.id, d, a.applied_revision)
-        .first();
-      if (exists) continue;
-      for (const minute of dailyMinutes(schedule, account.pinsPerDay)) {
-        const planned = utcFor(d, minute, config.timeZone);
-        if (planned !== null)
-          rows.push({
+      const token = id(),
+        rows = dailyMinutes(policy.schedule, policy.pinsPerDay)
+          .map((minute) => utcFor(d, minute, config.timeZone))
+          .filter((v): v is number => v !== null)
+          .map((planned) => ({
             id: id(),
-            accountId: account.id,
-            name: account.name,
-            day: d,
             at: planned,
             status: planned < at ? "skipped" : "pending",
-          });
-      }
+          }));
+      const existing = (
+        await env.DB.prepare(
+          "SELECT id,planned_at,status,detail FROM schedule_jobs WHERE automation_id=? AND account_id=? AND local_day=? AND origin='scheduled' AND schedule_revision=? AND (plan_key=? OR (plan_key='' AND batch_id='' AND ?='')) ORDER BY planned_at",
+        )
+          .bind(
+            a.id,
+            account.id,
+            d,
+            a.applied_revision,
+            policy.key,
+            policy.batchId,
+          )
+          .all<any>()
+      ).results;
+      const saved = existing.length
+        ? existing.map((j) => ({
+            id: j.id,
+            at: j.planned_at,
+            removed:
+              j.status === "cancelled" && j.detail === "Removed from this day"
+                ? 1
+                : 0,
+          }))
+        : rows;
+      mutations.push(
+        env.DB.prepare(
+          "INSERT INTO schedule_day_plans VALUES(?,?,?,?,?,?) ON CONFLICT(automation_id,account_id,local_day,plan_key) DO NOTHING",
+        ).bind(a.id, account.id, d, policy.key, token, JSON.stringify(saved)),
+      );
+      mutations.push(
+        env.DB.prepare(
+          `INSERT INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,batch_id,plan_key,detail)
+        SELECT json_extract(value,'$.id'),?,?,?, ?,json_extract(value,'$.at'),?,CASE WHEN json_extract(value,'$.removed')=1 THEN 'cancelled' WHEN json_extract(value,'$.at')<? THEN 'skipped' ELSE 'pending' END,?,?,CASE WHEN json_extract(value,'$.removed')=1 THEN 'Removed from this day' ELSE NULL END
+        FROM json_each((SELECT plan FROM schedule_day_plans WHERE automation_id=? AND account_id=? AND local_day=? AND plan_key=?)) WHERE true
+        ON CONFLICT(id) DO NOTHING
+        ON CONFLICT(automation_id,account_id,planned_at) DO UPDATE SET id=excluded.id,account_name=excluded.account_name,schedule_revision=excluded.schedule_revision,local_day=excluded.local_day,status=excluded.status,lease_token=NULL,started_at=NULL,finished_at=NULL,remote_run_id=NULL,detail=excluded.detail,batch_id=excluded.batch_id,plan_key=excluded.plan_key
+        WHERE schedule_jobs.status='cancelled' AND schedule_jobs.planned_at>=? AND (schedule_jobs.schedule_revision<>excluded.schedule_revision OR schedule_jobs.plan_key<>excluded.plan_key)`,
+        ).bind(
+          a.id,
+          account.id,
+          account.name,
+          a.applied_revision,
+          d,
+          at,
+          policy.batchId,
+          policy.key,
+          a.id,
+          account.id,
+          d,
+          policy.key,
+          at,
+        ),
+      );
     }
-  }
-  for (let start = 0; start < rows.length; start += 100) {
-    await env.DB.prepare(
-      `INSERT INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status) SELECT json_extract(value,'$.id'),?,json_extract(value,'$.accountId'),json_extract(value,'$.name'),?,json_extract(value,'$.at'),json_extract(value,'$.day'),json_extract(value,'$.status') FROM json_each(?) WHERE true
-       ON CONFLICT(automation_id,account_id,planned_at) DO UPDATE SET id=excluded.id,account_name=excluded.account_name,schedule_revision=excluded.schedule_revision,local_day=excluded.local_day,status=excluded.status,lease_token=NULL,started_at=NULL,finished_at=NULL,remote_run_id=NULL,detail=NULL
-       WHERE schedule_jobs.status='cancelled' AND schedule_jobs.planned_at>=? AND schedule_jobs.schedule_revision<>excluded.schedule_revision`,
-    )
-      .bind(
-        a.id,
-        a.applied_revision,
-        JSON.stringify(rows.slice(start, start + 100)),
-        at,
-      )
-      .run();
+    await env.DB.batch(mutations);
   }
   if (!requestedDay)
     await env.DB.prepare(
-      "UPDATE automations SET planned_through=? WHERE id=? AND applied_revision=?",
+      "UPDATE automations SET planned_through=?,plan_scope=? WHERE id=? AND applied_revision=?",
     )
-      .bind(through, a.id, a.applied_revision)
+      .bind(through, scope, a.id, a.applied_revision)
       .run();
+}
+
+function rememberSlotEdit(env: Env, automationId: string, jobId: string) {
+  return env.DB.prepare(
+    `UPDATE schedule_day_plans SET plan=(SELECT json_group_array(json(CASE WHEN json_extract(value,'$.id')=j.id THEN json_set(value,'$.at',j.planned_at,'$.removed',CASE WHEN j.status='cancelled' AND j.detail='Removed from this day' THEN 1 ELSE 0 END) ELSE value END)) FROM json_each(plan))
+    FROM schedule_jobs j WHERE j.id=? AND j.automation_id=? AND schedule_day_plans.automation_id=j.automation_id AND schedule_day_plans.account_id=j.account_id AND schedule_day_plans.local_day=j.local_day AND schedule_day_plans.plan_key=j.plan_key`,
+  ).bind(jobId, automationId);
 }
 export function pendingPlanChanges(
   env: Env,
@@ -326,12 +408,34 @@ scheduleCallbacks.post("/:id/:token/authorize", async (c) => {
   if (a.status !== "running" || !a.scheduler_enabled)
     return c.json({ allowed: false });
   const job = await c.env.DB.prepare(
-    "UPDATE schedule_jobs SET status='started',started_at=? WHERE id=? AND automation_id=? AND status='claimed' AND lease_token=? AND schedule_revision=? RETURNING id,account_id,local_day",
+    "UPDATE schedule_jobs SET status='started',started_at=? WHERE id=? AND automation_id=? AND status='claimed' AND lease_token=? AND schedule_revision=? RETURNING id,account_id,local_day,batch_id,origin",
   )
     .bind(now(), jobId, a.id, token, a.applied_revision)
     .first();
   let dailyCap: number | undefined;
-  if (job && (a as any).day_slots_enabled) {
+  let batchPolicy: any = null;
+  if (job && (a as any).batch_schedule_enabled) {
+    const policies = await batchPolicies(c.env, a),
+      policy = policies.find((p: any) => p.accountId === job.account_id);
+    if (policy) {
+      const chosen =
+        job.batch_id &&
+        policy.overrides.find((o: any) => o.batchId === job.batch_id);
+      dailyCap = chosen
+        ? chosen.pinsPerDay
+        : JSON.parse(a.applied_config || a.config).accounts.find(
+            (p: any) => p.id === job.account_id,
+          )?.legacyDailyCap ||
+          JSON.parse(a.applied_config || a.config).accounts.find(
+            (p: any) => p.id === job.account_id,
+          )?.pinsPerDay;
+      batchPolicy = {
+        batchId: job.batch_id || "",
+        excludedBatches: policy.overrides.map((p: any) => p.batchId),
+      };
+    }
+  }
+  if (job && !batchPolicy && (a as any).day_slots_enabled) {
     const config = JSON.parse(a.applied_config || a.config),
       account = config.accounts.find((p: any) => p.id === job.account_id);
     if (account) {
@@ -346,7 +450,11 @@ scheduleCallbacks.post("/:id/:token/authorize", async (c) => {
       );
     }
   }
-  return c.json({ allowed: Boolean(job), ...(dailyCap ? { dailyCap } : {}) });
+  return c.json({
+    allowed: Boolean(job),
+    ...(dailyCap ? { dailyCap } : {}),
+    ...(batchPolicy ? { batchPolicy } : {}),
+  });
 });
 scheduleCallbacks.post("/:id/:token/finish", async (c) => {
   const a = current(c),
@@ -410,6 +518,9 @@ scheduleCallbacks.post("/:id/:token/snapshot", async (c) => {
               name: z.string().max(80),
               complete: z.boolean(),
               counts: z.record(z.string(), z.number().int().nonnegative()),
+              batchReady: z
+                .record(z.string().max(100), z.number().int().min(0).max(5000))
+                .optional(),
               pins: z.array(pinSchema).max(500),
               health: z.string().max(300).optional(),
               lastRun: z.string().max(100).optional(),
@@ -453,6 +564,8 @@ scheduleCallbacks.post("/:id/:token/snapshot", async (c) => {
       ).bind(cmd.ok ? "applied" : "conflict", now(), cmd.detail, cmd.id, a.id),
     );
   if (writes.length) await c.env.DB.batch(writes);
+  if (a.scheduler_enabled && ["running", "paused"].includes(a.status))
+    await ensurePlan(c.env, a);
   return c.json({ ok: true });
 });
 export const queue = new Hono<AppEnv>();
@@ -493,7 +606,7 @@ queue.get("/:id/queue", async (c) => {
   ).results;
   const schedule = (
     await c.env.DB.prepare(
-      "SELECT id,account_id,planned_at,status,detail FROM schedule_jobs WHERE automation_id=? AND (planned_at>=? OR status='review') ORDER BY planned_at LIMIT 300",
+      "SELECT id,account_id,planned_at,status,detail,batch_id FROM schedule_jobs WHERE automation_id=? AND ((planned_at>=? AND status='pending') OR status='review') ORDER BY planned_at LIMIT 300",
     )
       .bind(a.id, now())
       .all()
@@ -515,6 +628,7 @@ queue.get("/:id/queue", async (c) => {
   return c.json({
     schedulerEnabled: Boolean(a.scheduler_enabled),
     daySlotsEnabled: Boolean((a as any).day_slots_enabled),
+    batchSchedules: await batchPolicies(c.env, a),
     day,
     daySlots,
     recent,
@@ -526,6 +640,59 @@ queue.get("/:id/queue", async (c) => {
     })),
     schedule,
     commands,
+  });
+});
+queue.put("/:id/accounts/:accountId/batch-schedule", async (c) => {
+  const a = await owned(c),
+    accountId = c.req.param("accountId");
+  if (a.operation_id || !["running", "paused"].includes(a.status))
+    throw new PublicError(
+      "busy",
+      "Wait for the current update to finish.",
+      409,
+    );
+  const body = z
+    .object({
+      batchId: z.string().trim().min(1).max(100),
+      posting: batchPostingSchema.nullable(),
+    })
+    .parse(await c.req.json());
+  const config = JSON.parse(a.applied_config || a.config);
+  if (!config.accounts.some((p: any) => p.id === accountId))
+    return c.notFound();
+  const snap = await c.env.DB.prepare(
+    "SELECT data FROM queue_snapshots WHERE automation_id=? AND account_id=?",
+  )
+    .bind(a.id, accountId)
+    .first<any>();
+  const known = await c.env.DB.prepare(
+    "SELECT id FROM batches WHERE automation_id=? AND account_id=? AND id=?",
+  )
+    .bind(a.id, accountId, body.batchId)
+    .first();
+  if (
+    !known &&
+    !JSON.parse(snap?.data || '{"pins":[]}').pins.some(
+      (p: any) => p.batch === body.batchId,
+    )
+  )
+    throw new PublicError(
+      "batch",
+      "Sync the queue and choose a saved batch.",
+      409,
+    );
+  if (body.posting)
+    await saveBatchSchedule(c.env, a.id, accountId, body.batchId, body.posting);
+  else
+    await c.env.DB.prepare(
+      "DELETE FROM batch_schedules WHERE automation_id=? AND account_id=? AND batch_id=?",
+    )
+      .bind(a.id, accountId, body.batchId)
+      .run();
+  await ensurePlan(c.env, a as ScheduledAutomation);
+  return c.json({
+    saved: true,
+    needsUpdate: Boolean(body.posting && !(a as any).batch_schedule_enabled),
   });
 });
 queue.post("/:id/queue/schedule", async (c) => {
@@ -650,19 +817,22 @@ queue.delete("/:id/queue/schedule/:jobId", async (c) => {
       "Finish the current update before removing a time.",
       409,
     );
-  const result = await c.env.DB.prepare(
+  const changed = c.env.DB.prepare(
     "UPDATE schedule_jobs SET status='cancelled',detail='Removed from this day' WHERE id=? AND automation_id=? AND status='pending' AND planned_at=? AND planned_at>? AND schedule_revision=? AND EXISTS(SELECT 1 FROM automations WHERE id=? AND applied_revision=? AND operation_id IS NULL AND status IN('running','paused')) RETURNING id",
-  )
-    .bind(
-      c.req.param("jobId"),
-      a.id,
-      body.expectedAt,
-      now(),
-      a.applied_revision,
-      a.id,
-      a.applied_revision,
-    )
-    .first();
+  ).bind(
+    c.req.param("jobId"),
+    a.id,
+    body.expectedAt,
+    now(),
+    a.applied_revision,
+    a.id,
+    a.applied_revision,
+  );
+  const edits = await c.env.DB.batch([
+    changed,
+    rememberSlotEdit(c.env, a.id, c.req.param("jobId")),
+  ]);
+  const result = edits[0].results[0];
   if (!result)
     throw new PublicError(
       "slot_changed",
@@ -777,6 +947,7 @@ queue.post("/:id/queue/schedule/:jobId", async (c) => {
       target,
       gap,
     ),
+    rememberSlotEdit(c.env, a.id, job.id),
   ]);
   if (!result[1].results.length)
     throw new PublicError(
@@ -814,8 +985,11 @@ queue.post("/:id/queue/run", async (c) => {
     throw new PublicError("account", "Choose an active Pinterest account.");
   await rateLimit(c, `manual:${a.id}`, 3, 300);
   const at = now();
+  const policy = (await batchPolicies(c.env, a)).find(
+    (p: any) => p.accountId === body.accountId,
+  );
   await c.env.DB.prepare(
-    "INSERT OR IGNORE INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,detail,origin) VALUES(?,?,?,?,?,?,?,'pending',?,?)",
+    "INSERT OR IGNORE INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status,detail,origin,batch_id) VALUES(?,?,?,?,?,?,?,'pending',?,?,?)",
   )
     .bind(
       body.requestId,
@@ -827,6 +1001,7 @@ queue.post("/:id/queue/run", async (c) => {
       localDay(at, config.timeZone),
       body.sync ? "sync" : "manual",
       body.sync ? "sync" : "manual",
+      body.sync ? "" : policy?.batchId || "",
     )
     .run();
   await dispatchAutomation(c.env, a);

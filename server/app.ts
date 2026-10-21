@@ -114,6 +114,7 @@ function publicAutomation(a: Automation) {
     imported: a.workspace_id !== null && a.workspace_id !== undefined,
     schedulerEnabled: Boolean((a as any).scheduler_enabled),
     daySlotsEnabled: Boolean((a as any).day_slots_enabled),
+    batchScheduleEnabled: Boolean((a as any).batch_schedule_enabled),
     intent: (a as any).setup_intent || "new",
     createdAt: a.created_at,
     updatedAt: a.updated_at,

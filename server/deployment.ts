@@ -747,7 +747,7 @@ async function reconcileState(env: Env, userId: string, raw: Automation) {
       );
     await env.DB.batch([
       env.DB.prepare(
-        "UPDATE automations SET status=?,bootstrap=0,day_slots_enabled=1,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,flow_version_id=?,error_code=NULL WHERE id=?",
+        "UPDATE automations SET status=?,bootstrap=0,day_slots_enabled=1,batch_schedule_enabled=1,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,flow_version_id=?,error_code=NULL WHERE id=?",
       ).bind(
         a.resume_after_apply ? "running" : "paused",
         a.target_revision,

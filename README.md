@@ -20,7 +20,7 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Keep each automation and its Pinterest profiles together.
 - Connect Activepieces once, with readable account names.
 - Find an existing automation and keep its Sheet, schedule and Telegram without entering another token.
-- Change the selected profile’s schedule directly in New pins: daily amounts, varied windows, exact minute fields and automatic/custom spacing. Save & update applies it to the same automation and preserves pause state.
+- Set a temporary daily amount and varied/exact times for a new batch. When its Ready pins finish, posting returns to the account default. Adjust an existing batch from Queue.
 - Pause, resume, start a run and inspect its status.
 - Upload picture references for each profile.
 - Mix no-link pins, individual products, category overview pins and selected store products in one request.
@@ -35,7 +35,7 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 
 The website prepares instructions; it does not generate images or perform trend research in the background. Use the prompt in a content-creation session with web, image, Drive and Sheets access. That session first verifies its own Google Drive and Sheets connections and the exact Sheet/folder permissions. It then researches the designated account and sources, creates and checks the images, saves rows, and marks verified pins Ready in the same run without a member-approval step. Incomplete pins remain Draft with a reason. Website Google sign-in and saved Activepieces connections do not grant a separate creation session access; connect the required Google tools there if missing. Ready pins become eligible for the existing active schedule; they are not proof of a completed Pinterest post. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
 
-In **New pins**, open **Posting schedule** to change the selected profile’s publishing cadence. Automatic spacing adapts to daily amount and hours; exact clocks and custom minimum gaps remain available. **Save & update** applies the existing flow, while **Updating…** remains visible until the service confirms the change. Unchanged profiles keep their saved times. Creating 100 pins does not silently change the daily posting amount.
+In **New pins**, open **Schedule for these pins**. Choose **Account default** or **This batch only**, then set the daily amount and varied/exact times. The request saves that schedule; it activates when matching Ready rows reach the queue. Older engines receive a same-flow settings-only update before using it. Queue shows the active policy and lets you change a queued batch. After its eligible Ready rows finish, the next batch or account default takes over. Recurring defaults remain in Pinterest account settings.
 
 In **Queue → Posting days**, use the arrows or date picker to choose a day. **Change time** moves an existing slot; **Remove time** leaves its pins queued. These controls do not require updating the flow or changing recurring defaults. Green means Posted, blue Ready, and amber Needs attention; charts use the latest saved Sheet snapshot.
 
