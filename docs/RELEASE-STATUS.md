@@ -1,6 +1,6 @@
 # Release status — 21 October 2026
 
-Website changes through e6374c8 are deployed at https://automation.houdaifa.dev. GitHub run 39617991497 passed Build and test and Deploy production: 90 runtime, 11 flow-execution and 41 engine checks (142 total), plus production build and public health/access restrictions. The owner requested removal of Add time and its enable/update step; date picker/arrows, existing-slot edits/removal and colored snapshot charts remain. The busy-status page failure is fixed. Real owner recovery is confirmed: running, no error/lock, revision applied, same flow/Sheet and preserved notification/account schedules. No extra slots were added. Final CSS widens the desktop calendar to keep its date readable; build passed.
+Website changes through 964657e are deployed at https://automation.houdaifa.dev. GitHub run 39618796052 passed Build and test and Deploy production: 90 runtime, 11 flow-execution and 41 engine checks (142 total), plus production build and public health/access restrictions. The owner requested removal of Add time and its enable/update step; date picker/arrows, existing-slot edits/removal and colored snapshot charts remain. The busy-status page failure is fixed. Real owner recovery is confirmed: running, no error/lock, revision applied, same flow/Sheet and preserved notification/account schedules. No extra slots were added. The desktop calendar is wider to keep its date readable; the final release passed build and production checks.
 
 ## Bugs found and fixed
 

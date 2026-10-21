@@ -31,5 +31,17 @@
     "enableDayControls": "removed at owner request",
     "ownerRecoveryProof": "day-controls-recovery-2026-10-21.json",
     "realScreenshot": "screenshots/live-colored-queue-2026-10-21.png"
+  },
+  "finalRelease": {
+    "commit": "964657e",
+    "githubRun": "39618796052",
+    "conclusion": "success",
+    "checks": 142,
+    "publicAssets": [
+      "/assets/index-BK5Rq4ii.js",
+      "/assets/index-UFl2h6je.css"
+    ],
+    "homeScreenshot": "screenshots/live-colored-home-2026-10-21.png",
+    "phoneVisualAcceptance": "not verified"
   }
 }
