@@ -2809,11 +2809,13 @@ function Pins({
   }, [key, sources, notes]);
   const change = (id: string, patch: any) =>
     setSources((ss) => ss.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const automatic = (s:any) => ["category","catalog"].includes(s.kind) &&
+    (s.selection === "auto" || (!s.selection && s.kind === "catalog" && !s.products.length));
   const total = sources.reduce(
     (n, s) =>
       n +
-      (s.kind === "free" || s.kind === "product"
-        ? Number(s.count)
+      (s.kind === "free" || s.kind === "product" || automatic(s)
+        ? Number(s.count) + (automatic(s) ? Number(s.categoryCount) : 0)
         : s.products.length * Number(s.perProduct) + Number(s.categoryCount)),
     0,
   );
@@ -2883,7 +2885,7 @@ function Pins({
                       <option value="catalog">My website or store</option>
                     </select>
                   </Field>
-                  {["free", "product"].includes(s.kind) && (
+                  {(["free", "product"].includes(s.kind) || automatic(s)) && (
                     <Field label="Number of pins">
                       <input
                         type="number"
@@ -2930,6 +2932,20 @@ function Pins({
                 )}
                 {["category", "catalog"].includes(s.kind) && (
                   <>
+                    <Field label="Product selection">
+                      <select value={automatic(s) ? "auto" : "manual"} onChange={e=>change(s.id,{selection:e.target.value})}>
+                        <option value="auto">Choose products for me</option>
+                        <option value="manual">I will choose products</option>
+                      </select>
+                    </Field>
+                    {automatic(s) ? (
+                      <>
+                        <p className="inline-help">Research the catalog and choose relevant newer products and proven favorites. Each pin links to its own product.</p>
+                        <Field label={s.kind === "category" ? "Extra category overview pins" : "Extra store overview pins"}>
+                          <input type="number" min="0" step="1" value={s.categoryCount} onChange={e=>change(s.id,{categoryCount:e.target.value === "" ? "" : Number(e.target.value)})}/>
+                        </Field>
+                      </>
+                    ) : (<>
                     <div className="button-row">
                       <button
                         disabled={scanning !== null || !s.url}
@@ -3069,6 +3085,7 @@ function Pins({
                       Product pins link to each product. Overview pins link to
                       this {s.kind === "category" ? "category" : "store"}.
                     </p>
+                    </>)}
                   </>
                 )}
               </article>
@@ -3147,7 +3164,7 @@ function Pins({
                       variant: variant.current,
                       notes,
                       sources: sources.map(
-                        ({ id, manual, discovered, notice, ...s }) => s,
+                        ({ id, manual, discovered, notice, ...s }) => automatic(s) ? {...s,selection:"auto",products:[],perProduct:3} : s,
                       ),
                     },
                   );
@@ -3180,6 +3197,7 @@ function Pins({
                   {selected.username}. The prompt creates the content; copying
                   it does not queue or publish pins.
                 </p>
+                {selected.selectionPending && <p>Product selection happens during research. The final product links and mixed order are checked before creating pins.</p>}
                 <div className="destination-review">
                   {selected.input.destinations?.map((d: any, i: number) => (
                     <div className="review-row" key={i}>

@@ -347,6 +347,8 @@ it("builds one immutable mixed request with correct individual and category dest
 
   const again=await (await request(base+"/batches",user,"POST",input)).json() as any;
   expect(again.batch.id).toBe(batch.id);
+  const explicitManual=await (await request(base+"/batches",user,"POST",{...input,sources:sources.map(s=>s.kind === "category" ? {...s,selection:"manual"} : s)})).json() as any;
+  expect(explicitManual.batch.id).toBe(batch.id);
   const changed=await (await request(base+"/batches",user,"POST",{...input,notes:"Bold headlines"})).json() as any;
   expect(changed.batch.id).not.toBe(batch.id);
   const old=await (await request(base+`/batches/${batch.id}`,user)).json() as any;
@@ -366,7 +368,7 @@ it("supports large resumable requests and rejects fractional, unsafe and empty a
   expect(good.batch.prompt).toContain("resumable parts of at most 25");
   for(const count of [0,-1,1.5,Number.MAX_SAFE_INTEGER+1])
     expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"free",count}]})).status).toBe(400);
-  expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"catalog",url:"https://store.example.com"}]})).status).toBe(400);
+  expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"catalog",selection:"manual",url:"https://store.example.com"}]})).status).toBe(400);
   for(const url of ["http://example.com","https://127.0.0.1/","https://user:password@example.com/","https://example.com:8443/"])
     expect((await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"product",url}]})).status).toBe(400);
 });
@@ -400,4 +402,34 @@ it("adapts no-link animal and food requests without requiring products or an off
   expect(batch.input.destinations).toEqual([{kind:"no link",count:4,url:""}]);
   expect(batch.postingOrder.every((p:any)=>p.url==="")).toBe(true);
  }
+});
+
+it("accepts a whole shop URL without product selection and does not invent final product links",async()=>{
+ const {user,base}=await setup();
+ for(const url of ["https://www.etsy.com/shop/ExampleCreator","https://examplecreator.gumroad.com/","https://shop.example.com/patterns/"]){
+  const response=await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"catalog",url,count:12}]});
+  expect(response.status).toBe(200);const {batch}=await response.json() as any;
+  expect(batch.total).toBe(12);expect(batch.selectionPending).toBe(true);expect(batch.postingOrder).toEqual([]);
+  expect(batch.input.destinations).toEqual([{kind:"research-selected products",count:12,url,auto:true,scope:"catalog",title:"Choose products during research"}]);
+  expect(batch.prompt).toContain("not final pin destinations");
+  expect(batch.prompt).toContain("recent listings");
+  expect(batch.prompt).toContain("reuse verified facts");
+ }
+});
+it("keeps selected product counts and category overviews when mixing them with research-selected products",async()=>{
+ const {user,base}=await setup();
+ const response=await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"product",url:"https://shop.example.com/exact",count:8},{kind:"category",selection:"auto",url:"https://shop.example.com/flowers",count:12,categoryCount:2,products:[{url:"not a product URL",title:"stale hidden selection"}]}]});
+ expect(response.status).toBe(200);const {batch}=await response.json() as any;
+ expect(batch.total).toBe(22);expect(batch.input.destinations.map((d:any)=>d.count)).toEqual([8,12,2]);
+ expect(batch.input.destinations[0]).toMatchObject({kind:"exact product",url:"https://shop.example.com/exact"});
+ expect(batch.input.destinations[1]).toMatchObject({auto:true,scope:"category"});
+ expect(batch.input.destinations[2]).toMatchObject({kind:"category overview",url:"https://shop.example.com/flowers"});
+ expect(batch.input.sources[1].products).toEqual([]);expect(batch.selectionPending).toBe(true);
+});
+it("keeps a standard mixed-product prompt within a compact instruction budget",async()=>{
+ const {user,base}=await setup();
+ const sources=[{kind:"category",url:"https://shop.example.com/flowers",products:Array.from({length:8},(_,i)=>({url:`https://shop.example.com/product-${i+1}`,title:`Product ${i+1}`})),perProduct:8}];
+ const {batch}=await(await request(base+"/batches",user,"POST",{accountId:"profile",sources})).json() as any;
+ expect(batch.prompt.length).toBeLessThan(16000);
+ expect(batch.prompt).toContain("read only needed");
 });
