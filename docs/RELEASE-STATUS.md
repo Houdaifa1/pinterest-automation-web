@@ -1,6 +1,6 @@
 # Release status — 21 October 2026
 
-All committed website fixes through d076e4b are deployed at https://automation.houdaifa.dev. GitHub run 39612556967 passed Build and test and Deploy production. The checked release includes 87 runtime checks, ten flow-execution checks and 41 engine checks. Public health, private-access and development-login restrictions pass.
+Website changes through e55fe35 are deployed at https://automation.houdaifa.dev, including day navigation and colored queue charts; a follow-up removes Add time and repairs busy-status page failures. All 89 runtime, 11 flow-execution and 41 engine checks passed locally (141 total), plus production build. GitHub run 39616676996 is waiting for a runner; the checked build was deployed with Wrangler (a1a27d96) after migration 0011 succeeded. Public health, private-access and development-login restrictions pass. The owner's extra-day capability requires one explicit same-flow settings-only update; live calendar add/remove and visual phone checks remain pending Chrome control recovery.
 
 ## Bugs found and fixed
 
@@ -33,6 +33,8 @@ All committed website fixes through d076e4b are deployed at https://automation.h
 | Missing home/queue progress hid whether work was scheduled or finished | Per-account home counts, stored next slots, ordered filtered queue and actual recent slot outcomes | Actual Chrome home and queue data verified; no new publication receipt claimed by the sync |
 | First 500 historical rows hid newer Ready pins | Prioritize Ready/held rows in bounded previews and include row/date/product/health metadata | 511 Done plus one later Ready row regression; full bounded counts retained |
 | A one-off timing test required changing daily settings | Inline Change time for one pending slot on its existing day | Protected API move and validation tests; owner saved 14:10; real existing-content publication completed at 14:11:11, one Done and 83 Ready afterward |
+| Day navigation was missing, then added controls caused a busy-page failure | Date picker/arrows and existing-slot Change/Remove retained; Add time/update controls removed at owner request. Concurrent status checks return pending | Regression covers active locks and overlapping reconciliation; simplified live recovery verification follows |
+| Plain counters made progress hard to scan | Consistent colored numbers, tracked-total ring and segmented account bars, with text/accessibility labels | Actual snapshot data; final production visual acceptance pending |
 | Hour-only scheduling could not represent requested minutes/varied times | Stored minute jobs, spacing, single-use claims, pause/version checks, missed-slot skips and uncertain-response holds | Automated scheduler/engine checks; dispatcher deployed; actual revised-schedule publication still unverified |
 
 These are confirmed code mechanisms and verified release changes. They do not prove the exact cause of every error on a friend's inaccessible account. New capabilities and prompt requirements are identified above where the issue was a missing feature rather than an observed provider failure.

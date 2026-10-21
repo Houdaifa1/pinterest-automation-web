@@ -170,3 +170,7 @@ The owner requested a 15:00 → 14:12 test. Provide an inline per-slot time edit
 The owner requests previous/next day navigation, optional date selection and additional editable posting minutes per day. Keep recurring defaults separate. Extra slots increase only the protected allowance for that day; the engine accepts this only from its existing single-use website authorization. Enable the updated engine through a same-flow settings-only update, preserving content and recurring Sheet caps. Removing a time leaves its pins queued. Stored added/removed/moved slots survive unrelated settings changes.
 
 Statistics use a consistent green Posted / blue Ready / amber Needs attention color key, a ring with the tracked total and a segmented bar on account cards. Keep numbers, labels and accessible descriptions. Charts summarize verified Sheet snapshots; they do not imply an unrecorded trend or forecast.
+
+## 21 October 2026 — simplify day controls after reported failure
+
+Owner explicitly removed the extra-time addition/update controls. Keep date selection, day arrows and existing slot edits/removal. Do not require a remote flow update just to use the calendar. Preserve the colored statistics. Busy reconciliation is a pending status, not a page failure; status reads must retain the loaded automation while another update finishes.

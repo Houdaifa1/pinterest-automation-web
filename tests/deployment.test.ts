@@ -283,3 +283,31 @@ it.each(["running", "paused"])(
     ).toBe(true);
   },
 );
+
+it("status checks wait for active updates and overlapping reconciliation does not become a page error", async () => {
+  const a = await setup(),
+    remote = provider();
+  await deploy(env, "member", a);
+  await env.DB.prepare(
+    "UPDATE automations SET operation_id='active-update',operation_started_at=? WHERE id=?",
+  )
+    .bind(Math.floor(Date.now() / 1000), a.id)
+    .run();
+  const locked = await fresh(),
+    before = remote.calls.length;
+  expect(await reconcile(env, "member", locked)).toEqual({
+    status: "starting",
+    pending: true,
+  });
+  expect(remote.calls.length).toBe(before);
+  await env.DB.prepare("UPDATE automations SET operation_id=NULL WHERE id=?")
+    .bind(a.id)
+    .run();
+  const pending = await fresh();
+  const outcomes = await Promise.all([
+    reconcile(env, "member", pending),
+    reconcile(env, "member", pending),
+  ]);
+  expect(outcomes.some((x) => x.status === "running")).toBe(true);
+  expect((await fresh()).status).toBe("running");
+});

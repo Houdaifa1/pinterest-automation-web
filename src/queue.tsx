@@ -36,19 +36,13 @@ export function Queue({
     [moveError, setMoveError] = useState<unknown>(null),
     [day, setDay] = useState(() =>
       slotInput(Date.now() / 1000, config.timeZone).slice(0, 10),
-    ),
-    [addingTime, setAddingTime] = useState(false),
-    [addClock, setAddClock] = useState(""),
-    [addError, setAddError] = useState<unknown>(null);
-  const addId = useRef(crypto.randomUUID()),
-    loadId = useRef(0);
+    );
+  const loadId = useRef(0);
   const today = slotInput(Date.now() / 1000, config.timeZone).slice(0, 10);
   const chooseDay = (value: string) => {
     setDay(value);
     setMoving(null);
-    setAddingTime(false);
     setMoveError(null);
-    setAddError(null);
   };
   const pollUntil = useRef(0);
   const load = async () => {
@@ -587,92 +581,6 @@ export function Queue({
                     {day === today ? "Today" : day} · {daySlots.length} slots ·
                     up to {allowance} pins
                   </p>
-                  {day >= today && (
-                    <button
-                      disabled={working || busy}
-                      onClick={() => {
-                        setAddingTime(!addingTime);
-                        setAddClock("");
-                        setAddError(null);
-                        addId.current = crypto.randomUUID();
-                      }}
-                    >
-                      Add time
-                    </button>
-                  )}
-                  {addingTime && (
-                    <div className="slot-edit-fields">
-                      {!data.daySlotsEnabled ? (
-                        <>
-                          <p>
-                            Update this flow once to enable extra day slots.
-                          </p>
-                          <button
-                            disabled={working || busy}
-                            onClick={() => void action("deploy")}
-                          >
-                            Enable day controls
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <input
-                            aria-label="Extra posting time"
-                            type="time"
-                            value={addClock}
-                            onChange={(e) => setAddClock(e.target.value)}
-                            onInput={(e) => {
-                              setAddClock(e.currentTarget.value);
-                              setAddError(null);
-                            }}
-                            disabled={working}
-                          />
-                          <button
-                            disabled={working || !addClock}
-                            onClick={async () => {
-                              setWorking(true);
-                              setAddError(null);
-                              try {
-                                await api(
-                                  `/api/automations/${automation.id}/queue/schedule`,
-                                  "POST",
-                                  {
-                                    requestId: addId.current,
-                                    accountId,
-                                    time: day + "T" + addClock,
-                                  },
-                                );
-                                setAddingTime(false);
-                                setNotice(
-                                  "Time added for this day. Its posting allowance updates automatically.",
-                                );
-                                await load();
-                              } catch (e) {
-                                setAddError(e);
-                              } finally {
-                                setWorking(false);
-                              }
-                            }}
-                          >
-                            {working ? "Saving…" : "Add this time"}
-                          </button>
-                        </>
-                      )}
-                      {addError != null && (
-                        <p className="image-error" role="alert">
-                          {addError instanceof Error
-                            ? addError.message
-                            : "This time could not be added."}
-                        </p>
-                      )}
-                      <button
-                        disabled={working || busy}
-                        onClick={() => setAddingTime(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
                   {data.day !== day ? (
                     <p role="status">Loading day…</p>
                   ) : daySlots.length ? (

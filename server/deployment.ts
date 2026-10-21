@@ -627,6 +627,22 @@ async function refreshPublishedSettings(
   }
 }
 export async function reconcile(env: Env, userId: string, raw: Automation) {
+  const state = raw as DeployAutomation;
+  if (
+    state.operation_id &&
+    state.operation_started_at &&
+    state.operation_started_at >= now() - 180
+  )
+    return { status: state.status, pending: true };
+  try {
+    return await reconcileState(env, userId, raw);
+  } catch (error) {
+    if (error instanceof PublicError && error.code === "busy")
+      return { status: raw.status, pending: true };
+    throw error;
+  }
+}
+async function reconcileState(env: Env, userId: string, raw: Automation) {
   const a = raw as DeployAutomation;
   if (!a.flow_id) return { status: a.status };
   if (!["starting", "applying"].includes(a.status)) {

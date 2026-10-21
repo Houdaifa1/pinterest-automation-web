@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "commit": "e55fe35a5bcae139fac2199b81371600c93526fb",
+  "deployment": "https://a1a27d96.pinterest-automations.pages.dev",
+  "production": "https://automation.houdaifa.dev",
+  "releaseMethod": "Checked local build deployed with Wrangler while GitHub runner remained queued",
+  "checks": {
+    "runtime": 89,
+    "flowExecution": 11,
+    "engine": 41,
+    "productionBuild": true,
+    "health": 200,
+    "anonymousPrivateApi": 401,
+    "developmentLogin": 404
+  },
+  "migration": "0011_day_schedule_controls.sql",
+  "publicAssets": [
+    "/assets/index-B5aYly92.js",
+    "/assets/index-iysTepQL.css"
+  ],
+  "ownerDayCapability": "Awaiting same-flow settings-only update",
+  "calendarBrowserAcceptance": "Pending Chrome reload; native controls show blank window",
+  "previousRealPublicationProof": "live-slot-publication-2026-10-21.json"
+}

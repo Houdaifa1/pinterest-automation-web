@@ -14,7 +14,7 @@
 | 6. Live website, migration and beginner acceptance | website and push deployment verified; migration and acceptance pending | 2026-10-19 | engineer | automation.houdaifa.dev health/access checks pass |
 
 ## Next step
-The live owner queue is reconnected on its original flow and Sheet. The owner's existing 15:00 slot was moved to 14:10 and published successfully at 14:11:11, with 83 Ready and one Done afterward. Finish releasing and checking day-by-day Add/Change/Remove time controls and colored queue charts. Remaining independent acceptance: generated-image fidelity, deployed-flow deletion/recovery and dispatcher automatic releases. Preserve the original external resources; do not reset the website database again.
+The live owner queue is reconnected on its original flow and Sheet. The owner's existing 15:00 slot was moved to 14:10 and published successfully at 14:11:11, with 83 Ready and one Done afterward. Finish releasing the simplified day picker/existing-time editor and verify the busy-page recovery. Add time is removed at the owner’s request; colored charts remain. Remaining independent acceptance: generated-image fidelity, deployed-flow deletion/recovery and dispatcher automatic releases. Preserve the original external resources; do not reset the website database again.
 
 ## Session proof — 2026-10-19
 - Read AGENTS.md, HANDOFF.md fully, PROGRESS.md and DECISIONS.md in order.
@@ -473,3 +473,11 @@ The live owner queue is reconnected on its original flow and Sheet. The owner's 
 - Validation: 89 runtime, 11 flow-execution and 41 engine checks passed (141 total), plus production build. The extra-day flow test publishes beyond the recurring cap while retaining the Sheet cap; completed manual runs do not inflate day allowances. Release follows. Production calendar enablement and add/remove acceptance remain pending; do not infer them from the completed earlier publication test.
 
 - Calendar follow-up: switching dates now hides the prior day's slots while loading; repeated request validation checks the requested date before comparing saved jobs. The targeted 13 scheduler tests and production build pass.
+
+- Released e55fe35 directly to Cloudflare Pages deployment a1a27d96 after remote migration 0011 passed. Public assets match the checked build; health/access/development-login checks pass. GitHub runner is still queued (39616676996); superseded intermediate run cancellation requested. Automatic push deployment remains configured. Native Chrome controls again return a blank window; owner asked to reload and enable day controls through the same-flow settings-only update. Live day add/remove, chart screenshots and phone layout acceptance remain pending. No extra live content was created. See docs/proof/day-controls-release-2026-10-21.json.
+
+## 21 October 2026 — remove extra-time controls and fix busy-page failure
+
+- Owner reported the added control failing and asked to remove it while keeping date changes. Removed Add time and Enable day controls from Queue; retained date navigation, existing-slot Change/Remove and colored charts. No extra slots had been added to the owner automation.
+- Reproduced the actual production message: An action is already in progress. Refresh its status. The owner record was applying with a reconciliation lock, not a confirmed failed publication. Status checks can race the callback or another poll. They now return pending while an active update finishes, including the lock-acquisition race. Initial page load retains the valid loaded automation before checking provider status, avoiding a whole-page failure.
+- Proof: 90 runtime, 11 flow-execution and 41 engine checks passed (142 total), plus build. New regression covers an active operation with no extra provider reads and concurrent successful reconciliation without a busy exception. Simplified release and real state recovery verification follow.

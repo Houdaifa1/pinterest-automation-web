@@ -887,6 +887,9 @@ function AutomationPage() {
   const load = async () => {
     try {
       let r = await api(`/api/automations/${id}`);
+      setAutomation(r.automation);
+      current.current = r.automation;
+      setDraft({ ...defaults(user), ...r.automation.config });
       if (r.automation.deployed) {
         await api(`/api/automations/${id}/reconcile`, "POST", {});
         r = await api(`/api/automations/${id}`);

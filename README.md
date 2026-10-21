@@ -37,6 +37,8 @@ The website prepares instructions; it does not generate images or perform trend 
 
 In **New pins**, open **Posting schedule** to change the selected profile’s publishing cadence. Automatic spacing adapts to daily amount and hours; exact clocks and custom minimum gaps remain available. **Save & update** applies the existing flow, while **Updating…** remains visible until the service confirms the change. Unchanged profiles keep their saved times. Creating 100 pins does not silently change the daily posting amount.
 
+In **Queue → Posting days**, use the arrows or date picker to choose a day. **Change time** moves an existing slot; **Remove time** leaves its pins queued. These controls do not require updating the flow or changing recurring defaults. Green means Posted, blue Ready, and amber Needs attention; charts use the latest saved Sheet snapshot.
+
 For a shop request, open **New pins → My website or store**, paste the shop/catalog URL, keep **Choose products for me**, choose the amount and click **Review request**. Individual product links are resolved during creation research. If a manual scan cannot read a store, **Use automatic research** continues without pretending the scan succeeded. You can also paste exact product links. Automatic selections are saved as a batch plan before image creation so a resumed batch keeps the same products and mixed order.
 
 The compact prompt reuses verified research and shares topic checks across a batch. A measured 64-pin request became 57% shorter in characters while retaining product fidelity, offer checks and posting order. This is a prompt-size measurement, not measured billing savings.
