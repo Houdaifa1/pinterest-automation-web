@@ -1,6 +1,6 @@
 # Release status — 21 October 2026
 
-All committed website fixes through 381c3c0 are deployed at https://automation.houdaifa.dev. GitHub run 39567798392 passed Build and test and Deploy production. The checked release includes 70 runtime checks, ten flow-execution checks and 40 engine checks. Public health, private-access and development-login restrictions pass.
+All committed website fixes through 7f78256 are deployed at https://automation.houdaifa.dev. GitHub run 39576363602 passed Build and test and Deploy production. The checked release includes 71 runtime checks, ten flow-execution checks and 41 engine checks. Public health, private-access and development-login restrictions pass.
 
 ## Bugs found and fixed
 

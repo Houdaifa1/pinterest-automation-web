@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-21T09:24:09.977320+00:00",
+  "commit": "7f78256",
+  "workflowRevision": "2026-10-21.8",
+  "githubRun": 39576363602,
+  "buildAndTest": "success",
+  "deployProduction": "success",
+  "runtimeTests": 71,
+  "flowExecutionTests": 10,
+  "engineTests": 41,
+  "formatsChecked": [
+    "mixed sources",
+    "legacy lines"
+  ],
+  "oldDraftRequestRefreshedWithoutNewIdentity": true,
+  "preflightBeforeGeneration": true,
+  "verifiedPinsReadyWithoutMemberApproval": true,
+  "unrelatedDraftsProtected": true,
+  "concurrentPublishingStateProtected": true,
+  "queueAndPinterestIdsDistinguished": true,
+  "note": "Authenticated API tests verify delivered instructions and engine simulations verify ID handling. No new live content-generation or Pinterest-publication run was executed in this change."
+}
