@@ -17,6 +17,7 @@ export interface Account {
   website: string;
   pinsPerProduct: number;
   pinsPerDay: number;
+  legacyDailyCap?: number;
   schedule?: {
     mode: "varied" | "fixed";
     start: string;

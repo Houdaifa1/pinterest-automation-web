@@ -105,3 +105,9 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 
 - Mixed requests must retain the earlier research and creative process: inspect the designated Pinterest profile and existing content, verify source products, research current demand with dated sources, plan deliberate variety and inspect actual images and saved rows.
 - A shorter prompt must not remove necessary work. Mixed product/category/no-link counts and destinations take precedence over the old single-micro-niche batch rule. New rows remain Draft until member review; copied instructions are not queued content. Missing private analytics or blocked research must be stated honestly.
+
+## 21 October 2026 — existing flows and product discovery
+
+- Existing-only setup must fail safely when a flow cannot be imported; it must never create a replacement flow implicitly. Import must preserve supported legacy names, caps and schedules.
+- Removing a deployed automation pauses and verifies the remote removal before hiding the website record. Recoverable website settings remain available; restoration must not restart publishing automatically.
+- Category scans stay inside that category's product pagination. Whole-site navigation, policy links and unrelated categories are not products. Incomplete access must be visible instead of silently representing a partial inventory as complete.

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import app from "../server/app";
 import { decrypt, encrypt } from "../server/security";
 const origin = "http://localhost:8788";
@@ -340,4 +340,26 @@ it("starts new setups empty while retaining the member's sole encrypted integrat
     .bind(automation.id)
     .first();
   expect(saved?.integration_id).toBe(integrationId);
+});
+
+
+it("pauses and confirms remote deletion while preserving recoverable website settings",async()=>{
+ const user=await login("member-a");const {automation}=await(await request("/api/automations",user,"POST",{name:"Recoverable"})).json() as any;
+ const integration=crypto.randomUUID();await env.DB.prepare("INSERT INTO integrations VALUES(?,?,?,?,?,?)").bind(integration,user.user.id,await encrypt(env,"private-test-key",user.user.id),"project","Workspace",1).run();
+ await env.DB.prepare("UPDATE automations SET integration_id=?,flow_id='test-flow',status='running',applied_revision=1 WHERE id=?").bind(integration,automation.id).run();
+ let status="ENABLED",deleted=false;const calls:string[]=[];
+ const fetch=vi.spyOn(globalThis,"fetch").mockImplementation(async(_input,init)=>{
+  const method=init?.method||"GET";calls.push(method);
+  if(method==="DELETE"){expect(status).toBe("DISABLED");deleted=true;return new Response(null,{status:200});}
+  if(method==="POST"){status="DISABLED";return Response.json({status});}
+  return deleted?new Response(null,{status:404}):Response.json({status});
+ });
+ try{
+  expect((await request(`/api/automations/${automation.id}`,user,"DELETE",{confirm:true})).status).toBe(200);
+  expect(calls).toEqual(["GET","POST","GET","DELETE","GET"]);
+  expect((await request(`/api/automations/${automation.id}`,user)).status).toBe(404);
+  expect((await request(`/api/automations/${automation.id}/restore-draft`,user,"POST",{})).status).toBe(200);
+  const saved=await env.DB.prepare("SELECT flow_id,status,resume_after_apply FROM automations WHERE id=?").bind(automation.id).first();
+  expect(saved).toEqual({flow_id:null,status:"draft",resume_after_apply:0});
+ }finally{fetch.mockRestore();}
 });

@@ -295,6 +295,26 @@ app.put("/api/automations/:id", async (c) => {
     );
   return c.json({ automation: publicAutomation(updated) });
 });
+app.post("/api/automations/:id/creation-intent", async (c) => {
+  const a = await owned(c);
+  if (a.flow_id)
+    throw new PublicError(
+      "already_connected",
+      "This setup already manages a flow.",
+      409,
+    );
+  const { intent } = z
+    .object({ intent: z.enum(["new", "existing"]) })
+    .parse(await c.req.json());
+  const result = await c.env.DB.prepare(
+    "UPDATE automations SET setup_intent=? WHERE id=? AND user_id=? AND flow_id IS NULL AND operation_id IS NULL",
+  )
+    .bind(intent, a.id, c.get("user").id)
+    .run();
+  if (result.meta.changes !== 1)
+    throw new PublicError("busy", "An update is in progress. Wait for it to finish, then try again.", 409);
+  return c.json({ ok: true });
+});
 app.post("/api/automations/:id/setup-step", async (c) => {
   const a = await owned(c),
     { step } = z

@@ -8,7 +8,7 @@ export const setupMessages = {
       "No matching automation was found. You can start an empty one.",
     edit: "Edit",
     removeDraft: "Remove draft",
-    removedDrafts: "Removed drafts",
+    removedDrafts: "Removed automations",
     removeDraftConfirm:
       "Remove this unfinished setup? You can restore it below. Your Activepieces connections stay saved.",
     activepiecesConnected: "Activepieces is connected",

@@ -27,7 +27,7 @@ export const configSchema = z.object({
     .array(
       z.object({
         id: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
-        name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,29}$/),
+        name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 _-]{0,29}$/),
         username: z.string().regex(/^[A-Za-z0-9_]{1,30}$/),
         connection: z.string().max(80),
         niche: z.string().max(300),
@@ -44,6 +44,7 @@ export const configSchema = z.object({
         website: z.string().max(500).default(""),
         pinsPerProduct: z.number().int().min(3).max(15).default(6),
         pinsPerDay: z.number().int().min(1).max(1440),
+        legacyDailyCap: z.number().int().min(1).max(1440).optional(),
         schedule: scheduleSchema.optional(),
         hours: z.array(z.number().int().min(6).max(23)).min(1).max(18),
         on: z.boolean().default(true),

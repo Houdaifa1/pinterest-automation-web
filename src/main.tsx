@@ -947,25 +947,27 @@ function AutomationPage() {
             <span>/</span>
             <b>{automation.name}</b>
           </div>
-          <nav className="local-tabs">
-            {(
-              [
-                "summary",
-                "accounts",
-                "newPins",
-                "runs",
-                "history",
-                "settings",
-              ] as const
-            ).map((key) => (
-              <NavLink
-                key={key}
-                to={`${base}/${key === "newPins" ? "pins" : key}`}
-              >
-                {t(key)}
-              </NavLink>
-            ))}
-          </nav>
+          {(tab !== "setup" || automation.deployed) && (
+            <nav className="local-tabs">
+              {(
+                [
+                  "summary",
+                  "accounts",
+                  "newPins",
+                  "runs",
+                  "history",
+                  "settings",
+                ] as const
+              ).map((key) => (
+                <NavLink
+                  key={key}
+                  to={`${base}/${key === "newPins" ? "pins" : key}`}
+                >
+                  {t(key)}
+                </NavLink>
+              ))}
+            </nav>
+          )}
         </div>
         <main>
           <Link className="back-link" to="/">
@@ -1008,7 +1010,13 @@ function AutomationPage() {
                 <h1>{automation.name}</h1>
                 <div className="heading-actions">
                   <span className="muted" role="status">
-                    {saving ? t("saving") : pending.current ? "" : t("saved")}
+                    {Object.values(accountEdits).some(Boolean)
+                      ? "Unsaved changes"
+                      : saving
+                        ? t("saving")
+                        : pending.current
+                          ? ""
+                          : t("saved")}
                   </span>
                   <Status status={automation.status} />
                 </div>
@@ -1150,6 +1158,7 @@ function Setup({
     [botUrl, setBotUrl] = useState(""),
     [botStarted, setBotStarted] = useState(false),
     [botReady, setBotReady] = useState(false),
+    [botError, setBotError] = useState<unknown>(null),
     [flows, setFlows] = useState<any[]>([]),
     [flowChoice, setFlowChoice] = useState(""),
     [discovering, setDiscovering] = useState(false),
@@ -1219,22 +1228,29 @@ function Setup({
     };
   }, [step]);
   useEffect(() => {
-    if (!automation.connected || !draft.notifyTelegram) return;
+    setBotError(null);
+    setBotReady(false);
+    setBotStarted(false);
+    setBotUrl("");
+    if (!automation.connected || !draft.notifyTelegram || !draft.telegram) return;
+    let cancelled = false;
     const check = () =>
       api(
         `/api/automations/${automation.id}/telegram-status?connection=${encodeURIComponent(draft.telegram)}`,
       )
         .then((r) => {
+          if (cancelled) return;
+          setBotError(null);
           setBotUrl(r.botUrl || "");
           setBotStarted(Boolean(r.started));
           setBotReady(Boolean(r.tested || r.existing));
         })
-        .catch(setError);
+        .catch((e) => { if (!cancelled) setBotError(e); });
     void check();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void check();
     }, 8000);
-    return () => clearInterval(timer);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [
     automation.id,
     automation.connected,
@@ -1306,6 +1322,7 @@ function Setup({
             )}
       </h1>
       {error != null && <ErrorBox error={error} />}
+      {draft.notifyTelegram && draft.telegram && botError != null && <ErrorBox error={botError} />}
       {discovering ? (
         <p role="status">{t("loading")}</p>
       ) : step === 0 && automation.connected && !changingKey ? (
@@ -1648,7 +1665,7 @@ function Setup({
                 )}
               </div>
             )}
-          {(!flows.length || !flowChoice || automation.deployed) && (
+          {(automation.deployed || automation.intent === "new") && (
             <>
               <p>{t("reviewCopy")}</p>
               <div className="review-row">
@@ -1682,14 +1699,38 @@ function Setup({
               )}
             </>
           )}
+          {!automation.deployed &&
+            automation.intent === "existing" &&
+            !flows.length && (
+              <Notice>
+                No compatible saved flow was found. Refresh the
+                existing-automation list or repair its connections. This setup
+                will not create a new flow.
+              </Notice>
+            )}
           <div className="setup-options">
             {flows.length > 0 &&
               !automation.deployed &&
               automation.intent === "existing" && (
                 <button
-                  onClick={() =>
-                    setFlowChoice(flowChoice ? "" : flows[0].choice)
-                  }
+                  onClick={async () => {
+                    setWorking(true);
+                    try {
+                      await flush();
+                      await api(
+                        `/api/automations/${automation.id}/creation-intent`,
+                        "POST",
+                        { intent: "new" },
+                      );
+                      await load();
+                      setFlowChoice("");
+                      setStep(2);
+                    } catch (e) {
+                      setError(e);
+                    } finally {
+                      setWorking(false);
+                    }
+                  }}
                 >
                   {t(
                     flowChoice
@@ -1803,8 +1844,10 @@ function Accounts({
     };
   }, [adding]);
   useEffect(() => {
-    if (available.length === 1 && !available.some((c) => c.id === chosen))
+    if (available.length === 1 && !available.some((c) => c.id === chosen)) {
       setChosen(available[0].id);
+      setCategory(newPinterestAccount(available[0]).category);
+    }
   }, [connections, adding]);
   const add = async () => {
     const c = available.find((c) => c.id === chosen);
@@ -1870,7 +1913,9 @@ function Accounts({
       ))}
       <Modal title={t("addAccount")} open={adding} onOpenChange={setAdding}>
         {addError != null && <ErrorBox error={addError} />}
-        {available.length ? (
+        {addingNow ? (
+          <p role="status">Saving this Pinterest account…</p>
+        ) : available.length ? (
           <>
             <p>{t("foundPinterest")}</p>
             <Field label={t("select")}>
@@ -2014,7 +2059,11 @@ function AccountCard({
     window.addEventListener("beforeunload", prevent);
     return () => window.removeEventListener("beforeunload", prevent);
   }, [dirty]);
-  const change = (patch: Partial<Account>) => setValue({ ...value, ...patch });
+  const change = (patch: Partial<Account>) => setValue({
+    ...value, ...patch,
+    ...(patch.pinsPerDay !== undefined && patch.pinsPerDay !== value.pinsPerDay
+      ? { legacyDailyCap: undefined } : {}),
+  });
   return (
     <article className={`panel account-card ${dirty ? "has-changes" : ""}`}>
       <div className="account-heading">
@@ -2891,7 +2940,7 @@ function Pins({
                             const r = await api(
                               `/api/automations/${automation.id}/catalog`,
                               "POST",
-                              { url: s.url },
+                              { url: s.url, kind: s.kind },
                             );
                             change(s.id, {
                               discovered: r.products,

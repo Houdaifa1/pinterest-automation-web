@@ -10,6 +10,7 @@ import {
   type Integration,
 } from "./activepieces";
 import { configSchema } from "./config";
+import { scheduleSchema } from "./schedule-plan";
 import { decrypt, hash, id, now, PublicError, rateLimit } from "./security";
 import type { AppEnv, Automation, Env } from "./types";
 
@@ -83,7 +84,7 @@ export function readExistingFlow(
     )
       return null;
     const hours: number[] = [...new Set<number>(a.hours || [])];
-    if (hours.length !== (a.dailyCap || hours.length)) return null;
+
     const before = previous.accounts?.find(
       (p: any) => p.connection === connection.id,
     );
@@ -93,8 +94,10 @@ export function readExistingFlow(
       : /recipe|cook|food|kitchen/i.test(niche)
         ? "food"
         : "other";
+    const schedule = scheduleSchema.safeParse(a.websiteSchedule);
     accounts.push({
       ...before,
+      ...(schedule.success ? { schedule: schedule.data } : {}),
       id: before?.id || connection.id,
       name: a.name,
       username: connection.identity.replace(/^@/, ""),
@@ -107,7 +110,9 @@ export function readExistingFlow(
       source: before?.source || "niche",
       website: before?.website || "",
       pinsPerProduct: before?.pinsPerProduct || 6,
-      pinsPerDay: hours.length,
+      pinsPerDay: schedule.success ? a.dailyCap : hours.length,
+      legacyDailyCap: a.dailyCap || hours.length,
+
       hours,
       on: a.on !== false,
     });

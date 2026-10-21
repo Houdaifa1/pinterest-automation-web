@@ -80,7 +80,7 @@ export async function ap(
       502,
     );
   }
-  if (response.status === 204) return null;
+  if (response.status === 204 || method === "DELETE") {await response.body?.cancel(); return null;}
   try {
     return (await response.json()) as any;
   } catch {

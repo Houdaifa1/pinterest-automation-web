@@ -180,7 +180,7 @@ export const messages = {
     accountTitle: "Your website account",
     deleteAutomation: "Delete automation",
     deleteAutomationConfirm:
-      "Delete this automation and its posting flow? Your Pinterest account stays connected. This cannot be undone.",
+      "Delete its Activepieces posting flow and remove this automation? Website settings and history stay recoverable. Restoring creates a new paused flow; it cannot recover the deleted remote flow.",
     ...setupMessages.en,
   },
 };

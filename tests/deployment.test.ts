@@ -189,3 +189,9 @@ it("one Pinterest login cannot be activated in two website automations", async (
   });
   expect(remote.created).toBe(1);
 });
+
+it("an existing-only setup cannot create any new provider flow even when discovery failed",async()=>{
+ const a=await setup();await env.DB.prepare("UPDATE automations SET setup_intent='existing' WHERE id=?").bind(a.id).run();
+ const p=provider();await expect(deploy(env,"member",await fresh())).rejects.toMatchObject({code:"existing_required"});expect(p.calls).toHaveLength(0);
+ expect((await fresh()).flow_id).toBeNull();
+});

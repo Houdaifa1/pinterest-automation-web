@@ -65,6 +65,15 @@ export function buildWebsiteFlow(
         config.settings.requireTelegramRecipient = true;
         step.settings.input.config = JSON.stringify(config);
       }
+      if (step.name === "step_3") {
+        const config = JSON.parse(step.settings.input.config);
+        for (const a of config.accounts) {
+          const original = requestedState.accounts.find((x) => x.name === a.name);
+          if (original?.legacyDailyCap) a.dailyCap = original.legacyDailyCap;
+          if (original?.schedule) a.websiteSchedule = original.schedule;
+        }
+        step.settings.input.config = JSON.stringify(config);
+      }
       if (step.name === "step_3" && maintenance) {
         const config = JSON.parse(step.settings.input.config);
         config.settings.maintenance = true;
@@ -100,7 +109,7 @@ export function buildWebsiteFlow(
           const original = requestedState.accounts.find(
             (x) => x.name === a.name,
           );
-          a.dailyCap = original.pinsPerDay;
+          a.dailyCap = original.legacyDailyCap || original.pinsPerDay;
           a.websiteId = original.id;
           a.username = original.username;
         }

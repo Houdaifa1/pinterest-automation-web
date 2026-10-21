@@ -263,6 +263,12 @@ async function install(
 }
 export async function deploy(env: Env, userId: string, raw: Automation) {
   let a = raw as DeployAutomation;
+  if (!a.flow_id && (a as any).setup_intent === "existing")
+    throw new PublicError(
+      "existing_required",
+      "Choose your existing Activepieces flow first. This setup cannot create a new flow. To start separately, choose Create new automation.",
+      409,
+    );
   const operation = await lock(env, a);
   try {
     a = (await env.DB.prepare(
@@ -692,17 +698,55 @@ deployment.delete("/:id", async (c) => {
     if (a.flow_id) {
       const { key } = await getIntegration(c.env, c.get("user").id, a);
       try {
-        await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`, "DELETE");
+        const path = `/flows/${encodeURIComponent(a.flow_id)}`;
+        const remote = await ap(key, path);
+        if (remote.status !== "DISABLED") {
+          await ap(key, path, "POST", {
+            type: "CHANGE_STATUS",
+            request: { status: "DISABLED" },
+          });
+          const paused = await ap(key, path);
+          if (paused.status !== "DISABLED")
+            throw new PublicError(
+              "delete_pause",
+              "The flow could not be paused. Refresh before deleting it.",
+              409,
+            );
+        }
+        await ap(key, path, "DELETE");
+        let exists = true;
+        try {
+          await ap(key, path);
+        } catch (e) {
+          if (e instanceof PublicError && e.code === "service_not_found")
+            exists = false;
+          else throw e;
+        }
+        if (exists)
+          throw new PublicError(
+            "delete_unconfirmed",
+            "Activepieces has not confirmed deletion. The flow is paused; refresh and try again.",
+            409,
+          );
       } catch (e) {
         if (!(e instanceof PublicError && e.code === "service_not_found"))
           throw e;
       }
     }
-    await c.env.DB.prepare(
-      "DELETE FROM automations WHERE id=? AND user_id=? AND operation_id=?",
-    )
-      .bind(a.id, c.get("user").id, operation)
-      .run();
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        "UPDATE automations SET archived_at=?,updated_at=?,flow_id=NULL,seed_run_id=NULL,last_run_id=NULL,flow_version_id=NULL,status='draft',applied_revision=0,bootstrap=0,resume_after_apply=0,planned_through=NULL WHERE id=? AND user_id=? AND operation_id=?",
+      ).bind(now(), now(), a.id, c.get("user").id, operation),
+      c.env.DB.prepare("DELETE FROM profile_claims WHERE automation_id=?").bind(
+        a.id,
+      ),
+      c.env.DB.prepare("DELETE FROM flow_bindings WHERE automation_id=?").bind(
+        a.id,
+      ),
+      c.env.DB.prepare(
+        "UPDATE schedule_jobs SET status='cancelled',detail='Automation removed' WHERE automation_id=? AND status IN('pending','dispatched','claimed')",
+      ).bind(a.id),
+    ]);
     return c.json({ ok: true });
   } finally {
     await unlock(c.env, a, operation);

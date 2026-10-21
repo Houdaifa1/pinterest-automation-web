@@ -350,3 +350,24 @@ it("ignores unsupported or damaged flow configurations", () => {
   damaged.publishedVersionId = "another-version";
   expect(readExistingFlow(damaged, [])).toBeNull();
 });
+
+it("imports spaced legacy account names and a daily cap different from posting hours", async () => {
+  const provider = remote(), s = await session(), a = await draft(s);
+  const flow = provider.flow();
+  let prepare = flow.version.trigger;
+  while (prepare.name !== "step_3") prepare = prepare.nextAction;
+  const raw = JSON.parse(prepare.settings.input.config);
+  raw.accounts[0].name = "Stunning Crochet";
+  raw.accounts[0].dailyCap = 2;
+  raw.accounts[0].hours = [9, 12, 15, 18];
+  prepare.settings.input.config = JSON.stringify(raw);
+  const response = await request(`/api/automations/${a.id}/discovery`, s);
+  expect(response.status).toBe(200);
+  const result = await response.json() as any;
+  expect(result.flows).toHaveLength(1);
+  expect(result.flows[0].config.accounts[0]).toMatchObject({name:"Stunning Crochet",username:"crochettest",pinsPerDay:4,legacyDailyCap:2});
+  expect((await request(`/api/automations/${a.id}/adopt`,s,"POST",{choice:result.flows[0].choice})).status).toBe(200);
+  const saved = await fresh(a.id);
+  expect(JSON.parse(saved.config).accounts[0].name).toBe("Stunning Crochet");
+  expect(provider.calls.every(c=>c.method==="GET")).toBe(true);
+});
