@@ -533,6 +533,10 @@ async function refreshPublishedSettings(
           409,
         );
     }
+    const reconnectCode =
+      !(a as any).scheduler_enabled && parsed.executionEndpoint
+        ? "schedule_reconnect"
+        : null;
     const config = JSON.stringify(parsed.config);
     if (
       config === a.config &&
@@ -541,10 +545,11 @@ async function refreshPublishedSettings(
       remote.publishedVersionId === a.flow_version_id
     ) {
       await env.DB.prepare(
-        "UPDATE automations SET status=?,error_code=NULL WHERE id=? AND operation_id=?",
+        "UPDATE automations SET status=?,error_code=? WHERE id=? AND operation_id=?",
       )
         .bind(
           remote.status === "ENABLED" ? "running" : "paused",
+          reconnectCode,
           a.id,
           operation,
         )
@@ -566,7 +571,7 @@ async function refreshPublishedSettings(
     ];
     const statements = [
       env.DB.prepare(
-        "UPDATE automations SET name=?,config=?,applied_config=?,revision=?,applied_revision=?,flow_version_id=?,status=?,error_code=NULL,updated_at=? WHERE id=? AND user_id=? AND revision=? AND operation_id=?",
+        "UPDATE automations SET name=?,config=?,applied_config=?,revision=?,applied_revision=?,flow_version_id=?,status=?,error_code=?,updated_at=? WHERE id=? AND user_id=? AND revision=? AND operation_id=?",
       ).bind(
         parsed.name,
         config,
@@ -575,6 +580,7 @@ async function refreshPublishedSettings(
         revision,
         remote.publishedVersionId,
         remote.status === "ENABLED" ? "running" : "paused",
+        reconnectCode,
         now(),
         a.id,
         userId,
@@ -635,10 +641,28 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
       : remote.status === "ENABLED"
         ? "running"
         : "paused";
+    let reconnect = a.error_code === "schedule_reconnect";
+    if (!(a as any).scheduler_enabled && !changed) {
+      let step = remote.version?.trigger;
+      for (let n = 0; step && n < 40; n++, step = step.nextAction)
+        if (step.name === "step_3") {
+          try {
+            const config =
+              typeof step.settings?.input?.config === "string"
+                ? JSON.parse(step.settings.input.config)
+                : step.settings?.input?.config;
+            reconnect = Boolean(config?.settings?.website);
+          } catch {}
+        }
+    }
     await env.DB.prepare(
       "UPDATE automations SET status=?,error_code=? WHERE id=?",
     )
-      .bind(status, changed ? "external_change" : null, a.id)
+      .bind(
+        status,
+        changed ? "external_change" : reconnect ? "schedule_reconnect" : null,
+        a.id,
+      )
       .run();
     return { status };
   }

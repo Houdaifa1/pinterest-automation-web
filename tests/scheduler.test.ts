@@ -453,3 +453,39 @@ it("normalizes automatic spacing on save and rejects impossible explicit spacing
   expect(unchanged.revision).toBe(saved.automation.revision);
   expect(JSON.parse(unchanged.config).accounts[0].schedule.minSpacing).toBe(65);
 });
+
+it("shows real member-scoped home counts and past missed/review outcomes alongside the stored future plan", async () => {
+  const { a, request, callback, job } = await setup();
+  await callback("snapshot", {
+    accounts: [
+      {
+        name: "profile",
+        complete: true,
+        counts: { Ready: 8, Done: 3, Draft: 2 },
+        health: "OK",
+        lastRun: "2026-10-21 10:00",
+        pins: [],
+      },
+    ],
+  });
+  await job("missed", now() - 3600);
+  await job("review", now() - 1800);
+  await job("pending", now() + 300);
+  const queue: any = await (
+    await request(`/api/automations/${a.id}/queue`)
+  ).json();
+  expect(queue.recent.map((j: any) => j.status)).toEqual(["review", "missed"]);
+  expect(queue.snapshots[0].health).toBe("OK");
+  const home: any = await (await request("/api/automations")).json();
+  const summary = home.automations.find((x: any) => x.id === a.id)
+    .queueSummary[0];
+  expect(summary).toMatchObject({
+    accountId: "profile",
+    ready: 8,
+    published: 3,
+    held: 2,
+    total: 13,
+    attention: 2,
+  });
+  expect(summary.nextAt).toBeGreaterThan(now());
+});

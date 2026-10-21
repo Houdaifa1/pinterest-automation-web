@@ -288,7 +288,7 @@ async function adoptFlow(
       a.revision,
     ),
     env.DB.prepare(
-      "UPDATE automations SET name=?,config=?,revision=?,applied_revision=?,applied_config=?,flow_id=?,flow_version_id=?,seed_run_id=?,sheet_url=?,workspace_id=?,status=?,setup_step=3,error_code=NULL,updated_at=? WHERE id=? AND user_id=? AND flow_id IS NULL AND operation_id IS NULL AND revision=?",
+      "UPDATE automations SET name=?,config=?,revision=?,applied_revision=?,applied_config=?,flow_id=?,flow_version_id=?,seed_run_id=?,sheet_url=?,workspace_id=?,status=?,setup_step=3,error_code=?,updated_at=? WHERE id=? AND user_id=? AND flow_id IS NULL AND operation_id IS NULL AND revision=?",
     ).bind(
       parsed.name,
       config,
@@ -301,6 +301,7 @@ async function adoptFlow(
       sheet,
       parsed.workspace,
       flow.status === "ENABLED" ? "running" : "paused",
+      parsed.executionEndpoint ? "schedule_reconnect" : null,
       now(),
       a.id,
       userId,

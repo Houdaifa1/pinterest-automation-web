@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { slotTime } from "../shared/queue-plan";
 import { createRoot } from "react-dom/client";
 import {
   createBrowserRouter,
@@ -145,7 +146,13 @@ function Empty({
     </div>
   );
 }
-function Status({ status }: { status: string }) {
+function Status({
+  status,
+  errorCode,
+}: {
+  status: string;
+  errorCode?: string | null;
+}) {
   const { t } = useWorkspace();
   const key: Message = [
     "draft",
@@ -159,7 +166,7 @@ function Status({ status }: { status: string }) {
   return (
     <span className={`status ${status}`}>
       <i />
-      {t(key)}
+      {errorCode === "schedule_reconnect" ? "Reconnect schedule" : t(key)}
     </span>
   );
 }
@@ -489,7 +496,18 @@ function Home() {
       .catch(setError)
       .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    const refresh = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    const interval = setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
   const creationId = useRef(crypto.randomUUID());
   const create = async (intent: "new" | "existing" = "new") => {
     setBusy(true);
@@ -587,7 +605,7 @@ function Home() {
                       <ChevronRight size={18} />
                     </h2>
                   </Link>
-                  <Status status={a.status} />
+                  <Status status={a.status} errorCode={a.errorCode} />
                   <div className="profile-list">
                     <span>
                       {t("accounts")} · {a.config.accounts?.length || 0}
@@ -596,6 +614,54 @@ function Home() {
                       <div key={account.id}>
                         <span className="pinterest-mark">P</span>
                         <bdi>@{account.username}</bdi>
+                        {(() => {
+                          const summary = a.queueSummary?.find(
+                            (s) => s.accountId === account.id,
+                          );
+                          return (
+                            <div className="home-queue-summary">
+                              {summary ? (
+                                <>
+                                  <span>
+                                    <strong>{summary.ready}</strong> ready
+                                  </span>
+                                  <span>
+                                    <strong>{summary.published}</strong> posted
+                                  </span>
+                                  {summary.held > 0 && (
+                                    <span>{summary.held} held</span>
+                                  )}
+                                  <small>
+                                    {a.status === "paused" || !account.on
+                                      ? "Posting paused"
+                                      : summary.nextAt && a.schedulerEnabled
+                                        ? `Next slot ${slotTime(summary.nextAt, a.config.timeZone || "UTC")}`
+                                        : "No next slot confirmed"}
+                                  </small>
+                                  <small>
+                                    {summary.attention
+                                      ? `${summary.attention} recent slots need attention · `
+                                      : ""}
+                                    Synced{" "}
+                                    {slotTime(
+                                      summary.syncedAt,
+                                      a.config.timeZone || "UTC",
+                                    )}
+                                    {!summary.complete ? " · incomplete" : ""}
+                                  </small>
+                                </>
+                              ) : (
+                                <small>
+                                  {a.deployed
+                                    ? a.schedulerEnabled
+                                      ? "Waiting for first queue sync"
+                                      : "Live queue not connected"
+                                    : "Finish setup"}
+                                </small>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -1089,7 +1155,10 @@ function AutomationPage() {
                           ? ""
                           : t("saved")}
                   </span>
-                  <Status status={automation.status} />
+                  <Status
+                    status={automation.status}
+                    errorCode={automation.errorCode}
+                  />
                 </div>
               </div>
               {(automation.revision > automation.appliedRevision ||

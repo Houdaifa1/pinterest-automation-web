@@ -32,7 +32,7 @@ export const messages = {
     addAccount: "Add Pinterest account",
     open: "Open automation",
     draft: "Finish setup",
-    running: "Running",
+    running: "Scheduled",
     paused: "Paused",
     starting: "Preparing your first run",
     applying: "Applying changes",

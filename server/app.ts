@@ -3,6 +3,7 @@ import { deleteCookie } from "hono/cookie";
 import { z } from "zod";
 import { auth, requireSession } from "./auth";
 import { owned } from "./access";
+import { memberQueueSummaries } from "./queue-summary";
 import { integrations } from "./integrations";
 import { discovery, existingSetups } from "./discovery";
 import { normalizedSpacing } from "../shared/posting-schedule";
@@ -111,6 +112,7 @@ function publicAutomation(a: Automation) {
     connected: Boolean(a.integration_id),
     deployed: Boolean(a.flow_id),
     imported: a.workspace_id !== null && a.workspace_id !== undefined,
+    schedulerEnabled: Boolean((a as any).scheduler_enabled),
     intent: (a as any).setup_intent || "new",
     createdAt: a.created_at,
     updatedAt: a.updated_at,
@@ -122,10 +124,14 @@ app.get("/api/automations", async (c) => {
   )
     .bind(c.get("user").id)
     .all<Automation>();
+  const summaries = await memberQueueSummaries(c.env, c.get("user").id);
   return c.json({
     automations: rows.results
       .filter((a) => !a.archived_at)
-      .map(publicAutomation),
+      .map((a) => ({
+        ...publicAutomation(a),
+        queueSummary: summaries[a.id] || [],
+      })),
     removedDrafts: rows.results
       .filter((a) => a.archived_at && !a.flow_id)
       .map(publicAutomation),

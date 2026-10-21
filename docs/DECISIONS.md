@@ -156,3 +156,7 @@ Existing-flow review must show its saved notification choices, never a blank set
 ## 21 October 2026 — published Activepieces settings are authoritative
 
 The owner explicitly rejects replacing imported settings with sign-in defaults or hardcoded values. Read the selected published flow and connection metadata through Activepieces. Automatically refresh clean website state when the published version changes; retain website-only metadata. Conflicts need an explicit choice before discarding website drafts. A visible Refresh from Activepieces action reloads published settings; unpublished provider drafts are excluded. Unsupported structure/workspace/website-scheduler changes fail clearly. Saved requests and website-only media/history remain website data.
+
+## 21 October 2026 — show connected scheduling and actual queue evidence
+
+The owner requires per-account counts on home cards, queue order, stored posting minutes and visible recent outcomes. An ENABLED remote flow is not proof of successful publishing. Importing a flow that references a removed website callback must expose reconnect state and a same-flow settings-only repair, never silently leave daily maintenance looking healthy. Exact stored slots and provisional pin allocations must be distinguished; paused products/future dates and final publishing validation remain authoritative.

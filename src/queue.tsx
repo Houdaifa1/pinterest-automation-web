@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock, RefreshCw } from "lucide-react";
 import { api } from "./api";
+import { plannedPins, slotTime } from "../shared/queue-plan";
 import type { Automation, Config } from "./types";
 export function Queue({
   automation,
@@ -21,7 +22,9 @@ export function Queue({
     [accountId, setAccountId] = useState(config.accounts[0]?.id || ""),
     [selected, setSelected] = useState<any>(null),
     [patch, setPatch] = useState<any>({}),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [filter, setFilter] = useState("Ready"),
+    [visible, setVisible] = useState(50);
   const pollUntil = useRef(0);
   const load = async () => {
     try {
@@ -36,7 +39,7 @@ export function Queue({
     const interval = setInterval(() => {
       if (
         document.visibilityState === "visible" &&
-        pollUntil.current > Date.now()
+        (pollUntil.current > Date.now() || Date.now() % 30000 < 5000)
       )
         void load();
     }, 5000);
@@ -78,12 +81,50 @@ export function Queue({
       : 0,
     ready = counts?.Ready || 0,
     published = counts?.Done || 0,
-    review = (counts?.["Needs review"] || 0) + (counts?.Error || 0),
+    review =
+      (counts?.Draft || 0) +
+      (counts?.["Needs review"] || 0) +
+      (counts?.Error || 0),
     future = (data?.schedule || []).filter(
       (s: any) => s.account_id === accountId && s.status === "pending",
     ),
     profile = config.accounts.find((a) => a.id === accountId),
     stale = snap && Date.now() / 1000 - snap.syncedAt > 900;
+  useEffect(() => {
+    if (!config.accounts.some((a) => a.id === accountId))
+      setAccountId(config.accounts[0]?.id || "");
+  }, [config.accounts, accountId]);
+  const plan = plannedPins(
+    snap?.pins || [],
+    future,
+    config.timeZone,
+    automation.status === "running" && Boolean(profile?.on),
+  );
+  const planned = new Map(plan.map((p) => [p.pin.id, p.slot]));
+  const shown = (snap?.pins || []).filter(
+    (p: any) =>
+      filter === "All" ||
+      (filter === "Attention"
+        ? ["Draft", "Error", "Needs review", "Posting"].includes(p.status)
+        : p.status === filter),
+  );
+  const recent = (data?.recent || [])
+    .filter((j: any) => j.account_id === accountId)
+    .slice(0, 8);
+  const jobLabel = (j: any) =>
+    (
+      ({
+        completed: "Published",
+        missed: "Missed · skipped safely",
+        review: "Needs checking",
+        dispatched: "Starting",
+        claimed: "Starting",
+        started: "Publishing",
+        finished: "Finished · no pin published",
+        cancelled: "Cancelled",
+      }) as Record<string, string>
+    )[j.status] || j.status;
+
   const command = async (pin: any, changes: any) => {
     setWorking(true);
     setError(null);
@@ -168,6 +209,35 @@ export function Queue({
               {notice}
             </p>
           )}
+          {data?.schedulerEnabled && (
+            <div className="panel next-post-summary">
+              <span className="eyebrow">
+                {automation.status !== "running" || !profile?.on
+                  ? "Posting paused"
+                  : future.length
+                    ? "Next scheduled slot"
+                    : "Preparing posting times"}
+              </span>
+              <strong>
+                {automation.status === "running" && profile?.on && future[0]
+                  ? slotTime(future[0].planned_at, config.timeZone)
+                  : automation.status === "paused" || !profile?.on
+                    ? "Your queue is kept"
+                    : "No confirmed future slot"}
+              </strong>
+              <small>
+                {config.timeZone} ·{" "}
+                {ready
+                  ? `${ready} ready pins`
+                  : snap
+                    ? "Waiting for ready pins"
+                    : "Queue not synced yet"}
+              </small>
+              {snap?.health && !["OK", "Off"].includes(snap.health) && (
+                <p role="status">{snap.health}</p>
+              )}
+            </div>
+          )}
           {!data ? (
             <div className="empty" role="status">
               Reading your queue…
@@ -179,27 +249,44 @@ export function Queue({
                 The first sync reads the actual account Sheet. Missing data is
                 not an empty queue.
               </p>
-              <button
-                disabled={working || !data.schedulerEnabled}
-                onClick={() => void run(true)}
-              >
-                Sync queue
-              </button>
+              {data.schedulerEnabled ? (
+                <button
+                  disabled={working || busy}
+                  onClick={() => void run(true)}
+                >
+                  Sync queue
+                </button>
+              ) : (
+                <button
+                  className="primary"
+                  disabled={working || busy}
+                  onClick={() => void action("deploy")}
+                >
+                  {busy ? "Connecting…" : "Connect live queue"}
+                </button>
+              )}
               {!data.schedulerEnabled && (
                 <p>
-                  Update this automation to connect the queue and new schedule.
+                  Reconnect this flow and Sheet. A settings-only check runs
+                  first; it does not publish pins.
                 </p>
               )}
+              <Link
+                className="button"
+                to={`/automations/${automation.id}/runs`}
+              >
+                Check recent runs
+              </Link>
             </div>
           ) : (
             <>
               <div className="queue-stats">
                 <div>
-                  <span>Ready in Sheet</span>
+                  <span>Ready to post</span>
                   <strong>{ready.toLocaleString()}</strong>
                 </div>
                 <div>
-                  <span>Published in Sheet</span>
+                  <span>Posted</span>
                   <strong>{published.toLocaleString()}</strong>
                 </div>
                 <div>
@@ -207,7 +294,7 @@ export function Queue({
                   <strong>{total.toLocaleString()}</strong>
                 </div>
                 <div>
-                  <span>Needs review</span>
+                  <span>Needs attention</span>
                   <strong>{review.toLocaleString()}</strong>
                 </div>
               </div>
@@ -249,14 +336,37 @@ export function Queue({
               <div className="queue-content">
                 <div>
                   <div className="section-heading">
-                    <h3>Content</h3>
+                    <h3>Pin queue</h3>
                     <button disabled={working} onClick={() => void run(true)}>
                       Sync queue
                     </button>
                   </div>
-                  {!snap.pins.length ? (
+                  <div className="queue-filters" aria-label="Show pins">
+                    {[
+                      ["Ready", "Upcoming"],
+                      ["Done", "Posted"],
+                      ["Attention", "Needs attention"],
+                      ["All", "All"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        aria-pressed={filter === value}
+                        onClick={() => {
+                          setFilter(value);
+                          setVisible(50);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {!shown.length ? (
                     <div className="empty">
-                      <h3>No recorded pins</h3>
+                      <h3>
+                        {filter === "Ready"
+                          ? "No ready pins in this preview"
+                          : "No pins in this view"}
+                      </h3>
                       <Link
                         className="button"
                         to={`/automations/${automation.id}/pins`}
@@ -266,15 +376,30 @@ export function Queue({
                     </div>
                   ) : (
                     <div className="queue-pins">
-                      {snap.pins.map((p: any) => (
+                      {shown.slice(0, visible).map((p: any, index: number) => (
                         <article className="panel pin-item" key={p.id}>
                           <div className="pin-cover">
-                            <span>{p.status}</span>
-                            <strong>{p.title || "Untitled pin"}</strong>
-                            <small>{p.board || "Board not set"}</small>
+                            <strong>{index + 1}</strong>
                           </div>
                           <div className="pin-detail">
-                            <span className="eyebrow">{p.batch || p.id}</span>
+                            <span className="eyebrow">
+                              {p.status}
+                              {p.productPaused ? " · Product paused" : ""}
+                            </span>
+                            <h4>{p.title || "Untitled pin"}</h4>
+                            <strong className="pin-slot">
+                              {planned.has(p.id)
+                                ? `Planned ${slotTime(planned.get(p.id).planned_at, config.timeZone)}`
+                                : p.status === "Done"
+                                  ? `Posted ${p.postedAt || "· time unavailable"}`
+                                  : p.publishAfter
+                                    ? `Not before ${p.publishAfter}`
+                                    : "No slot assigned"}
+                            </strong>
+                            <small>
+                              {p.board || "Board not set"}
+                              {p.rowNumber ? ` · Sheet row ${p.rowNumber}` : ""}
+                            </small>
                             <p>{p.link || "No destination link"}</p>
                             {p.error && (
                               <p className="image-error">{p.error}</p>
@@ -355,8 +480,18 @@ export function Queue({
                           </div>
                         </article>
                       ))}
+                      {shown.length > visible && (
+                        <button onClick={() => setVisible((v) => v + 50)}>
+                          Show more pins
+                        </button>
+                      )}
                     </div>
                   )}
+                  <p className="inline-help">
+                    Planned slots use Sheet order and Publish after dates.
+                    Actual posting still checks media, products, daily caps and
+                    Pinterest; an invalid pin may be skipped.
+                  </p>
                 </div>
                 <aside className="panel upcoming-plan">
                   <h3>
@@ -365,23 +500,33 @@ export function Queue({
                   {future.length ? (
                     future.slice(0, 12).map((j: any) => (
                       <div className="review-row" key={j.id}>
-                        <time>
-                          {new Date(j.planned_at * 1000).toLocaleString("en", {
-                            timeZone:
-                              config.timeZone === "Africa/Casablanca"
-                                ? "UTC"
-                                : config.timeZone,
-                            weekday: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </time>
+                        <time>{slotTime(j.planned_at, config.timeZone)}</time>
                       </div>
                     ))
                   ) : (
                     <p>No future posting times confirmed yet.</p>
                   )}
-                  <small>{config.timeZone} · saved times</small>
+                  <small>
+                    {config.timeZone} · saved slots
+                    {automation.status !== "running" || !profile?.on
+                      ? " · paused"
+                      : ""}
+                  </small>
+                  <h3>Recent results</h3>
+                  {recent.length ? (
+                    recent.map((j: any) => (
+                      <div className="slot-result" key={j.id}>
+                        <time>{slotTime(j.planned_at, config.timeZone)}</time>
+                        <strong>{jobLabel(j)}</strong>
+                        {j.detail && <small>{j.detail}</small>}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No posting result recorded here yet.</p>
+                  )}
+                  <Link to={`/automations/${automation.id}/runs`}>
+                    View Activepieces runs
+                  </Link>
                   {(data.schedule || []).some(
                     (j: any) => j.status === "review",
                   ) && (

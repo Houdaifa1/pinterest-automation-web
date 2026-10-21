@@ -531,6 +531,43 @@ test("the website contract publishes once and confirms the actual queue receipt"
     });
     assert.equal(snapshot.accounts[0].counts.Done, 1);
     assert.ok(snapshot.accounts[0].pins[0].pinUrl.includes("/pin/"));
+    assert.equal(snapshot.accounts[0].pins[0].rowNumber, 2);
+    assert.equal(snapshot.accounts[0].pins[0].publishAfter, "");
+    assert.equal(typeof snapshot.accounts[0].health, "string");
+    // A long published history must not hide the next ready rows from the preview.
+    for (let i = 0; i < 510; i++)
+      rows.push(
+        rows[0].map((h) =>
+          h === "Pin ID"
+            ? `done-${i}`
+            : h === "Status"
+              ? "Done"
+              : h === "Title"
+                ? "Older pin"
+                : "",
+        ),
+      );
+    const next = {
+      ...pin,
+      "Pin ID": "future-ready",
+      Status: "Ready",
+      "Publish after": "2099-01-01 10:00",
+    };
+    rows.push(rows[0].map((h) => next[h] || ""));
+    await (
+      await load(status)
+    ).code({
+      google: { access_token: w.tokens.google },
+      config: prep.settings.input.config,
+      spreadsheet: prepared.spreadsheet,
+      jobs: [],
+      commands: [],
+    });
+    assert.equal(snapshot.accounts[0].counts.Done, 511);
+    assert.equal(snapshot.accounts[0].counts.Ready, 1);
+    assert.equal(snapshot.accounts[0].pins.length, 500);
+    assert.equal(snapshot.accounts[0].pins[0].id, "future-ready");
+    assert.equal(snapshot.accounts[0].pins[0].publishAfter, "2099-01-01 10:00");
     assert.ok(finished.some((x) => x.outcome === "published"));
   } finally {
     globalThis.fetch = originalFetch;

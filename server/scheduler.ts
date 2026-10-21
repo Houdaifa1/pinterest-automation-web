@@ -49,7 +49,7 @@ export async function ensurePlan(env: Env, a: ScheduledAutomation, at = now()) {
             name: account.name,
             day: d,
             at: planned,
-            status: planned < at ? "missed" : "pending",
+            status: planned < at ? "skipped" : "pending",
           });
       }
     }
@@ -372,6 +372,9 @@ const pinSchema = z.object({
   batch: z.string().max(100),
   pinUrl: z.string().max(300),
   postedAt: z.string().max(100),
+  rowNumber: z.number().int().min(2).max(10001).optional(),
+  publishAfter: z.string().max(100).nullable().optional(),
+  productPaused: z.boolean().optional(),
   error: z.string().max(1000),
 });
 scheduleCallbacks.post("/:id/:token/snapshot", async (c) => {
@@ -385,6 +388,9 @@ scheduleCallbacks.post("/:id/:token/snapshot", async (c) => {
               complete: z.boolean(),
               counts: z.record(z.string(), z.number().int().nonnegative()),
               pins: z.array(pinSchema).max(500),
+              health: z.string().max(300).optional(),
+              lastRun: z.string().max(100).optional(),
+              lastPost: z.string().max(100).optional(),
             }),
           )
           .max(20),
@@ -429,6 +435,8 @@ scheduleCallbacks.post("/:id/:token/snapshot", async (c) => {
 export const queue = new Hono<AppEnv>();
 queue.get("/:id/queue", async (c) => {
   const a = (await owned(c)) as ScheduledAutomation;
+  if (a.scheduler_enabled && ["running", "paused"].includes(a.status))
+    await ensurePlan(c.env, a);
   const snapshots = (
     await c.env.DB.prepare(
       "SELECT * FROM queue_snapshots WHERE automation_id=?",
@@ -450,8 +458,16 @@ queue.get("/:id/queue", async (c) => {
       .bind(a.id)
       .all()
   ).results;
+  const recent = (
+    await c.env.DB.prepare(
+      "SELECT id,account_id,planned_at,status,detail,started_at,finished_at FROM schedule_jobs WHERE automation_id=? AND planned_at>=? AND status NOT IN('pending','skipped') ORDER BY planned_at DESC LIMIT 60",
+    )
+      .bind(a.id, now() - 3 * 86400)
+      .all()
+  ).results;
   return c.json({
     schedulerEnabled: Boolean(a.scheduler_enabled),
+    recent,
     snapshots: snapshots.map((s) => ({
       accountId: s.account_id,
       ...JSON.parse(s.data),

@@ -44,6 +44,9 @@ async function websiteSnapshot(inputs) {
   const sheetId = match[1];
   const [accounts] = await sheets.batchGet(gTok,sheetId,[`${quoteTab(TABS.accounts)}!A1:Z200`]);
   const ah = headerMap(accounts[0],ACCOUNT_COLUMNS), snapshots = [];
+  const [products] = await sheets.batchGet(gTok,sheetId,[`${quoteTab(TABS.products)}!A1:H5000`]);
+  const ph = headerMap(products[0],PRODUCT_COLUMNS), productStates=new Map();
+  for(const p of products.slice(1)) productStates.set(`${normalizeName(cellText(p[ph.idx('Account')]))}|${normalizeName(cellText(p[ph.idx('Product')]))}`,normalizeName(cellText(p[ph.idx('Status')])));
   for (const a of config.accounts) {
     const row = accounts.slice(1).find(r=>cellText(r[ah.idx('Account')])===a.name);
     if(!row)continue;
@@ -51,16 +54,20 @@ async function websiteSnapshot(inputs) {
     const [rows] = await sheets.batchGet(gTok,sheetId,[`${quoteTab(tab)}!A1:AZ10001`]);
     const h=headerMap(rows[0],PIN_COLUMNS),counts={},pins=[];
     let complete=rows.length<10001;
-    for (const r of rows.slice(1)) {
+    for (let index=1; index<rows.length; index++) {
+      const r=rows[index];
       if (!r.some(v=>cellText(v))) continue;
       const get=(col)=>h.idx(col)===undefined?'':cellText(r[h.idx(col)]);
       const status=Object.values(STATUS).find(s=>s.toLowerCase()===get('Status').toLowerCase())||'Unknown';
       counts[status]=(counts[status]||0)+1;
       const pinId=get('Pin ID');if(!pinId){complete=false;continue;}
-      pins.push({id:pinId.slice(0,100),status,title:get('Title').slice(0,500),description:get('Description').slice(0,3000),link:get('Link').slice(0,2048),media:get('Media').slice(0,2000),board:get('Board').slice(0,300),batch:get('Batch').slice(0,100),pinUrl:get('Pin URL').slice(0,300),postedAt:get('Posted at').slice(0,100),error:get('Error').slice(0,1000)});
+      const productState=get('Product')?productStates.get(`${normalizeName(a.name)}|${normalizeName(get('Product'))}`):'';
+      pins.push({rowNumber:index+1,publishAfter:cellToLocalStamp(r[h.idx('Publish after')]),productPaused:productState==='paused' ,id:pinId.slice(0,100),status,title:get('Title').slice(0,500),description:get('Description').slice(0,3000),link:get('Link').slice(0,2048),media:get('Media').slice(0,2000),board:get('Board').slice(0,300),batch:get('Batch').slice(0,100),pinUrl:get('Pin URL').slice(0,300),postedAt:get('Posted at').slice(0,100),error:get('Error').slice(0,1000)});
     }
     // Read all counted rows; only the first 500 are sent as previews. Counts carry completeness separately.
-    const data={name:a.name,counts,complete,pins:pins.slice(0,500)};
+    const priority=p=>p.status==='Ready'?0:['Error','Needs review','Draft','Posting'].includes(p.status)?1:2;
+    pins.sort((a,b)=>priority(a)-priority(b)||a.rowNumber-b.rowNumber);
+    const data={name:a.name,counts,complete,health:cellText(row[ah.idx('Health')]).slice(0,300),lastRun:cellText(row[ah.idx('Last run')]).slice(0,100),lastPost:cellText(row[ah.idx('Last post')]).slice(0,100),pins:pins.slice(0,500)};
     await websiteRequest(base,'/snapshot',{accounts:[data],commands:snapshots.length?[]:(inputs.commands||[])});
     snapshots.push(data);
   }

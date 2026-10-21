@@ -56,6 +56,18 @@ export interface Automation {
   connected: boolean;
   deployed: boolean;
   imported: boolean;
+  schedulerEnabled: boolean;
+  queueSummary?: {
+    accountId: string;
+    ready: number;
+    published: number;
+    held: number;
+    total: number;
+    syncedAt: number;
+    complete: boolean;
+    nextAt: number | null;
+    attention: number;
+  }[];
   intent: "new" | "existing";
   createdAt: number;
   updatedAt: number;

@@ -547,3 +547,26 @@ it("protects pending website edits and requires an explicit revision-checked cho
   );
   expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
 });
+
+it("marks an imported website-managed flow for reconnection instead of treating a deleted website callback as healthy", async () => {
+  const provider = remote(),
+    s = await session(),
+    a = await draft(s);
+  provider.publishSettings({
+    website: "https://example.test/api/execute/deleted-record/old-token",
+  });
+  const discovery: any = await (
+    await request(`/api/automations/${a.id}/discovery`, s)
+  ).json();
+  expect(
+    (
+      await request(`/api/automations/${a.id}/adopt`, s, "POST", {
+        choice: discovery.flows[0].choice,
+      })
+    ).status,
+  ).toBe(200);
+  await reconcile(env, s.user.id, await fresh(a.id));
+  expect((await fresh(a.id)).error_code).toBe("schedule_reconnect");
+  expect((await fresh(a.id)).scheduler_enabled).toBe(0);
+  expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
+});
