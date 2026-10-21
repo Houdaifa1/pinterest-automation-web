@@ -156,12 +156,15 @@ function makePrompt(snapshot: any, batchId: string, urls: string[]) {
   );
 }
 async function prepareBatch(env: Env, origin: string, batch: Batch) {
-  if (batch.capability_expires && batch.capability_expires > now() + 3600)
+  const snapshot = JSON.parse(batch.snapshot);
+  const currentPrompt = snapshot.batch.version !== 2 ||
+    batch.prompt.startsWith("PINTEREST — RESEARCH, PLAN AND CREATE ");
+  if (currentPrompt && batch.capability_expires && batch.capability_expires > now() + 3600)
     return batch;
   const token = randomToken(),
     references = JSON.parse(batch.reference_ids) as string[];
   const prompt = makePrompt(
-    JSON.parse(batch.snapshot),
+    snapshot,
     batch.id,
     references.map(
       (mediaId) => `${origin}/api/reference/${batch.id}/${token}/${mediaId}`,

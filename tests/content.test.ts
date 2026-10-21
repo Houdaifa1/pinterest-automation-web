@@ -348,6 +348,12 @@ it("builds one immutable mixed request with correct individual and category dest
   expect(changed.batch.id).not.toBe(batch.id);
   const old=await (await request(base+`/batches/${batch.id}`,user)).json() as any;
   expect(old.batch.prompt).toContain("Warm backgrounds");
+  await env.DB.prepare("UPDATE batches SET prompt=? WHERE id=?")
+    .bind("Create 25 original Pinterest pins. Old short instructions.",batch.id).run();
+  const refreshed = await (await request(base+`/batches/${batch.id}`,user)).json() as any;
+  expect(refreshed.batch.id).toBe(batch.id);
+  expect(refreshed.batch.prompt).toContain("PINTEREST — RESEARCH, PLAN AND CREATE");
+  expect(refreshed.batch.prompt).toContain("Warm backgrounds");
 });
 
 it("supports large resumable requests and rejects fractional, unsafe and empty amounts",async()=>{
