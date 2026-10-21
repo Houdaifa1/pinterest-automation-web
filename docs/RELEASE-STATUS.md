@@ -1,6 +1,6 @@
 # Release status — 21 October 2026
 
-All committed website fixes through 7f78256 are deployed at https://automation.houdaifa.dev. GitHub run 39576363602 passed Build and test and Deploy production. The checked release includes 71 runtime checks, ten flow-execution checks and 41 engine checks. Public health, private-access and development-login restrictions pass.
+All committed website fixes through d93debf are deployed at https://automation.houdaifa.dev. GitHub run 39582332517 passed Build and test and Deploy production. The checked release includes 78 runtime checks, ten flow-execution checks and 41 engine checks. Public health, private-access and development-login restrictions pass.
 
 ## Bugs found and fixed
 
@@ -25,6 +25,8 @@ All committed website fixes through 7f78256 are deployed at https://automation.h
 | Creative instructions allowed repetitive scenes or unsupported offer claims | Require source comparison, distinct underlying imagery, exact products and verified free/paid/file-type facts | Delivered prompt inspected; rendered image quality is not yet verified |
 | Large repeated instructions wasted request space | Shared compact workflow, reusable dated research and bounded order preview | Same saved 64-pin prompt: 26,225 → 11,259 characters, 57% shorter; billed usage not measured |
 | Automatic product selection could change when resuming | Save/reuse resolved batch product URL/count/order plan before images; hold unavailable products | Delivered revision 2026-10-21.7 and automated directive check; execution acceptance remains open |
+| Changing a schedule could block replacement slots or reroll other accounts | Atomic revision/job migration, future cancelled-slot replacement and unchanged-account job preservation | Automated multi-account regression; actual revised-schedule publication remains unverified |
+| Schedule editing required leaving content creation | Collapsed New pins controls shared with account setup/settings, adaptive gaps and exact clocks | Local real UI/API checks at 320/390/1440px; same-flow running/paused updates with simulated provider |
 | Hour-only scheduling could not represent requested minutes/varied times | Stored minute jobs, spacing, single-use claims, pause/version checks, missed-slot skips and uncertain-response holds | Automated scheduler/engine checks; dispatcher deployed; actual revised-schedule publication still unverified |
 
 These are confirmed code mechanisms and verified release changes. They do not prove the exact cause of every error on a friend's inaccessible account. New capabilities and prompt requirements are identified above where the issue was a missing feature rather than an observed provider failure.
