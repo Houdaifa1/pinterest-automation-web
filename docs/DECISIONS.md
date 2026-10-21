@@ -160,3 +160,7 @@ The owner explicitly rejects replacing imported settings with sign-in defaults o
 ## 21 October 2026 — show connected scheduling and actual queue evidence
 
 The owner requires per-account counts on home cards, queue order, stored posting minutes and visible recent outcomes. An ENABLED remote flow is not proof of successful publishing. Importing a flow that references a removed website callback must expose reconnect state and a same-flow settings-only repair, never silently leave daily maintenance looking healthy. Exact stored slots and provisional pin allocations must be distinguished; paused products/future dates and final publishing validation remain authoritative.
+
+## 21 October 2026 — move one upcoming time without changing daily settings
+
+The owner requested a 15:00 → 14:12 test. Provide an inline per-slot time editor for the slot's existing date; leave recurring settings and other slots untouched. The website dispatcher already reads stored due jobs, so a one-slot edit does not require rebuilding or running Activepieces. Save is revision/timestamp checked and refuses past, started or conflicting slots. Daily schedule edits remain a separate control in New pins. The requested real publication test uses the owner's existing content, not newly injected test pins.

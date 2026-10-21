@@ -489,3 +489,78 @@ it("shows real member-scoped home counts and past missed/review outcomes alongsi
   });
   expect(summary.nextAt).toBeGreaterThan(now());
 });
+
+it("moves one pending posting slot without changing the daily settings or calling the provider", async () => {
+  const { a, request, job } = await setup();
+  const day = new Date((now() + 86400) * 1000).toISOString().slice(0, 10),
+    original = utcFor(day, 15 * 60, "UTC")!,
+    target = utcFor(day, 14 * 60 + 12, "UTC")!;
+  const id = await job("pending", original);
+  await env.DB.prepare("UPDATE schedule_jobs SET local_day=? WHERE id=?")
+    .bind(day, id)
+    .run();
+  const result = await request(
+    `/api/automations/${a.id}/queue/schedule/${id}`,
+    "POST",
+    { expectedAt: original, time: day + "T14:12" },
+  );
+  expect(result.status).toBe(200);
+  expect(await result.json()).toMatchObject({ saved: true, plannedAt: target });
+  const saved = await env.DB.prepare("SELECT * FROM schedule_jobs WHERE id=?")
+    .bind(id)
+    .first<any>();
+  expect(saved).toMatchObject({
+    planned_at: target,
+    status: "pending",
+    schedule_revision: a.applied_revision,
+  });
+  const unchanged = await env.DB.prepare(
+    "SELECT config,revision FROM automations WHERE id=?",
+  )
+    .bind(a.id)
+    .first<any>();
+  expect(unchanged.config).toBe(a.config);
+  expect(unchanged.revision).toBe(a.revision);
+  expect(
+    (
+      await request(`/api/automations/${a.id}/queue/schedule/${id}`, "POST", {
+        expectedAt: original,
+        time: day + "T14:13",
+      })
+    ).status,
+  ).toBe(409);
+});
+it("rejects past, invalid, conflicting, unowned and already-started slot edits", async () => {
+  const { a, request, job } = await setup();
+  const day = new Date((now() + 86400) * 1000).toISOString().slice(0, 10),
+    original = utcFor(day, 15 * 60, "UTC")!;
+  const id = await job("pending", original);
+  await env.DB.prepare("UPDATE schedule_jobs SET local_day=? WHERE id=?")
+    .bind(day, id)
+    .run();
+  const move = (time: string, jobId = id) =>
+    request(`/api/automations/${a.id}/queue/schedule/${jobId}`, "POST", {
+      expectedAt: original,
+      time,
+    });
+  expect((await move("2026-99-99T14:12")).status).toBe(400);
+  expect((await move("2020-01-01T14:12")).status).toBe(400);
+  const anotherDay = new Date((now() + 2 * 86400) * 1000)
+    .toISOString()
+    .slice(0, 10);
+  expect((await move(anotherDay + "T14:12")).status).toBe(409);
+  expect((await move(day + "T14:12", crypto.randomUUID())).status).toBe(404);
+  await job("pending", utcFor(day, 14 * 60, "UTC")!);
+  expect((await move(day + "T14:12")).status).toBe(409);
+  await env.DB.prepare("UPDATE schedule_jobs SET status='started' WHERE id=?")
+    .bind(id)
+    .run();
+  expect((await move(day + "T17:12")).status).toBe(409);
+  expect(
+    (
+      await env.DB.prepare("SELECT planned_at FROM schedule_jobs WHERE id=?")
+        .bind(id)
+        .first<any>()
+    ).planned_at,
+  ).toBe(original);
+});

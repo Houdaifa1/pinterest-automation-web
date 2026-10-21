@@ -1593,3 +1593,7 @@ footer {
 .slot-result strong {font-weight:500;}
 .upcoming-plan h3:not(:first-child) {margin-top:28px;}
 @media(max-width:480px) {.next-post-summary>strong{font-size:25px;}.pin-item{grid-template-columns:32px minmax(0,1fr);}.pin-item .pin-detail{padding:12px;}.queue-filters{gap:5px;}.queue-filters button{padding-inline:10px;}}
+.slot-editor {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:12px 0;font-size:13px;}
+.slot-editor > button {padding-inline:10px;font-size:12px;}
+.slot-edit-fields {display:flex;flex-wrap:wrap;gap:8px;width:100%;min-width:0;}
+.slot-edit-fields input {width:100%;min-width:0;}

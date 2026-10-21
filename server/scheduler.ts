@@ -478,6 +478,121 @@ queue.get("/:id/queue", async (c) => {
     commands,
   });
 });
+queue.post("/:id/queue/schedule/:jobId", async (c) => {
+  const a = (await owned(c)) as ScheduledAutomation;
+  const body = z
+    .object({
+      expectedAt: z.number().int().positive(),
+      time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+    })
+    .parse(await c.req.json());
+  if (
+    !a.scheduler_enabled ||
+    !["running", "paused"].includes(a.status) ||
+    a.operation_id
+  )
+    throw new PublicError(
+      "schedule_busy",
+      "Finish the current schedule update before moving this slot.",
+      409,
+    );
+  const job = await c.env.DB.prepare(
+    "SELECT * FROM schedule_jobs WHERE id=? AND automation_id=?",
+  )
+    .bind(c.req.param("jobId"), a.id)
+    .first<any>();
+  if (!job)
+    throw new PublicError("not_found", "This posting slot was not found.", 404);
+  if (
+    job.status !== "pending" ||
+    job.planned_at !== body.expectedAt ||
+    job.schedule_revision !== a.applied_revision ||
+    job.planned_at <= now()
+  )
+    throw new PublicError(
+      "slot_changed",
+      "This slot already changed or started. Refresh the queue.",
+      409,
+    );
+  const config = JSON.parse(a.applied_config || a.config),
+    account = config.accounts.find((p: any) => p.id === job.account_id);
+  if (!account)
+    throw new PublicError(
+      "account",
+      "This account changed. Refresh its queue.",
+      409,
+    );
+  const [day, clock] = body.time.split("T"),
+    [hour, minute] = clock.split(":").map(Number);
+  if (
+    hour > 23 ||
+    minute > 59 ||
+    !Number.isFinite(Date.parse(day + "T12:00:00Z")) ||
+    new Date(day + "T12:00:00Z").toISOString().slice(0, 10) !== day
+  )
+    throw new PublicError("time", "Choose a valid date and time.");
+  const target = utcFor(day, hour * 60 + minute, config.timeZone);
+  if (target === null || target < now() + 60 || target > now() + 31 * 86400)
+    throw new PublicError(
+      "time",
+      "Choose a future time, at least one minute away and within 31 days.",
+    );
+  const gap = Math.max(1, account.schedule?.minSpacing || 1) * 60;
+  const conflict = await c.env.DB.prepare(
+    "SELECT id FROM schedule_jobs WHERE automation_id=? AND account_id=? AND id<>? AND status NOT IN('cancelled','missed','skipped') AND ABS(planned_at-?)<? LIMIT 1",
+  )
+    .bind(a.id, job.account_id, job.id, target, gap)
+    .first();
+  if (conflict)
+    throw new PublicError(
+      "slot_spacing",
+      "This time is too close to another saved posting slot. Choose a different minute.",
+      409,
+    );
+  if (day !== localDay(job.planned_at, config.timeZone))
+    throw new PublicError(
+      "slot_day",
+      "Choose another time on this slot's day. Use Posting schedule for daily changes.",
+      409,
+    );
+  await rateLimit(c, `move-slot:${a.id}`, 30, 600);
+  const guard =
+    "EXISTS(SELECT 1 FROM schedule_jobs j JOIN automations a ON a.id=j.automation_id WHERE j.id=? AND j.automation_id=? AND j.planned_at=? AND j.status='pending' AND j.planned_at>unixepoch() AND j.schedule_revision=a.applied_revision AND a.operation_id IS NULL AND a.status IN('running','paused'))";
+  const result = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "DELETE FROM schedule_jobs WHERE automation_id=? AND account_id=? AND planned_at=? AND status='cancelled' AND " +
+        guard,
+    ).bind(a.id, job.account_id, target, job.id, a.id, body.expectedAt),
+    c.env.DB.prepare(
+      "UPDATE schedule_jobs SET planned_at=?,local_day=?,detail=? WHERE id=? AND automation_id=? AND planned_at=? AND status='pending' AND schedule_revision=? AND " +
+        guard +
+        " AND NOT EXISTS(SELECT 1 FROM schedule_jobs other WHERE other.automation_id=? AND other.account_id=? AND other.id<>? AND other.status NOT IN('cancelled','missed','skipped') AND ABS(other.planned_at-?)<?) RETURNING id",
+    ).bind(
+      target,
+      day,
+      `Moved from ${job.planned_at}`,
+      job.id,
+      a.id,
+      body.expectedAt,
+      a.applied_revision,
+      job.id,
+      a.id,
+      body.expectedAt,
+      a.id,
+      job.account_id,
+      job.id,
+      target,
+      gap,
+    ),
+  ]);
+  if (!result[1].results.length)
+    throw new PublicError(
+      "slot_changed",
+      "This slot already changed or started. Refresh the queue.",
+      409,
+    );
+  return c.json({ saved: true, plannedAt: target });
+});
 queue.post("/:id/queue/run", async (c) => {
   const a = (await owned(c)) as ScheduledAutomation;
   if (!a.scheduler_enabled)

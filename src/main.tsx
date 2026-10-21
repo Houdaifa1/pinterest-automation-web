@@ -1006,17 +1006,29 @@ function AutomationPage() {
   useEffect(() => {
     if (!automation || !["starting", "applying"].includes(automation.status))
       return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible")
-        api(`/api/automations/${id}/reconcile`, "POST", {})
-          .then(() => api(`/api/automations/${id}`))
-          .then((r) => {
-            setAutomation(r.automation);
-            current.current = r.automation;
-          })
-          .catch(setError);
-    }, 10000);
-    return () => clearInterval(timer);
+    let checking = false;
+    const check = async () => {
+      if (document.visibilityState !== "visible" || checking) return;
+      checking = true;
+      try {
+        await api(`/api/automations/${id}/reconcile`, "POST", {});
+        const r = await api(`/api/automations/${id}`);
+        setAutomation(r.automation);
+        current.current = r.automation;
+      } catch (e) {
+        setError(e);
+      } finally {
+        checking = false;
+      }
+    };
+    const timer = setInterval(() => void check(), 10000);
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
   }, [automation?.status, id]);
   if (error && !automation)
     return (

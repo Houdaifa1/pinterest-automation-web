@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock, RefreshCw } from "lucide-react";
 import { api } from "./api";
-import { plannedPins, slotTime } from "../shared/queue-plan";
+import { plannedPins, slotTime, slotInput } from "../shared/queue-plan";
 import type { Automation, Config } from "./types";
 export function Queue({
   automation,
@@ -24,7 +24,10 @@ export function Queue({
     [patch, setPatch] = useState<any>({}),
     [notice, setNotice] = useState(""),
     [filter, setFilter] = useState("Ready"),
-    [visible, setVisible] = useState(50);
+    [visible, setVisible] = useState(50),
+    [moving, setMoving] = useState<any>(null),
+    [moveTime, setMoveTime] = useState(""),
+    [moveError, setMoveError] = useState<unknown>(null);
   const pollUntil = useRef(0);
   const load = async () => {
     try {
@@ -44,7 +47,12 @@ export function Queue({
         void load();
     }, 5000);
     return () => clearInterval(interval);
-  }, [automation.id]);
+  }, [
+    automation.id,
+    automation.appliedRevision,
+    automation.status,
+    automation.schedulerEnabled,
+  ]);
   const run = async (sync: boolean) => {
     if (
       !sync &&
@@ -212,18 +220,24 @@ export function Queue({
           {data?.schedulerEnabled && (
             <div className="panel next-post-summary">
               <span className="eyebrow">
-                {automation.status !== "running" || !profile?.on
-                  ? "Posting paused"
-                  : future.length
-                    ? "Next scheduled slot"
-                    : "Preparing posting times"}
+                {["starting", "applying"].includes(automation.status)
+                  ? "Updating schedule"
+                  : automation.status === "paused" || !profile?.on
+                    ? "Posting paused"
+                    : automation.status !== "running"
+                      ? "Schedule needs attention"
+                      : future.length
+                        ? "Next scheduled slot"
+                        : "Preparing posting times"}
               </span>
               <strong>
                 {automation.status === "running" && profile?.on && future[0]
                   ? slotTime(future[0].planned_at, config.timeZone)
                   : automation.status === "paused" || !profile?.on
                     ? "Your queue is kept"
-                    : "No confirmed future slot"}
+                    : ["starting", "applying"].includes(automation.status)
+                      ? "Checking your settings…"
+                      : "No confirmed future slot"}
               </strong>
               <small>
                 {config.timeZone} ·{" "}
@@ -233,9 +247,14 @@ export function Queue({
                     ? "Waiting for ready pins"
                     : "Queue not synced yet"}
               </small>
-              {snap?.health && !["OK", "Off"].includes(snap.health) && (
-                <p role="status">{snap.health}</p>
-              )}
+              {snap?.health &&
+                !["OK", "Off"].includes(snap.health) &&
+                !(snap.health === "Queue empty" && ready > 0) && (
+                  <p role="status">
+                    Last account check{snap.lastRun ? ` (${snap.lastRun})` : ""}
+                    : {snap.health}
+                  </p>
+                )}
             </div>
           )}
           {!data ? (
@@ -394,7 +413,12 @@ export function Queue({
                                   ? `Posted ${p.postedAt || "· time unavailable"}`
                                   : p.publishAfter
                                     ? `Not before ${p.publishAfter}`
-                                    : "No slot assigned"}
+                                    : p.status === "Ready"
+                                      ? automation.status === "paused" ||
+                                        !profile?.on
+                                        ? "Posting paused"
+                                        : "After current saved plan"
+                                      : "Not queued"}
                             </strong>
                             <small>
                               {p.board || "Board not set"}
@@ -499,8 +523,94 @@ export function Queue({
                   </h3>
                   {future.length ? (
                     future.slice(0, 12).map((j: any) => (
-                      <div className="review-row" key={j.id}>
+                      <div className="slot-editor" key={j.id}>
                         <time>{slotTime(j.planned_at, config.timeZone)}</time>
+                        {moving?.id === j.id ? (
+                          <div className="slot-edit-fields">
+                            <input
+                              type="time"
+                              aria-label="New posting time"
+                              value={moveTime}
+                              onChange={(e) => setMoveTime(e.target.value)}
+                              onInput={(e) => {
+                                setMoveTime(e.currentTarget.value);
+                                setMoveError(null);
+                              }}
+                              disabled={working}
+                            />
+                            {moveError != null && (
+                              <p className="image-error" role="alert">
+                                {moveError instanceof Error
+                                  ? moveError.message
+                                  : "This time could not be saved."}
+                              </p>
+                            )}
+                            <button
+                              disabled={
+                                working ||
+                                !moveTime ||
+                                moveTime ===
+                                  slotInput(
+                                    j.planned_at,
+                                    config.timeZone,
+                                  ).slice(11)
+                              }
+                              onClick={async () => {
+                                setWorking(true);
+                                setMoveError(null);
+                                try {
+                                  await api(
+                                    `/api/automations/${automation.id}/queue/schedule/${j.id}`,
+                                    "POST",
+                                    {
+                                      expectedAt: j.planned_at,
+                                      time:
+                                        slotInput(
+                                          j.planned_at,
+                                          config.timeZone,
+                                        ).slice(0, 11) + moveTime,
+                                    },
+                                  );
+                                  setMoving(null);
+                                  setNotice(
+                                    "Posting slot updated. Daily settings are unchanged.",
+                                  );
+                                  await load();
+                                } catch (e) {
+                                  setMoveError(e);
+                                } finally {
+                                  setWorking(false);
+                                }
+                              }}
+                            >
+                              {working ? "Saving…" : "Save time"}
+                            </button>
+                            <button
+                              disabled={working}
+                              onClick={() => {
+                                setMoving(null);
+                                setMoveError(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            disabled={working || busy}
+                            onClick={() => {
+                              setMoving(j);
+                              setMoveTime(
+                                slotInput(j.planned_at, config.timeZone).slice(
+                                  11,
+                                ),
+                              );
+                              setMoveError(null);
+                            }}
+                          >
+                            Change time
+                          </button>
+                        )}
                       </div>
                     ))
                   ) : (
@@ -508,9 +618,11 @@ export function Queue({
                   )}
                   <small>
                     {config.timeZone} · saved slots
-                    {automation.status !== "running" || !profile?.on
+                    {automation.status === "paused" || !profile?.on
                       ? " · paused"
-                      : ""}
+                      : ["starting", "applying"].includes(automation.status)
+                        ? " · updating"
+                        : ""}
                   </small>
                   <h3>Recent results</h3>
                   {recent.length ? (

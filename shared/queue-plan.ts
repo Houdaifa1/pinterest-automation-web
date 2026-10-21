@@ -1,6 +1,9 @@
 import { scheduleZone } from "../engine/panel/generator.js";
 export const displayZone = (zone: string, at = Date.now() / 1000) =>
   scheduleZone(zone, new Date(at * 1000));
+export function slotInput(at: number, zone: string) {
+  return localStamp(at, zone).replace(" ", "T");
+}
 export function slotTime(at: number, zone: string) {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: displayZone(zone, at),
