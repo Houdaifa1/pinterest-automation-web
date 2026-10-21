@@ -134,3 +134,7 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 ## 21 October 2026 — keep automatic selections stable
 
 A store/category request begins with a research scope rather than invented product destinations. Before images, save the resolved product URLs, counts and mixed order in the account's batch-scoped Plan rows using existing headers. Resume reuses this plan, rechecks changed offers and holds unavailable allocated products instead of silently replacing them.
+
+## 21 October 2026 — complete website fresh start requested again
+
+The owner explicitly requested emptying all website member data so everyone can start fresh. Back up and verify before clearing application data, retain schema/migrations and leave external Activepieces flows, Sheets and Pinterest untouched. All website sessions and stored schedule jobs are removed. Members must sign in and reconnect/import; independently scheduled remote flows are not stopped by a website database reset.
