@@ -101,7 +101,7 @@ export function planSources(raw: unknown) {
     }
     if (s.categoryCount)
       destinations.push({
-        kind: "category overview",
+        kind: s.kind === "catalog" ? "store overview" : "category overview",
         count: s.categoryCount,
         url: s.url,
       });

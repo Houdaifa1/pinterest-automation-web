@@ -84,3 +84,9 @@ it("reports a partial public Gumroad listing instead of inventing missing produc
  const response=await scan({url:"https://sunnysheet.gumroad.com/",kind:"catalog"});expect(response.status).toBe(200);
  const result=await response.json() as any;expect(result.products).toHaveLength(1);expect(result.expected).toBe(10);expect(result.complete).toBe(false);
 });
+it("reports a blocked public store as unavailable rather than an empty successful catalog",async()=>{
+ const scan=await setup();vi.spyOn(globalThis,"fetch").mockResolvedValue(new Response("Unavailable",{status:403}));
+ const response=await scan({url:"https://sunnysheet.gumroad.com/",kind:"catalog"});
+ expect(response.status).toBe(409);const body=await response.json() as any;
+ expect(body.error).toBe("source_unavailable");expect(body.products).toBeUndefined();
+});

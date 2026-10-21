@@ -2925,6 +2925,7 @@ function Pins({
                           products: [],
                           discovered: [],
                           notice: "",
+                          scanUnavailable: false,
                         })
                       }
                     />
@@ -2933,7 +2934,7 @@ function Pins({
                 {["category", "catalog"].includes(s.kind) && (
                   <>
                     <Field label="Product selection">
-                      <select value={automatic(s) ? "auto" : "manual"} onChange={e=>change(s.id,{selection:e.target.value})}>
+                      <select value={automatic(s) ? "auto" : "manual"} onChange={e=>{setError(null);change(s.id,{selection:e.target.value})}}>
                         <option value="auto">Choose products for me</option>
                         <option value="manual">I will choose products</option>
                       </select>
@@ -2961,9 +2962,13 @@ function Pins({
                             change(s.id, {
                               discovered: r.products,
                               notice: r.notice,
+                              scanUnavailable: false,
                             });
                           } catch (e) {
-                            setError(e);
+                            if (s.kind === "catalog" && e instanceof ApiError &&
+                                ["shop_access", "source_unavailable", "catalog_empty"].includes(e.code))
+                              change(s.id,{notice:"This store could not be scanned here. Use automatic research, or add individual product links below.",scanUnavailable:true});
+                            else setError(e);
                           } finally {
                             setScanning(null);
                           }
@@ -2978,6 +2983,7 @@ function Pins({
                       </span>
                     </div>
                     {s.notice && <p className="inline-help">{s.notice}</p>}
+                    {s.scanUnavailable && <button onClick={()=>{setError(null);change(s.id,{selection:"auto",scanUnavailable:false})}}>Use automatic research</button>}
                     {s.discovered?.length > 0 && (
                       <div className="product-choices">
                         {s.discovered.map((p: any) => (
@@ -3164,7 +3170,7 @@ function Pins({
                       variant: variant.current,
                       notes,
                       sources: sources.map(
-                        ({ id, manual, discovered, notice, ...s }) => automatic(s) ? {...s,selection:"auto",products:[],perProduct:3} : s,
+                        ({ id, manual, discovered, notice, scanUnavailable, ...s }) => automatic(s) ? {...s,selection:"auto",products:[],perProduct:3} : s,
                       ),
                     },
                   );
@@ -3202,7 +3208,7 @@ function Pins({
                   {selected.input.destinations?.map((d: any, i: number) => (
                     <div className="review-row" key={i}>
                       <strong>
-                        {d.count} · {d.kind}
+                        {d.count} pins · {d.title || ({"no link":"Without links","exact product":"Product","category product":"Product","category overview":"Category overview","store overview":"Store overview"} as Record<string,string>)[d.kind] || "Products"}
                       </strong>
                       <span>{d.url || "No destination link"}</span>
                     </div>
@@ -3210,7 +3216,7 @@ function Pins({
                 </div>
                 {selected.postingOrder?.length > 0 && (
                   <>
-                    <p>One pin per product, then repeat. Products stay mixed in the new queue.</p>
+                    <p>Planned order: one pin per product, then repeat.</p>
                     <details>
                       <summary>See the first {selected.postingOrder.length} posting slots</summary>
                       <ol>
