@@ -208,6 +208,16 @@ it("discovers and adopts a saved setup using read-only calls, keeping Telegram, 
   expect(saved.sheet_url).toContain("/original-sheet/");
   expect(saved.status).toBe("paused");
   expect(saved.applied_revision).toBe(saved.revision);
+  expect(JSON.parse(saved.config)).toMatchObject({
+    notifyEmail: true,
+    notifyTelegram: true,
+    telegram: expect.any(String),
+  });
+  const reopened: any = await (
+    await request(`/api/automations/${a.id}`, s)
+  ).json();
+  expect(reopened.automation.config.notifyTelegram).toBe(true);
+  expect(reopened.automation.config.notifyEmail).toBe(true);
   expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
   const bot: any = await (
     await request(`/api/automations/${a.id}/telegram-status`, s)
@@ -352,7 +362,9 @@ it("ignores unsupported or damaged flow configurations", () => {
 });
 
 it("imports spaced legacy account names and a daily cap different from posting hours", async () => {
-  const provider = remote(), s = await session(), a = await draft(s);
+  const provider = remote(),
+    s = await session(),
+    a = await draft(s);
   const flow = provider.flow();
   let prepare = flow.version.trigger;
   while (prepare.name !== "step_3") prepare = prepare.nextAction;
@@ -363,11 +375,22 @@ it("imports spaced legacy account names and a daily cap different from posting h
   prepare.settings.input.config = JSON.stringify(raw);
   const response = await request(`/api/automations/${a.id}/discovery`, s);
   expect(response.status).toBe(200);
-  const result = await response.json() as any;
+  const result = (await response.json()) as any;
   expect(result.flows).toHaveLength(1);
-  expect(result.flows[0].config.accounts[0]).toMatchObject({name:"Stunning Crochet",username:"crochettest",pinsPerDay:4,legacyDailyCap:2});
-  expect((await request(`/api/automations/${a.id}/adopt`,s,"POST",{choice:result.flows[0].choice})).status).toBe(200);
+  expect(result.flows[0].config.accounts[0]).toMatchObject({
+    name: "Stunning Crochet",
+    username: "crochettest",
+    pinsPerDay: 4,
+    legacyDailyCap: 2,
+  });
+  expect(
+    (
+      await request(`/api/automations/${a.id}/adopt`, s, "POST", {
+        choice: result.flows[0].choice,
+      })
+    ).status,
+  ).toBe(200);
   const saved = await fresh(a.id);
   expect(JSON.parse(saved.config).accounts[0].name).toBe("Stunning Crochet");
-  expect(provider.calls.every(c=>c.method==="GET")).toBe(true);
+  expect(provider.calls.every((c) => c.method === "GET")).toBe(true);
 });

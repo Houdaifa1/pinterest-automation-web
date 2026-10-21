@@ -148,3 +148,7 @@ Create and inspect each pin, upload it, stage the new row as Draft during verifi
 ## 21 October 2026 — schedule editing in New pins
 
 The owner requested the selected Pinterest account's schedule beside content creation. Keep schedule controls collapsed behind one clear summary, preserve the account-setup editor and use the same shared controls. A deliberate Save & update action saves the selected account and updates its existing remote flow, preserving paused/running state; saving a content request alone must not change publishing. Varied daily scheduling is the default with adaptive spacing; exact times and custom spacing remain possible. New creation amount never silently changes daily publishing volume. Existing explicitly custom schedules remain valid unless changed; automatic settings recalculate when count/window changes. No claims of human impersonation, evasion or universally optimal timing.
+
+## 21 October 2026 — edit the selected saved setup after adoption
+
+Existing-flow review must show its saved notification choices, never a blank setup's defaults. Opening notification/account edits first adopts the selected flow read-only, then edits the actual imported settings. Returning to the key keeps the saved connection. Existing-only intent never creates a replacement remote flow.

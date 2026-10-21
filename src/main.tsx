@@ -1220,8 +1220,9 @@ function Setup({
           f.config.google === next.google,
       );
       if (
-        !location.search.includes("connections=1") &&
-        !location.search.includes("notifications=1")
+        automation.intent === "existing" ||
+        (!location.search.includes("connections=1") &&
+          !location.search.includes("notifications=1"))
       )
         setStep(
           (automation.intent === "existing" && result.flows.length) ||
@@ -1342,6 +1343,41 @@ function Setup({
   );
   const ready = connectionsReady(draft, connections, botReady || reusedBot);
   const selectedFlow = flows.find((f: any) => f.choice === flowChoice);
+  const importing = automation.intent === "existing" && !automation.deployed;
+  const openExisting = async (
+    section: "summary" | "notifications" | "accounts" = "summary",
+  ) => {
+    if (!selectedFlow || working) return;
+    setWorking(true);
+    setError(null);
+    try {
+      let targetId = selectedFlow.websiteAutomationId;
+      if (!targetId) {
+        await flush();
+        await api(`/api/automations/${automation.id}/adopt`, "POST", {
+          choice: selectedFlow.choice,
+        });
+        targetId = automation.id;
+        const saved = await load();
+        if (!saved?.deployed)
+          throw new Error(
+            "The imported settings could not be loaded. Reload this page before editing.",
+          );
+      }
+      if (section === "summary") {
+        navigate(`/automations/${targetId}/summary`);
+      } else {
+        setStep(section === "notifications" ? 1 : 2);
+        navigate(
+          `/automations/${targetId}/setup?${section === "notifications" ? "notifications" : "connections"}=1`,
+        );
+      }
+    } catch (e) {
+      setError(e);
+    } finally {
+      setWorking(false);
+    }
+  };
   return (
     <section className="wizard">
       {!automation.deployed && (
@@ -1658,6 +1694,7 @@ function Setup({
                       type="radio"
                       name="existing-flow"
                       checked={flowChoice === f.choice}
+                      disabled={working}
                       onChange={() => setFlowChoice(f.choice)}
                     />
                     <span>
@@ -1672,33 +1709,22 @@ function Setup({
                   </label>
                 ))}
                 {selectedFlow && (
+                  <div className="review-row" aria-label="Saved notifications">
+                    <span>Notifications</span>
+                    <span>
+                      Gmail {selectedFlow.config.notifyEmail ? "on" : "off"}
+                    </span>
+                    <span>
+                      Telegram{" "}
+                      {selectedFlow.config.notifyTelegram ? "on" : "off"}
+                    </span>
+                  </div>
+                )}
+                {selectedFlow && (
                   <button
                     className="primary"
                     disabled={working}
-                    onClick={async () => {
-                      if (selectedFlow.websiteAutomationId) {
-                        navigate(
-                          `/automations/${selectedFlow.websiteAutomationId}/summary`,
-                        );
-                        return;
-                      }
-                      setWorking(true);
-                      setError(null);
-                      try {
-                        await flush();
-                        await api(
-                          `/api/automations/${automation.id}/adopt`,
-                          "POST",
-                          { choice: flowChoice },
-                        );
-                        await load();
-                        navigate(`/automations/${automation.id}/summary`);
-                      } catch (e) {
-                        setError(e);
-                      } finally {
-                        setWorking(false);
-                      }
-                    }}
+                    onClick={() => void openExisting()}
                   >
                     {t(
                       selectedFlow.websiteAutomationId
@@ -1783,10 +1809,22 @@ function Setup({
                   )}
                 </button>
               )}
-            <button onClick={() => setStep(1)}>
+            <button
+              disabled={working || (importing && !selectedFlow)}
+              onClick={() =>
+                importing ? void openExisting("notifications") : setStep(1)
+              }
+            >
               {t("changeNotifications")}
             </button>
-            <button onClick={() => setStep(2)}>{t("reviewAccounts")}</button>
+            <button
+              disabled={working || (importing && !selectedFlow)}
+              onClick={() =>
+                importing ? void openExisting("accounts") : setStep(2)
+              }
+            >
+              {t("reviewAccounts")}
+            </button>
           </div>
         </>
       )}
@@ -1794,10 +1832,11 @@ function Setup({
         <div className="wizard-actions">
           {step > 0 && (
             <button
+              disabled={working}
               onClick={() =>
                 automation.deployed
                   ? navigate(`/automations/${automation.id}/summary`)
-                  : setStep(step - 1)
+                  : setStep(importing ? 0 : step - 1)
               }
             >
               {t("back")}
