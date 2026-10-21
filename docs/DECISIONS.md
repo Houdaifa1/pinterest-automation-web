@@ -100,3 +100,8 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Store generated timestamps, claim each job once, recheck pause and applied revision immediately before publication, skip missed slots, and hold uncertain execution for review. Existing independent legacy flows are not converted automatically.
 - Conservative editable starting schedule: three original pins a day, varied inside 09:00–21:00 with two-hour minimum spacing. This is a starting point, not a promised ranking strategy. Custom exact minutes and higher volume must fit the selected window and spacing; provider quotas still apply.
 - Queue changes use actual Sheet snapshots and conflict-checked commands. A copied request or sent marker is never counted as queued content. Unposted pin removal is recoverable; already published Pinterest pins require a separate explicit action.
+
+## 21 October 2026 — retain deep research in mixed content requests
+
+- Mixed requests must retain the earlier research and creative process: inspect the designated Pinterest profile and existing content, verify source products, research current demand with dated sources, plan deliberate variety and inspect actual images and saved rows.
+- A shorter prompt must not remove necessary work. Mixed product/category/no-link counts and destinations take precedence over the old single-micro-niche batch rule. New rows remain Draft until member review; copied instructions are not queued content. Missing private analytics or blocked research must be stated honestly.

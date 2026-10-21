@@ -1,4 +1,4 @@
-import { planSources, concisePrompt } from "./batch-plan";
+import { planSources, researchPrompt } from "./batch-plan";
 import { Hono } from "hono";
 import { z } from "zod";
 import { owned } from "./access";
@@ -91,7 +91,7 @@ function referenceRules(urls: string[]) {
 }
 function makePrompt(snapshot: any, batchId: string, urls: string[]) {
   if (snapshot.batch.version === 2)
-    return concisePrompt(snapshot, batchId, urls);
+    return researchPrompt(snapshot, batchId, urls);
   const source = promptTemplate
     .replaceAll("PINTEREST AUTOPILOT", "PINTEREST AUTOMATION")
     .replaceAll("Pinterest Autopilot", "Pinterest Automation")

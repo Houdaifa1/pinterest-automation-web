@@ -334,6 +334,14 @@ it("builds one immutable mixed request with correct individual and category dest
   expect(batch.input.destinations[5].url).toBe("https://shop.example.com/summer");
   expect(batch.prompt).toContain("Keep new Sheet rows as Draft for review");
   expect(batch.prompt).toContain("Warm backgrounds");
+  for (const requirement of [
+    "https://www.pinterest.com/testprofile/",
+    "Pinterest Trends", "Google Trends", "Public search rank", 
+    "30–60 days", "236 px", "exact product", "Do not overwrite a mismatching existing ID",
+    "Cite research sources with dates", "queued, Draft, Ready, posted and skipped",
+  ]) expect(batch.prompt.toLowerCase()).toContain(requirement.toLowerCase());
+  expect(batch.prompt).not.toContain("Status: Ready");
+
   const again=await (await request(base+"/batches",user,"POST",input)).json() as any;
   expect(again.batch.id).toBe(batch.id);
   const changed=await (await request(base+"/batches",user,"POST",{...input,notes:"Bold headlines"})).json() as any;
