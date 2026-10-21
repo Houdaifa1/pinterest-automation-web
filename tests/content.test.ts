@@ -339,6 +339,9 @@ it("builds one immutable mixed request with correct individual and category dest
     "Pinterest Trends", "Google Trends", "Public search rank", 
     "30–60 days", "236 px", "exact product", "Do not overwrite a mismatching existing ID",
     "Cite research sources with dates", "queued, Draft, Ready, posted and skipped",
+    "do not reuse one product picture across different templates",
+    "believable on-body fashion mockups", "Small crochet color variations are allowed",
+    "Keep the exact artwork, words, proportions and colors", "genuine screenshots",
   ]) expect(batch.prompt.toLowerCase()).toContain(requirement.toLowerCase());
   expect(batch.prompt).not.toContain("Status: Ready");
 

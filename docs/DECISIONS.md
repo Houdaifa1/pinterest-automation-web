@@ -111,3 +111,9 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Existing-only setup must fail safely when a flow cannot be imported; it must never create a replacement flow implicitly. Import must preserve supported legacy names, caps and schedules.
 - Removing a deployed automation pauses and verifies the remote removal before hiding the website record. Recoverable website settings remain available; restoration must not restart publishing automatically.
 - Category scans stay inside that category's product pagination. Whole-site navigation, policy links and unrelated categories are not products. Incomplete access must be visible instead of silently representing a partial inventory as complete.
+
+## 21 October 2026 — new scenes while preserving the product
+
+- Owner explicitly rejected one product photograph repeatedly placed into different text templates. Content requests must call for genuinely different underlying scenes: camera angles, arrangements, poses, lighting, background and relevant use contexts.
+- Wearable crochet should include believable on-body fashion mockups that preserve the garment. Print artwork should remain exact inside appropriate clothing, mug, bottle or other intended-use mockups. Digital resources need accurate previews/use scenes for their actual content; the selling platform does not determine the treatment.
+- Small crochet color changes are allowed as creative inspiration. Do not advertise an imagined color as an available purchase option. Construction, silhouette and pattern remain exact; artwork lettering and design remain exact unless an edit is explicitly requested. Every output must be compared to source assets and to recent pins.

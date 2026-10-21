@@ -215,3 +215,7 @@ The owner explicitly approved the prototype and requested going live. This is au
 Use **Automation** throughout the interface. One automation contains one or more **Pinterest accounts**. Show account handles and their count inside each automation card. Remove unrelated friend examples from the owner’s workspace. Create automation is the home action; Add Pinterest account belongs to its automation. Use global Automations navigation, local Summary, and a visible breadcrumb home. In-place edits and pin-mode changes must preserve scroll and focus.
 
 Next: verify those corrections, then backend and real UI, live integration tests and deployment. Passing preview tests does not establish production readiness.
+
+### 21 October 2026 — creative requirement clarification
+
+The owner requires fresh product photography/mockup concepts, not the same photograph under different text templates. Keep product identity exact while varying supported camera angles, positions, settings, styling and lighting. Wearable crochet can use believable flattering adult fashion mockups; artwork can use appropriate clothing/mug/bottle mockups preserving the exact design; digital resources need truthful actual previews and suitable use contexts. Small crochet color variations are explicitly allowed as inspiration, without claiming unverified purchase options. Compare output against source product references and reject product mismatch or near-duplicate scenes. Shared rules are in server/pin-creative-direction.ts and are included in both website prompt formats.
