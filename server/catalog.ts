@@ -111,6 +111,15 @@ export function parseCatalog(html: string, base: string) {
       }
     } catch {}
   }
+  // Pagination often lives inside a nav excluded from the product-card region.
+  for (const m of main.matchAll(/<a\b([^>]*?)>([^]*?)<\/a>/gi)) {
+    if (/\bnext\b/i.test(attribute(m[1], "rel")) ||
+        /^next(?: page| results)?\b/i.test(plain(m[2])) ||
+        /^next(?: page)?$/i.test(attribute(m[1], "aria-label"))) {
+      const url = normalize(attribute(m[1], "href"), base);
+      if (url && !isUtility(url)) next.add(url);
+    }
+  }
   for (const m of content.matchAll(/<a\b([^>]*?)>([^]*?)<\/a>/gi)) {
     const raw = attribute(m[1], "href"),
       url = normalize(raw, base);

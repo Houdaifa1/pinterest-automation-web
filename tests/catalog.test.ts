@@ -5,7 +5,7 @@ import {parseCatalog} from "../server/catalog";
 afterEach(()=>vi.restoreAllMocks());
 const origin="http://localhost:8788",source="https://store.example.com/patterns/category/flowers/";
 const card=(slug:string,title=slug)=>`<a class="card rise" href="/patterns/${slug}/"><picture><img src="/${slug}.jpg"></picture><h3>${title}</h3><span>Flowers</span></a>`;
-const page=(cards:string,next="",count=3)=>`<html><head>${next?`<link rel="next" href="${next}">`:""}</head><body><header><a href="/privacy/">Privacy</a></header><main><nav><a class="card" href="/patterns/unrelated/"><img><h3>Wrong category</h3></a></nav><div class="bar"><p class="count">${count} patterns</p></div><div class="grid">${cards}</div><footer><a href="/terms/">Terms</a></footer></main><footer><a href="/contact/">Contact</a></footer></body></html>`;
+const page=(cards:string,next="",count=3)=>`<html><head></head><body><header><a href="/privacy/">Privacy</a></header><main><nav><a class="card" href="/patterns/unrelated/"><img><h3>Wrong category</h3></a></nav><div class="bar"><p class="count">${count} patterns</p></div><div class="grid">${cards}</div>${next?`<nav class="pager" aria-label="Pages"><a href="${next}" rel="next">Next</a></nav>`:""}<footer><a href="/terms/">Terms</a></footer></main><footer><a href="/contact/">Contact</a></footer></body></html>`;
 async function setup(){
  const login=await app.request(origin+"/auth/dev",{method:"POST",headers:{Origin:origin},body:JSON.stringify({account:"member-a"})},env),cookie=login.headers.get("Set-Cookie")!.split(";")[0];
  const me=await(await app.request(origin+"/api/me",{headers:{Cookie:cookie}},env)).json() as any;
