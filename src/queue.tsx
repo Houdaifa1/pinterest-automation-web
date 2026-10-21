@@ -163,7 +163,7 @@ export function Queue({
       }) as Record<string, string>
     )[j.status] || j.status;
 
-  const daySlots = (data?.daySlots || []).filter(
+  const daySlots = (data?.day === day ? data.daySlots : []).filter(
     (j: any) =>
       j.account_id === accountId &&
       !["cancelled", "skipped"].includes(j.status),
@@ -673,7 +673,9 @@ export function Queue({
                       </button>
                     </div>
                   )}
-                  {daySlots.length ? (
+                  {data.day !== day ? (
+                    <p role="status">Loading day…</p>
+                  ) : daySlots.length ? (
                     daySlots.map((j: any) => (
                       <div className="slot-editor" key={j.id}>
                         <time>{slotTime(j.planned_at, config.timeZone)}</time>

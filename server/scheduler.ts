@@ -561,31 +561,6 @@ queue.post("/:id/queue/schedule", async (c) => {
       "Choose an account from this automation.",
       404,
     );
-  const existing = await c.env.DB.prepare(
-    "SELECT id,automation_id,account_id,planned_at,status FROM schedule_jobs WHERE id=?",
-  )
-    .bind(body.requestId)
-    .first<any>();
-  if (existing) {
-    if (
-      existing.automation_id !== a.id ||
-      existing.account_id !== body.accountId ||
-      existing.status === "cancelled" ||
-      existing.planned_at !==
-        utcFor(
-          body.time.slice(0, 10),
-          Number(body.time.slice(11, 13)) * 60 +
-            Number(body.time.slice(14, 16)),
-          config.timeZone,
-        )
-    )
-      throw new PublicError(
-        "conflict",
-        "Refresh before adding another time.",
-        409,
-      );
-    return c.json({ saved: true });
-  }
   const [day, clock] = body.time.split("T"),
     [h, m] = clock.split(":").map(Number);
   if (
@@ -596,6 +571,25 @@ queue.post("/:id/queue/schedule", async (c) => {
   )
     throw new PublicError("time", "Choose a valid date and time.");
   const target = utcFor(day, h * 60 + m, config.timeZone);
+  const existing = await c.env.DB.prepare(
+    "SELECT id,automation_id,account_id,planned_at,status FROM schedule_jobs WHERE id=?",
+  )
+    .bind(body.requestId)
+    .first<any>();
+  if (existing) {
+    if (
+      existing.automation_id !== a.id ||
+      existing.account_id !== body.accountId ||
+      existing.status === "cancelled" ||
+      existing.planned_at !== target
+    )
+      throw new PublicError(
+        "conflict",
+        "Refresh before adding another time.",
+        409,
+      );
+    return c.json({ saved: true });
+  }
   if (target === null || target < now() + 60 || target > now() + 30 * 86400)
     throw new PublicError(
       "time",
