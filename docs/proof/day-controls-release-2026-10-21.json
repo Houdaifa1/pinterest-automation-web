@@ -18,7 +18,18 @@
     "/assets/index-B5aYly92.js",
     "/assets/index-iysTepQL.css"
   ],
-  "ownerDayCapability": "Awaiting same-flow settings-only update",
-  "calendarBrowserAcceptance": "Pending Chrome reload; native controls show blank window",
-  "previousRealPublicationProof": "live-slot-publication-2026-10-21.json"
+  "ownerDayCapability": "Update completed; addition controls removed",
+  "calendarBrowserAcceptance": "Real Chrome date navigation and existing-slot controls visible; phone check remains open",
+  "previousRealPublicationProof": "live-slot-publication-2026-10-21.json",
+  "simplifiedRelease": {
+    "commit": "e6374c8ac6616feb3ba60db767f88c4f953bcff5",
+    "githubRun": "39617991497",
+    "githubConclusion": "success",
+    "runtimeChecks": 90,
+    "totalChecks": 142,
+    "addTimeControl": "removed at owner request",
+    "enableDayControls": "removed at owner request",
+    "ownerRecoveryProof": "day-controls-recovery-2026-10-21.json",
+    "realScreenshot": "screenshots/live-colored-queue-2026-10-21.png"
+  }
 }

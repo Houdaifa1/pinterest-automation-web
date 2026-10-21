@@ -1418,7 +1418,7 @@ footer {
 }
 .queue-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
 }
 .queue-pins {

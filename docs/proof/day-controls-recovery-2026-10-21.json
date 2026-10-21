@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-21T14:37:00.539Z",
+  "sameFlow": true,
+  "status": "ENABLED",
+  "publishedVersionId": "OmLl1gWwQSv0ougVraxqs",
+  "notificationRecipientPreserved": true,
+  "notificationChannelsPreserved": true,
+  "accountSchedulesPreserved": true,
+  "originalSheetPreserved": true,
+  "extraSlotsAdded": 0,
+  "website": {
+    "running": true,
+    "unlocked": true,
+    "noError": true,
+    "currentRevisionApplied": true
+  }
+}
