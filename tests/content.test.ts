@@ -385,3 +385,19 @@ it("delivers a 64-pin mixed-product rotation rather than eight product blocks",a
  expect(batch.prompt).toContain("Continue the same rotation across 25-pin part boundaries");
  expect(batch.prompt).toContain("Generate, upload and append Draft rows in this mixed order");
 });
+
+it("adapts no-link animal and food requests without requiring products or an offer",async()=>{
+ const {user,base,automation}=await setup();
+ const saved=await env.DB.prepare("SELECT config FROM automations WHERE id=?").bind(automation.id).first<any>();
+ const config=JSON.parse(saved.config);
+ for(const [category,niche] of [["other","wild animals and nature"],["food","Moroccan family recipes"]]){
+  config.accounts[0].category=category;config.accounts[0].niche=niche;
+  await env.DB.prepare("UPDATE automations SET config=? WHERE id=?").bind(JSON.stringify(config),automation.id).run();
+  const response=await request(base+"/batches",user,"POST",{accountId:"profile",sources:[{kind:"free",count:4}]});
+  expect(response.status).toBe(200);const {batch}=await response.json() as any;
+  expect(batch.prompt).toContain(`Niche: ${niche}`);
+  expect(batch.prompt).toContain("CONTENT WITHOUT DESTINATION LINKS");
+  expect(batch.input.destinations).toEqual([{kind:"no link",count:4,url:""}]);
+  expect(batch.postingOrder.every((p:any)=>p.url==="")).toBe(true);
+ }
+});

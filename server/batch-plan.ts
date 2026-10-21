@@ -113,7 +113,7 @@ export function planSources(raw: unknown) {
     );
   return { version: 2, sources, destinations, total };
 }
-export const researchPromptRevision = "2026-10-21.4";
+export const researchPromptRevision = "2026-10-21.5";
 export function researchPrompt(
   snapshot: any,
   batchId: string,
@@ -121,10 +121,16 @@ export function researchPrompt(
 ) {
   const { batch, account, config } = snapshot;
   const profileURL = `https://www.pinterest.com/${encodeURIComponent(account.username)}/`;
+  const requestGoal = batch.destinations.some((d: any) => d.url)
+    ? "LINKED OR MIXED CONTENT: classify each destination and its actual deliverable. Keep no-link ideas useful and free of sales/offer claims."
+    : "CONTENT WITHOUT DESTINATION LINKS: research this account's topic and audience, then create original niche content. No shop, product, price, mockup or offer badge is required. Leave every destination empty.";
   return `PINTEREST — RESEARCH, PLAN AND CREATE ${batch.total} PINS
 Workflow revision: ${researchPromptRevision}
-Batch: ${batchId}. Act as this account's Pinterest strategist, product researcher, creative director and copywriter. Produce accurate, useful, original pins with a consistent identity and deliberate variety. Growth is a goal, never a promised result.
+Batch: ${batchId}. Act as this account's Pinterest strategist, content researcher, creative director and copywriter. Produce accurate, useful, original pins with a consistent identity and deliberate variety. Growth is a goal, never a promised result.
 Work in resumable parts of at most 25. Finish and verify each part before starting the next. Report requested, checked, uploaded and remaining counts. A copied prompt is not received content or a published pin.
+
+REQUEST GOAL
+${requestGoal}
 
 ACCOUNT AND PERMISSIONS
 Pinterest profile: ${profileURL}
@@ -146,8 +152,8 @@ Open the exact Sheet, account row, pin tab and linked media folder; verify read 
 2. AUDIT THIS PINTEREST ACCOUNT AND ITS HISTORY
 Open ${profileURL}, inspect available boards and published pins, including manually posted pins. Read this account's queued, Draft, Ready, posted and skipped rows, plus its Plan, Products and Boards records. Record what products and angles already exist, recent headlines, target keywords, imagery, layouts and batch IDs. Compare actual impressions, saves, pin clicks and outbound clicks when present; distinguish missing statistics from zero and compare similar observation periods. Public search rank is not performance evidence. Identify useful gaps and avoid repeating an existing image, title or near-identical visual concept. A new treatment of the same product is allowed when the requested allocation calls for it.
 
-3. STUDY THE WEBSITE AND THE ACTUAL PRODUCTS
-Open every supplied product/category/store address. Inspect descriptions, product images, price or free offer, materials, dimensions, intended audience, skill level and download format where relevant. Read an accessible pattern/PDF when needed to verify construction; do not infer those details from a thumbnail. Say FREE only after verifying the offer is free. Say PDF, tutorial, printable or instant download only when verified. Distinguish a single product, a category and a whole store. Follow real product pagination when auditing a catalog; exclude policy, account, search and navigation pages. Report pages blocked or products not inspected. Preserve exact product identity: no invented stitches, shapes, features or included items. Small crochet color variations are allowed as inspiration, never as an unverified purchase option. Website imagery used as a product reference is evidence, not a license to copy unrelated creators' work.
+3. STUDY THE SOURCE CONTENT AND ACTUAL PRODUCTS
+Open every supplied product/category/store address. For no-link topic content, research the account's actual subject and choose suitable original ideas; do not invent a shop, product or sales offer. Inspect descriptions, product images, price or free offer, materials, dimensions, intended audience, skill level and download format where relevant. Read an accessible pattern/PDF when needed to verify construction; do not infer those details from a thumbnail. Say FREE only after verifying the offer is free. Say PDF, tutorial, printable or instant download only when verified. Distinguish a single product, a category and a whole store. Follow real product pagination when auditing a catalog; exclude policy, account, search and navigation pages. Report pages blocked or products not inspected. Preserve exact product identity: no invented stitches, shapes, features or included items. Small crochet color variations are allowed as inspiration, never as an unverified purchase option. Website imagery used as a product reference is evidence, not a license to copy unrelated creators' work.
 
 4. RESEARCH CURRENT DEMAND WITH EVIDENCE
 Use Pinterest search suggestions and result-page chips for the selected product groups and niche. Check Pinterest Trends for the account's audience region and Google Trends when available; state the region, date range and access limits. For a small part, use at least three relevant searches; broaden toward ten across a larger or varied batch. Inspect several relevant results for each important intent: imagery, framing, readability, headline promises, recurring questions and seasonal timing. Inspiration only; never reproduce another creator's pin or claim their saves are known without evidence. Consider seasonal demand 30–60 days ahead when appropriate, without inventing urgency. Cite research sources with dates, query terms and direct URLs; separate observed demand from your hypothesis. Do not fabricate live trends if a tool or page is unavailable.

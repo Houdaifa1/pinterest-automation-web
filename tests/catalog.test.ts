@@ -70,3 +70,17 @@ it("does not claim a full inventory when the listing exposes no total",async()=>
  const body=await(await scan({url:source,kind:"category"})).json() as any;
  expect(body.products).toHaveLength(1);expect(body.complete).toBe(false);expect(body.expected).toBeNull();
 });
+
+it("reads only the listed public Gumroad products and excludes unrelated page metadata",()=>{
+ const data={component:"Users/Show",props:{authenticity_token:"must-not-be-returned",sections:[{search_results:{total:2,products:[{url:"https://sunnysheet.gumroad.com/l/grade-two?layout=profile",name:"Teacher's second grade"},{url:"https://sunnysheet.gumroad.com/l/grade-three?layout=profile",name:"Third grade"},{url:"https://evil.example.com/l/wrong",name:"Wrong store"},{url:"https://sunnysheet.gumroad.com/privacy",name:"Privacy"}]}}]}};
+ const html=`<div id="app" data-page="${JSON.stringify(data).replace(/"/g,'&quot;')}"></div>`;
+ const result=parseCatalog(html,"https://sunnysheet.gumroad.com/");
+ expect(result.products).toEqual([{url:"https://sunnysheet.gumroad.com/l/grade-two",title:"Teacher's second grade"},{url:"https://sunnysheet.gumroad.com/l/grade-three",title:"Third grade"}]);
+ expect(result.expected).toBe(2);expect(JSON.stringify(result)).not.toContain("must-not-be-returned");
+});
+it("reports a partial public Gumroad listing instead of inventing missing products",async()=>{
+ const scan=await setup(),data={component:"Users/Show",props:{sections:[{search_results:{total:10,products:[{url:"https://sunnysheet.gumroad.com/l/one",name:"One"}]}}]}};
+ vi.spyOn(globalThis,"fetch").mockResolvedValue(new Response(`<div data-page="${JSON.stringify(data).replace(/"/g,'&quot;')}"></div>`,{headers:{"Content-Type":"text/html"}}));
+ const response=await scan({url:"https://sunnysheet.gumroad.com/",kind:"catalog"});expect(response.status).toBe(200);
+ const result=await response.json() as any;expect(result.products).toHaveLength(1);expect(result.expected).toBe(10);expect(result.complete).toBe(false);
+});

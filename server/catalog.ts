@@ -78,7 +78,41 @@ function listingFilters(raw: string) {
     .sort(([ak,av],[bk,bv]) => ak.localeCompare(bk) || av.localeCompare(bv))
     .map(([key,value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&");
 }
+function publicGumroadCatalog(html: string, base: string) {
+  const products = new Map<string, {url:string;title:string}>();
+  let expected: number | null = null;
+  const encoded = html.match(/\bdata-page=(["'])([^]*?)\1(?=\s|>)/i)?.[2];
+  try {
+    const page = JSON.parse(decode(encoded || ""));
+    if (page.component !== "Users/Show" || !Array.isArray(page.props?.sections))
+      return null;
+    let total = 0, counted = false, allCounted = true;
+    for (const section of page.props.sections) {
+      const listing = section.search_results;
+      if (!listing || !Array.isArray(listing.products)) continue;
+      if (Number.isSafeInteger(listing.total) && listing.total >= 0) {
+        total += listing.total; counted = true;
+      } else allCounted = false;
+      for (const product of listing.products) {
+        if (!product || typeof product.url !== "string") continue;
+        const normalized = normalize(product.url, base);
+        if (!normalized || !/^\/l\/[^/]+\/?$/.test(new URL(normalized).pathname) ||
+            typeof product.name !== "string" || !product.name.trim()) continue;
+        const url = new URL(normalized);
+        url.searchParams.delete("layout");
+        products.set(url.href,{url:url.href,title:plain(product.name).slice(0,200)});
+      }
+    }
+    if (counted && allCounted && Number.isSafeInteger(total)) expected = total;
+    return { products:[...products.values()], next:[], catalogs:[], expected };
+  } catch { return null; }
+}
 export function parseCatalog(html: string, base: string) {
+  if (/(^|\.)gumroad\.com$/i.test(new URL(base).hostname)) {
+    const listing = publicGumroadCatalog(html, base);
+    if (listing) return listing;
+  }
+
   const clean = html.replace(/<!--[^]*?-->/g, ""),
     main = clean.match(/<main\b[^>]*>([^]*?)<\/main>/i)?.[1] || "";
   const content = withoutRecommendations(main).replace(
@@ -214,10 +248,10 @@ async function readPublic(url: string, sameOrigin: string) {
         "source_redirect",
         "This source redirects to another website. Use its final public address.",
       );
-    if (/(^|\.)(etsy\.com|gumroad\.com)$/i.test(new URL(url).hostname))
+    if (/(^|\.)etsy\.com$/i.test(new URL(url).hostname))
       throw new PublicError(
         "shop_access",
-        "For Etsy or Gumroad, add individual product links or supply a catalog export. Full store access needs an approved store connection.",
+        "For Etsy, add individual listing links or supply a catalog export. Full shop inventory needs an approved Etsy connection.",
         409,
       );
     const r = await fetch(url, {
