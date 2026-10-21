@@ -52,10 +52,36 @@ function isListing(url: string) {
     /^\/(?:patterns?|products?|shop|store)\/?$/i.test(path)
   );
 }
+function withoutRecommendations(html: string) {
+  const opening = /<(section|aside|div|ul)\b([^>]*)>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = opening.exec(html))) {
+    const attrs = ["class", "id", "aria-label"].map(key => attribute(match![2], key)).join(" ");
+    if (!/(?:^|[\s_-])(?:related|recommended|recommendations|recently|upsells?|cross-sells?)(?:[\s_-]|$)/i.test(attrs)) continue;
+    const tag = match[1], tags = new RegExp(`<\\/?${tag}\\b[^>]*>`, "gi");
+    tags.lastIndex = opening.lastIndex;
+    let depth = 1, end: RegExpExecArray | null;
+    while ((end = tags.exec(html))) {
+      depth += /^<\//.test(end[0]) ? -1 : 1;
+      if (!depth) break;
+    }
+    if (depth) continue;
+    html = html.slice(0, match.index) + html.slice(tags.lastIndex);
+    opening.lastIndex = match.index;
+  }
+  return html;
+}
+function listingFilters(raw: string) {
+  const url = new URL(raw);
+  return [...url.searchParams.entries()]
+    .filter(([key]) => !/^(page|paged|offset|cursor|utm_.*|fbclid|gclid)$/i.test(key))
+    .sort(([ak,av],[bk,bv]) => ak.localeCompare(bk) || av.localeCompare(bv))
+    .map(([key,value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&");
+}
 export function parseCatalog(html: string, base: string) {
   const clean = html.replace(/<!--[^]*?-->/g, ""),
     main = clean.match(/<main\b[^>]*>([^]*?)<\/main>/i)?.[1] || "";
-  const content = main.replace(
+  const content = withoutRecommendations(main).replace(
     /<(?:nav|header|footer|aside)\b[^>]*>[^]*?<\/(?:nav|header|footer|aside)>/gi,
     "",
   );
@@ -82,7 +108,7 @@ export function parseCatalog(html: string, base: string) {
         ).replace(/-/g, " "),
     });
   };
-  // Product/ItemList data is allowed; breadcrumbs and site navigation are deliberately ignored.
+  // Only listing-scoped structured lists are candidates; visible cards take precedence.
   for (const script of clean.matchAll(
     /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([^]*?)<\/script>/gi,
   )) {
@@ -97,9 +123,8 @@ export function parseCatalog(html: string, base: string) {
         const types = Array.isArray(node["@type"])
           ? node["@type"]
           : [node["@type"]];
-        if (types.includes("Product"))
-          add(node.url || node["@id"], node.name || "", true);
-        if (types.includes("ItemList"))
+        if (types.includes("ItemList") &&
+            (!node.url || normalize(node.url, base) === publicURL(base)))
           for (const item of node.itemListElement || []) {
             const product = item.item || item;
             add(
@@ -111,6 +136,8 @@ export function parseCatalog(html: string, base: string) {
       }
     } catch {}
   }
+  const structuredProducts = new Map(products);
+  products.clear();
   // Pagination often lives inside a nav excluded from the product-card region.
   for (const m of main.matchAll(/<a\b([^>]*?)>([^]*?)<\/a>/gi)) {
     if (/\bnext\b/i.test(attribute(m[1], "rel")) ||
@@ -153,6 +180,7 @@ export function parseCatalog(html: string, base: string) {
     )
       add(raw, heading || title);
   }
+  if (!products.size) for (const [url, product] of structuredProducts) products.set(url, product);
   for (const m of clean.matchAll(/<link\b([^>]+)>/gi))
     if (/\bnext\b/i.test(attribute(m[1], "rel"))) {
       const u = normalize(attribute(m[1], "href"), base);
@@ -273,7 +301,12 @@ catalog.post("/:id/catalog", async (c) => {
     seen.add(page);
     let text: string;
     try {
-      text = (await readPublic(page, origin)).text;
+      const fetched = await readPublic(page, origin);
+      if (kind === "category" &&
+          (new URL(fetched.url).pathname.replace(/\/$/, "") !== new URL(page).pathname.replace(/\/$/, "") ||
+           listingFilters(fetched.url) !== listingFilters(page)))
+        throw new PublicError("category_redirect", "This category redirects to a different listing. Use the final category address so its products can be checked.", 409);
+      text = fetched.text;
     } catch (e) {
       if (seen.size === 1) throw e;
       failed++;
@@ -296,10 +329,12 @@ catalog.post("/:id/catalog", async (c) => {
       if (
         (path === rootPath ||
           path === rootPath + "/" ||
-          path.startsWith(rootPath + "/page/")) &&
+          (path.startsWith(rootPath + "/page/") && /^\d+\/?$/.test(path.slice((rootPath + "/page/").length)))) &&
+        listingFilters(next) === listingFilters(listingRoot) &&
         !seen.has(next)
       )
         pending.push(next);
+      else if (!seen.has(next)) failed++;
     }
     if (
       kind === "catalog" &&
@@ -326,7 +361,7 @@ catalog.post("/:id/catalog", async (c) => {
   const complete =
     !pending.length &&
     !failed &&
-    (expected === null || expected === products.size);
+    expected !== null && expected === products.size;
   return c.json({
     products: [...products.values()],
     complete,
@@ -338,6 +373,6 @@ catalog.post("/:id/catalog", async (c) => {
     source: url,
     notice: complete
       ? `${products.size} product links found across ${seen.size} page${seen.size === 1 ? "" : "s"}. Select the products for this batch. Pinterest history is checked separately.`
-      : `${products.size}${expected ? " of " + expected : ""} product links found. This scan is incomplete; missing pages were not treated as an empty catalog. Use a smaller category or add missing product links.`,
+      : `${products.size}${expected ? " of " + expected : ""} product links found. The full listing could not be verified. Use a smaller category or add missing product links.`,
   });
 });

@@ -35,3 +35,38 @@ it("does not offer generic body links when there is no verifiable product listin
  const scan=await setup();vi.spyOn(globalThis,"fetch").mockResolvedValue(new Response('<main><a href="/privacy/">Privacy</a><a href="/about/">About</a></main>',{headers:{"Content-Type":"text/html"}}));
  expect((await scan({url:source})).status).toBe(409);
 });
+
+it("excludes recommendations and unrelated structured products from a category listing",()=>{
+ const html=page(card("rose"))+`<script type="application/ld+json">{"@type":"ItemList","url":"https://store.example.com/all-products/","itemListElement":[{"item":{"url":"https://store.example.com/patterns/bag/","name":"Unrelated bag"}}]}</script>`;
+ const withRelated=html.replace('</main>','<section class="related-products"><div><a class="card" href="/patterns/cardigan/"><img><h3>Cardigan</h3></a></div></section></main>');
+ expect(parseCatalog(withRelated,source).products.map(p=>p.title)).toEqual(["rose"]);
+});
+it("prefers visible product cards over unrelated global structured lists",()=>{
+ const html=page(card("rose"))+`<script type="application/ld+json">{"@type":"ItemList","itemListElement":[{"item":{"url":"https://store.example.com/patterns/bag/","name":"Unrelated bag"}}]}</script>`;
+ expect(parseCatalog(html,source).products.map(p=>p.title)).toEqual(["rose"]);
+});
+it("does not follow a Next link into another category selected by query filter",async()=>{
+ const scan=await setup(),url="https://store.example.com/shop/?category=flowers",seen:string[]=[];
+ vi.spyOn(globalThis,"fetch").mockImplementation(async input=>{seen.push(String(input));return new Response(page(card("rose"),"/shop/?category=bags&page=2",2),{headers:{"Content-Type":"text/html"}})});
+ const body=await(await scan({url,kind:"category"})).json() as any;
+ expect(seen).toEqual([url]);expect(body.products).toHaveLength(1);expect(body.complete).toBe(false);
+});
+it("rejects a category redirected to an unrelated whole-store page",async()=>{
+ const scan=await setup();
+ vi.spyOn(globalThis,"fetch").mockImplementation(async input=>String(input)===source?new Response(null,{status:301,headers:{Location:"/patterns/"}}):new Response(page(card("bag")),{headers:{"Content-Type":"text/html"}}));
+ const response=await scan({url:source,kind:"category"});expect(response.status).toBe(409);
+ expect((await response.json() as any).error).toBe("category_redirect");
+});
+
+it("follows query pagination only when it retains the selected category",async()=>{
+ const scan=await setup(),url="https://store.example.com/shop/?category=flowers";
+ vi.spyOn(globalThis,"fetch").mockImplementation(async input=>new Response(String(input)===url?page(card("rose"),"/shop/?category=flowers&page=2",2):page(card("tulip"),"",2),{headers:{"Content-Type":"text/html"}}));
+ const body=await(await scan({url,kind:"category"})).json() as any;
+ expect(body.products.map((p:any)=>p.title)).toEqual(["rose","tulip"]);expect(body.complete).toBe(true);
+});
+it("does not claim a full inventory when the listing exposes no total",async()=>{
+ const scan=await setup();
+ vi.spyOn(globalThis,"fetch").mockResolvedValue(new Response(`<main>${card("rose")}</main>`,{headers:{"Content-Type":"text/html"}}));
+ const body=await(await scan({url:source,kind:"category"})).json() as any;
+ expect(body.products).toHaveLength(1);expect(body.complete).toBe(false);expect(body.expected).toBeNull();
+});
