@@ -25,6 +25,7 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Upload picture references for each profile.
 - Mix no-link pins, individual products, category overview pins and selected store products in one request.
 - Preview a product rotation that continues across creation parts, instead of grouping every product's pins into a block.
+- Paste a whole shop or catalog link and let creation research choose relevant products, or choose exact product links yourself.
 - Discover real product links across supported catalog pages, with visible partial-access limits.
 - Prepare audience-specific research and creation instructions for fresh scenes, wearable mockups, exact artwork mockups and digital-resource previews.
 - Emphasize verified free offers with readable image text; distinguish paid products, paid PDFs, samples and optional-payment resources.
@@ -33,6 +34,10 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Manage website members from the owner account.
 
 The website prepares instructions; it does not generate images or perform trend research in the background. Use the prompt in a content-creation session with web, image, Drive and Sheets access. That session researches the designated account and sources, creates and checks the images, and saves Draft rows. Review them in the website before marking them Ready. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
+
+For a shop request, open **New pins → My website or store**, paste the shop/catalog URL, keep **Choose products for me**, choose the amount and click **Review request**. Individual product links are resolved during creation research. If a manual scan cannot read a store, **Use automatic research** continues without pretending the scan succeeded. You can also paste exact product links. Automatic selections are saved as a batch plan before image creation so a resumed batch keeps the same products and mixed order.
+
+The compact prompt reuses verified research and shares topic checks across a batch. A measured 64-pin request became 57% shorter in characters while retaining product fidelity, offer checks and posting order. This is a prompt-size measurement, not measured billing savings.
 
 For an existing setup, enter your Activepieces key and choose **Use existing automation**. This reads the saved setup; it does not republish the flow. To add a profile, open **Pinterest accounts → Add Pinterest account**, connect it in Activepieces if needed, then choose **Add & update automation**. Account settings are collapsed by default. Open **Settings**, make changes, then explicitly save and apply them. A paused schedule stays paused.
 

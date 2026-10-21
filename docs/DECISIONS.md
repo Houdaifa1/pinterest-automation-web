@@ -130,3 +130,7 @@ The owner approved creating automation-github-deploy and storing it in GitHub’
 - Automatic allocations are source-research scopes, not final product URLs. The creation session must inspect eligible real products, prioritize strong under-covered/newer items alongside relevant proven evergreen items, assign the exact requested count and then build the mixed product order. The website labels selection as pending; it must not invent a completed product plan or send every product pin to the store home.
 - Use one adaptive workflow for every niche and actual content type. Animal/food/crochet/store examples are not boundaries or separate named-friend prompts.
 - Token efficiency means a compact self-contained instruction set, shared research across a batch, targeted reads, reusable dated memory and bounded creation parts. Keep product/offer/image/saved-row checks. Prompt size is measurable; lower billed usage cannot be promised without measuring the actual creation session.
+
+## 21 October 2026 — keep automatic selections stable
+
+A store/category request begins with a research scope rather than invented product destinations. Before images, save the resolved product URLs, counts and mixed order in the account's batch-scoped Plan rows using existing headers. Resume reuses this plan, rechecks changed offers and holds unavailable allocated products instead of silently replacing them.
