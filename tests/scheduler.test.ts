@@ -7,7 +7,11 @@ import {
   utcFor,
   validateSchedule,
 } from "../server/schedule-plan";
-import { ensurePlan, dispatchAutomation } from "../server/scheduler";
+import {
+  ensurePlan,
+  dispatchAutomation,
+  pendingPlanChanges,
+} from "../server/scheduler";
 import { hash, encrypt, now } from "../server/security";
 const origin = "http://localhost:8788";
 afterEach(() => vi.unstubAllGlobals());
@@ -305,4 +309,147 @@ it("accepts only scoped queue snapshots and refuses stale or published-pin edits
     (await request(route, "POST", { ...body, requestId: crypto.randomUUID() }))
       .status,
   ).toBe(409);
+});
+
+it("replaces cancelled future slots at the same minutes and preserves other profiles and completed jobs", async () => {
+  const { a } = await setup();
+  const config = JSON.parse(a.applied_config);
+  config.accounts[0].schedule = scheduleSchema.parse({
+    mode: "fixed",
+    spacingMode: "auto",
+    times: ["08:05", "13:07", "20:11"],
+  });
+  config.accounts.push({
+    ...structuredClone(config.accounts[0]),
+    id: "other",
+    name: "other",
+    username: "other",
+  });
+  const at = Date.parse("2030-01-10T00:00:00Z") / 1000;
+  await env.DB.prepare(
+    "UPDATE automations SET config=?,applied_config=?,planned_through=NULL WHERE id=?",
+  )
+    .bind(JSON.stringify(config), JSON.stringify(config), a.id)
+    .run();
+  const before = await env.DB.prepare("SELECT * FROM automations WHERE id=?")
+    .bind(a.id)
+    .first<any>();
+  await ensurePlan(env, before, at);
+  const originals = (
+    await env.DB.prepare(
+      "SELECT * FROM schedule_jobs WHERE automation_id=? ORDER BY account_id,planned_at",
+    )
+      .bind(a.id)
+      .all<any>()
+  ).results;
+  const completed = originals.find((j) => j.account_id === "profile")!;
+  await env.DB.prepare("UPDATE schedule_jobs SET status='done' WHERE id=?")
+    .bind(completed.id)
+    .run();
+  const next = structuredClone(config);
+  next.accounts[0].pinsPerDay = 4;
+  next.accounts[0].schedule.times.push("21:30");
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE automations SET config=?,applied_config=?,revision=3,applied_revision=3 WHERE id=?",
+    ).bind(JSON.stringify(next), JSON.stringify(next), a.id),
+    ...pendingPlanChanges(env, before, JSON.stringify(next), 3, at),
+  ]);
+  const current = await env.DB.prepare("SELECT * FROM automations WHERE id=?")
+    .bind(a.id)
+    .first<any>();
+  await ensurePlan(env, current, at);
+  const after = (
+    await env.DB.prepare(
+      "SELECT * FROM schedule_jobs WHERE automation_id=? ORDER BY account_id,planned_at",
+    )
+      .bind(a.id)
+      .all<any>()
+  ).results;
+  expect(after).toHaveLength(14);
+  expect(after.find((j) => j.id === completed.id)).toMatchObject({
+    status: "done",
+    schedule_revision: 2,
+  });
+  const others = originals.filter((j) => j.account_id === "other");
+  expect(
+    after
+      .filter((j) => j.account_id === "other")
+      .map((j) => [j.id, j.planned_at]),
+  ).toEqual(others.map((j) => [j.id, j.planned_at]));
+  expect(
+    after
+      .filter((j) => j.status === "pending")
+      .every((j) => j.schedule_revision === 3),
+  ).toBe(true);
+  expect(
+    after.filter((j) => j.account_id === "profile" && j.status === "pending"),
+  ).toHaveLength(7);
+});
+
+it("normalizes automatic spacing on save and rejects impossible explicit spacing before changing settings", async () => {
+  const { a, request, user } = await setup();
+  const connection = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO connections VALUES(?,?,?,?,?,?,?,?,?)")
+    .bind(
+      connection,
+      user.id,
+      a.integration_id,
+      "pin",
+      "pin",
+      "pinterest",
+      "Profile",
+      "testprofile",
+      "ACTIVE",
+    )
+    .run();
+  const config = {
+    timeZone: "UTC",
+    accounts: [
+      {
+        id: "profile",
+        name: "profile",
+        username: "testprofile",
+        connection,
+        niche: "",
+        category: "other",
+        source: "niche",
+        pinsPerDay: 10,
+        hours: [9, 15, 21],
+        schedule: {
+          mode: "varied",
+          start: "09:00",
+          end: "21:00",
+          spacingMode: "auto",
+          minSpacing: 999,
+          times: [],
+        },
+      },
+    ],
+  };
+  const good = await request(`/api/automations/${a.id}`, "PUT", {
+    name: "Scheduled",
+    revision: 2,
+    config,
+  });
+  expect(good.status).toBe(200);
+  const saved = (await good.json()) as any;
+  expect(saved.automation.config.accounts[0].schedule.minSpacing).toBe(65);
+  expect(saved.automation.appliedRevision).toBe(2);
+  const badConfig = structuredClone(config);
+  badConfig.accounts[0].schedule.spacingMode = "custom";
+  badConfig.accounts[0].schedule.minSpacing = 120;
+  const bad = await request(`/api/automations/${a.id}`, "PUT", {
+    name: "Scheduled",
+    revision: saved.automation.revision,
+    config: badConfig,
+  });
+  expect(bad.status).toBe(400);
+  const unchanged = await env.DB.prepare(
+    "SELECT revision,config FROM automations WHERE id=?",
+  )
+    .bind(a.id)
+    .first<any>();
+  expect(unchanged.revision).toBe(saved.automation.revision);
+  expect(JSON.parse(unchanged.config).accounts[0].schedule.minSpacing).toBe(65);
 });

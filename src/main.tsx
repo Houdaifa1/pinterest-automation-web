@@ -34,6 +34,13 @@ import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import { api, ApiError, setCSRF } from "./api";
 import { Queue } from "./queue";
+import {
+  ScheduleControls,
+  PostingScheduleEditor,
+  accountSchedule,
+  type ScheduleValue,
+} from "./posting-schedule";
+import { validSchedule } from "../shared/posting-schedule";
 import { References } from "./references";
 import { detectedConfig, connectionsReady, newPinterestAccount } from "./setup";
 import { downloadBatch } from "./batch-package.mjs";
@@ -888,7 +895,30 @@ function AutomationPage() {
     setAutomation(r.automation);
     setDraft({ ...defaults(user), ...r.automation.config });
   };
-  const action = async (name: string) => {
+  const savePostingSchedule = async (
+    accountId: string,
+    value: ScheduleValue,
+  ) => {
+    await flush();
+    const account = current.current?.config.accounts?.find(
+      (a) => a.id === accountId,
+    );
+    if (!account)
+      throw new Error(
+        "This Pinterest account is no longer available. Reload the page.",
+      );
+    await saveAccount({
+      ...account,
+      ...value,
+      hours: spreadHours(Math.min(18, value.pinsPerDay)),
+      legacyDailyCap: undefined,
+    });
+    if (current.current?.deployed && !(await action("deploy", true)))
+      throw new Error(
+        "Schedule saved. The automation update did not finish; use Retry update.",
+      );
+  };
+  const action = async (name: string, scoped = false) => {
     setBusy(true);
     setError(null);
     try {
@@ -901,7 +931,7 @@ function AutomationPage() {
       await load();
       return true;
     } catch (e) {
-      setError(e);
+      if (!scoped) setError(e);
       return false;
     } finally {
       setBusy(false);
@@ -1080,7 +1110,13 @@ function AutomationPage() {
               ) : tab === "history" ? (
                 <History id={id!} flush={flush} load={load} />
               ) : (
-                <Pins automation={automation} draft={draft} flush={flush} />
+                <Pins
+                  automation={automation}
+                  draft={draft}
+                  flush={flush}
+                  savePostingSchedule={savePostingSchedule}
+                  applying={actionPending}
+                />
               )}
             </>
           )}
@@ -1232,7 +1268,8 @@ function Setup({
     setBotReady(false);
     setBotStarted(false);
     setBotUrl("");
-    if (!automation.connected || !draft.notifyTelegram || !draft.telegram) return;
+    if (!automation.connected || !draft.notifyTelegram || !draft.telegram)
+      return;
     let cancelled = false;
     const check = () =>
       api(
@@ -1245,12 +1282,17 @@ function Setup({
           setBotStarted(Boolean(r.started));
           setBotReady(Boolean(r.tested || r.existing));
         })
-        .catch((e) => { if (!cancelled) setBotError(e); });
+        .catch((e) => {
+          if (!cancelled) setBotError(e);
+        });
     void check();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void check();
     }, 8000);
-    return () => { cancelled = true; clearInterval(timer); };
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [
     automation.id,
     automation.connected,
@@ -1322,7 +1364,9 @@ function Setup({
             )}
       </h1>
       {error != null && <ErrorBox error={error} />}
-      {draft.notifyTelegram && draft.telegram && botError != null && <ErrorBox error={botError} />}
+      {draft.notifyTelegram && draft.telegram && botError != null && (
+        <ErrorBox error={botError} />
+      )}
       {discovering ? (
         <p role="status">{t("loading")}</p>
       ) : step === 0 && automation.connected && !changingKey ? (
@@ -1829,7 +1873,17 @@ function Accounts({
   const [addError, setAddError] = useState<unknown>(null),
     [addingNow, setAddingNow] = useState(false),
     [category, setCategory] = useState<Account["category"]>("other"),
-    [daily, setDaily] = useState(3);
+    [daily, setDaily] = useState(3),
+    [creationSchedule, setCreationSchedule] = useState<
+      ScheduleValue["schedule"]
+    >({
+      mode: "varied",
+      start: "09:00",
+      end: "21:00",
+      minSpacing: 120,
+      spacingMode: "auto",
+      times: [],
+    });
   useEffect(() => {
     if (!adding) return;
     void refresh();
@@ -1859,14 +1913,8 @@ function Accounts({
         ...newPinterestAccount(c),
         category,
         pinsPerDay: daily,
-        hours: spreadHours(daily),
-        schedule: {
-          mode: "varied" as const,
-          start: "09:00",
-          end: "21:00",
-          minSpacing: Math.min(120, Math.floor(720 / Math.max(1, daily - 1))),
-          times: [],
-        },
+        hours: spreadHours(Math.min(18, daily)),
+        schedule: creationSchedule,
       };
       edit({ ...draft, accounts: [...draft.accounts, account] });
       await flush();
@@ -1955,27 +2003,23 @@ function Accounts({
                   ))}
                 </select>
               </Field>
-              <Field label={t("daily")}>
-                <select
-                  value={daily}
-                  onChange={(e) => setDaily(Number(e.target.value))}
-                >
-                  {Array.from({ length: 18 }, (_, n) => (
-                    <option key={n} value={n + 1}>
-                      {n + 1}
-                    </option>
-                  ))}
-                </select>
-              </Field>
             </div>
-            <p className="muted">
-              {spreadHours(daily)
-                .map((h) => String(h).padStart(2, "0") + ":00")
-                .join(" / ")}
-            </p>
+            <ScheduleControls
+              value={{ pinsPerDay: daily, schedule: creationSchedule }}
+              onChange={(next) => {
+                setDaily(next.pinsPerDay);
+                setCreationSchedule(next.schedule);
+              }}
+              disabled={addingNow || busy}
+            />
             <button
               className="primary"
-              disabled={!chosen || addingNow || busy}
+              disabled={
+                !chosen ||
+                addingNow ||
+                busy ||
+                !validSchedule(creationSchedule, daily)
+              }
               onClick={() => void add()}
             >
               {t(
@@ -2039,12 +2083,6 @@ function AccountCard({
         : {}),
       hours: [...a.hours].sort((a, b) => a - b),
     });
-  const [fixedText, setFixedText] = useState(
-    (
-      account.schedule?.times ||
-      account.hours.map((h) => `${String(h).padStart(2, "0")}:00`)
-    ).join(", "),
-  );
   const dirty = normalize(value) !== normalize(account);
   const setAccountEdits = useContext(AccountEditsContext);
   useEffect(() => {
@@ -2059,11 +2097,15 @@ function AccountCard({
     window.addEventListener("beforeunload", prevent);
     return () => window.removeEventListener("beforeunload", prevent);
   }, [dirty]);
-  const change = (patch: Partial<Account>) => setValue({
-    ...value, ...patch,
-    ...(patch.pinsPerDay !== undefined && patch.pinsPerDay !== value.pinsPerDay
-      ? { legacyDailyCap: undefined } : {}),
-  });
+  const change = (patch: Partial<Account>) =>
+    setValue({
+      ...value,
+      ...patch,
+      ...(patch.pinsPerDay !== undefined &&
+      patch.pinsPerDay !== value.pinsPerDay
+        ? { legacyDailyCap: undefined }
+        : {}),
+    });
   return (
     <article className={`panel account-card ${dirty ? "has-changes" : ""}`}>
       <div className="account-heading">
@@ -2084,12 +2126,7 @@ function AccountCard({
             )
               return;
             setValue(account);
-            setFixedText(
-              (
-                account.schedule?.times ||
-                account.hours.map((h) => `${String(h).padStart(2, "0")}:00`)
-              ).join(", "),
-            );
+
             setExpanded(!expanded);
             setError(null);
           }}
@@ -2125,42 +2162,6 @@ function AccountCard({
                 ))}
               </select>
             </Field>
-            <Field label="Pins each day">
-              <input
-                type="number"
-                min="1"
-                max="1440"
-                step="1"
-                value={value.pinsPerDay}
-                onChange={(e) => {
-                  const n = Number(e.target.value);
-                  const hours = spreadHours(n);
-                  if (
-                    (value.schedule?.mode || "fixed") === "fixed" &&
-                    Number.isInteger(n) &&
-                    n >= 1 &&
-                    n <= 18
-                  ) {
-                    const times = hours.map(
-                      (h) => `${String(h).padStart(2, "0")}:00`,
-                    );
-                    setFixedText(times.join(", "));
-                    change({
-                      pinsPerDay: n,
-                      hours,
-                      schedule: {
-                        mode: "fixed",
-                        start: "00:00",
-                        end: "23:59",
-                        minSpacing: value.schedule?.minSpacing || 1,
-                        times,
-                      },
-                    });
-                  } else
-                    change({ pinsPerDay: n, ...(n <= 18 ? { hours } : {}) });
-                }}
-              />
-            </Field>
           </div>
           <Field label="What do you post about? (optional)">
             <input
@@ -2174,106 +2175,20 @@ function AccountCard({
               }
             />
           </Field>
-          <div className="schedule-editor">
-            <Field label="Posting times">
-              <select
-                value={value.schedule?.mode || "fixed"}
-                onChange={(e) =>
-                  change({
-                    schedule: {
-                      mode: e.target.value as "varied" | "fixed",
-                      start: "09:00",
-                      end: "21:00",
-                      minSpacing: 120,
-                      times: value.hours.map(
-                        (h) => `${String(h).padStart(2, "0")}:00`,
-                      ),
-                    },
-                  })
-                }
-              >
-                <option value="varied">Varied times each day</option>
-                <option value="fixed">Choose exact times</option>
-              </select>
-            </Field>
-            {(value.schedule?.mode || "fixed") === "varied" ? (
-              <div className="form-grid">
-                <Field label="Start">
-                  <input
-                    type="time"
-                    value={value.schedule?.start || "09:00"}
-                    onChange={(e) =>
-                      change({
-                        schedule: { ...value.schedule!, start: e.target.value },
-                      })
-                    }
-                  />
-                </Field>
-                <Field label="End">
-                  <input
-                    type="time"
-                    value={value.schedule?.end || "21:00"}
-                    onChange={(e) =>
-                      change({
-                        schedule: { ...value.schedule!, end: e.target.value },
-                      })
-                    }
-                  />
-                </Field>
-              </div>
-            ) : (
-              <Field label="Exact times, separated by commas">
-                <input
-                  value={fixedText}
-                  placeholder="09:15, 15:30, 20:45"
-                  onChange={(e) => {
-                    setFixedText(e.target.value);
-                    const times = e.target.value
-                      .split(/[,\n]/)
-                      .map((t) => t.trim())
-                      .filter(Boolean);
-                    change({
-                      schedule: {
-                        mode: "fixed",
-                        start: "00:00",
-                        end: "23:59",
-                        minSpacing: value.schedule?.minSpacing || 1,
-                        times,
-                      },
-                      pinsPerDay: times.length,
-                    });
-                  }}
-                />
-              </Field>
-            )}
-            <Field label="Minimum minutes between posts">
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={value.schedule?.minSpacing || 1}
-                onChange={(e) =>
-                  change({
-                    schedule: {
-                      mode: "fixed",
-                      start: "09:00",
-                      end: "21:00",
-                      times: value.hours.map(
-                        (h) => `${String(h).padStart(2, "0")}:00`,
-                      ),
-                      ...value.schedule,
-                      minSpacing: Number(e.target.value),
-                    },
-                  })
-                }
-              />
-            </Field>
-            <p className="inline-help">
-              Start with 3 original pins a day, spaced by at least 2 hours.
-              Adjust for your content and results. Varied times are saved once
-              for each day.
-            </p>
-          </div>
+          <ScheduleControls
+            value={{
+              pinsPerDay: value.pinsPerDay,
+              schedule: accountSchedule(value),
+            }}
+            onChange={(next) =>
+              change({
+                ...next,
+                hours: spreadHours(Math.min(18, Math.max(1, next.pinsPerDay))),
+                legacyDailyCap: undefined,
+              })
+            }
+            disabled={working}
+          />
           <label className="check-row">
             <input
               type="checkbox"
@@ -2286,7 +2201,10 @@ function AccountCard({
             <div className="button-row">
               <button
                 className="save-changes"
-                disabled={working}
+                disabled={
+                  working ||
+                  !validSchedule(accountSchedule(value), value.pinsPerDay)
+                }
                 onClick={async () => {
                   setWorking(true);
                   setError(null);
@@ -2310,14 +2228,7 @@ function AccountCard({
                 disabled={working}
                 onClick={() => {
                   setValue(account);
-                  setFixedText(
-                    (
-                      account.schedule?.times ||
-                      account.hours.map(
-                        (h) => `${String(h).padStart(2, "0")}:00`,
-                      )
-                    ).join(", "),
-                  );
+
                   setError(null);
                 }}
               >
@@ -2744,12 +2655,22 @@ function Pins({
   automation,
   draft,
   flush,
+  savePostingSchedule,
+  applying,
 }: {
   automation: Automation;
   draft: Config;
   flush: () => Promise<void>;
+  savePostingSchedule: (
+    accountId: string,
+    value: ScheduleValue,
+  ) => Promise<void>;
+  applying: boolean;
 }) {
   const { t, notify } = useWorkspace();
+  const setAccountEdits = useContext(AccountEditsContext);
+  const [postingDirty, setPostingDirty] = useState(false);
+  const [postingOpen, setPostingOpen] = useState(false);
   const location = useLocation();
   const preset = location.state as any;
   const [accountId, setAccountId] = useState(
@@ -2809,8 +2730,10 @@ function Pins({
   }, [key, sources, notes]);
   const change = (id: string, patch: any) =>
     setSources((ss) => ss.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const automatic = (s:any) => ["category","catalog"].includes(s.kind) &&
-    (s.selection === "auto" || (!s.selection && s.kind === "catalog" && !s.products.length));
+  const automatic = (s: any) =>
+    ["category", "catalog"].includes(s.kind) &&
+    (s.selection === "auto" ||
+      (!s.selection && s.kind === "catalog" && !s.products.length));
   const total = sources.reduce(
     (n, s) =>
       n +
@@ -2820,8 +2743,15 @@ function Pins({
     0,
   );
   const chosen = draft.accounts.find((a) => a.id === accountId);
+  useEffect(() => {
+    const id = `posting-${accountId}`;
+    setAccountEdits((old) => ({ ...old, [id]: postingDirty }));
+    return () => setAccountEdits((old) => ({ ...old, [id]: false }));
+  }, [postingDirty, accountId, setAccountEdits]);
   return (
-    <section className="content-workspace">
+    <section
+      className={`content-workspace ${postingOpen ? "editing-posting" : ""}`}
+    >
       <div className="section-heading">
         <div>
           <h2>Make your next batch</h2>
@@ -2843,7 +2773,13 @@ function Pins({
           <Field label="Pinterest account">
             <select
               value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              onChange={(e) => {
+                if (
+                  !postingDirty ||
+                  window.confirm("Discard unsaved schedule changes?")
+                )
+                  setAccountId(e.target.value);
+              }}
             >
               {draft.accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -2852,6 +2788,22 @@ function Pins({
               ))}
             </select>
           </Field>
+          {chosen && (
+            <PostingScheduleEditor
+              key={chosen.id}
+              account={chosen}
+              timeZone={draft.timeZone}
+              applying={applying}
+              needsUpdate={
+                automation.deployed &&
+                automation.revision > automation.appliedRevision
+              }
+              deployed={automation.deployed}
+              save={savePostingSchedule}
+              onDirty={setPostingDirty}
+              onOpenChange={setPostingOpen}
+            />
+          )}
           <div className="source-stack">
             {sources.map((s, index) => (
               <article className="panel source-row" key={s.id}>
@@ -2934,164 +2886,219 @@ function Pins({
                 {["category", "catalog"].includes(s.kind) && (
                   <>
                     <Field label="Product selection">
-                      <select value={automatic(s) ? "auto" : "manual"} onChange={e=>{setError(null);change(s.id,{selection:e.target.value})}}>
+                      <select
+                        value={automatic(s) ? "auto" : "manual"}
+                        onChange={(e) => {
+                          setError(null);
+                          change(s.id, { selection: e.target.value });
+                        }}
+                      >
                         <option value="auto">Choose products for me</option>
                         <option value="manual">I will choose products</option>
                       </select>
                     </Field>
                     {automatic(s) ? (
                       <>
-                        <p className="inline-help">Research the catalog and choose relevant newer products and proven favorites. Each pin links to its own product.</p>
-                        <Field label={s.kind === "category" ? "Extra category overview pins" : "Extra store overview pins"}>
-                          <input type="number" min="0" step="1" value={s.categoryCount} onChange={e=>change(s.id,{categoryCount:e.target.value === "" ? "" : Number(e.target.value)})}/>
+                        <p className="inline-help">
+                          Research the catalog and choose relevant newer
+                          products and proven favorites. Each pin links to its
+                          own product.
+                        </p>
+                        <Field
+                          label={
+                            s.kind === "category"
+                              ? "Extra category overview pins"
+                              : "Extra store overview pins"
+                          }
+                        >
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={s.categoryCount}
+                            onChange={(e) =>
+                              change(s.id, {
+                                categoryCount:
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value),
+                              })
+                            }
+                          />
                         </Field>
                       </>
-                    ) : (<>
-                    <div className="button-row">
-                      <button
-                        disabled={scanning !== null || !s.url}
-                        onClick={async () => {
-                          setScanning(s.id);
-                          setError(null);
-                          try {
-                            const r = await api(
-                              `/api/automations/${automation.id}/catalog`,
-                              "POST",
-                              { url: s.url, kind: s.kind },
-                            );
-                            change(s.id, {
-                              discovered: r.products,
-                              notice: r.notice,
-                              scanUnavailable: false,
-                            });
-                          } catch (e) {
-                            if (s.kind === "catalog" && e instanceof ApiError &&
-                                ["shop_access", "source_unavailable", "catalog_empty"].includes(e.code))
-                              change(s.id,{notice:"This store could not be scanned here. Use automatic research, or add individual product links below.",scanUnavailable:true});
-                            else setError(e);
-                          } finally {
-                            setScanning(null);
-                          }
-                        }}
-                      >
-                        {scanning === s.id
-                          ? "Finding links…"
-                          : "Find product links"}
-                      </button>
-                      <span className="muted">
-                        {s.products.length} selected
-                      </span>
-                    </div>
-                    {s.notice && <p className="inline-help">{s.notice}</p>}
-                    {s.scanUnavailable && <button onClick={()=>{setError(null);change(s.id,{selection:"auto",scanUnavailable:false})}}>Use automatic research</button>}
-                    {s.discovered?.length > 0 && (
-                      <div className="product-choices">
-                        {s.discovered.map((p: any) => (
-                          <label className="check-row" key={p.url}>
+                    ) : (
+                      <>
+                        <div className="button-row">
+                          <button
+                            disabled={scanning !== null || !s.url}
+                            onClick={async () => {
+                              setScanning(s.id);
+                              setError(null);
+                              try {
+                                const r = await api(
+                                  `/api/automations/${automation.id}/catalog`,
+                                  "POST",
+                                  { url: s.url, kind: s.kind },
+                                );
+                                change(s.id, {
+                                  discovered: r.products,
+                                  notice: r.notice,
+                                  scanUnavailable: false,
+                                });
+                              } catch (e) {
+                                if (
+                                  s.kind === "catalog" &&
+                                  e instanceof ApiError &&
+                                  [
+                                    "shop_access",
+                                    "source_unavailable",
+                                    "catalog_empty",
+                                  ].includes(e.code)
+                                )
+                                  change(s.id, {
+                                    notice:
+                                      "This store could not be scanned here. Use automatic research, or add individual product links below.",
+                                    scanUnavailable: true,
+                                  });
+                                else setError(e);
+                              } finally {
+                                setScanning(null);
+                              }
+                            }}
+                          >
+                            {scanning === s.id
+                              ? "Finding links…"
+                              : "Find product links"}
+                          </button>
+                          <span className="muted">
+                            {s.products.length} selected
+                          </span>
+                        </div>
+                        {s.notice && <p className="inline-help">{s.notice}</p>}
+                        {s.scanUnavailable && (
+                          <button
+                            onClick={() => {
+                              setError(null);
+                              change(s.id, {
+                                selection: "auto",
+                                scanUnavailable: false,
+                              });
+                            }}
+                          >
+                            Use automatic research
+                          </button>
+                        )}
+                        {s.discovered?.length > 0 && (
+                          <div className="product-choices">
+                            {s.discovered.map((p: any) => (
+                              <label className="check-row" key={p.url}>
+                                <input
+                                  type="checkbox"
+                                  checked={s.products.some(
+                                    (x: any) => x.url === p.url,
+                                  )}
+                                  onChange={(e) =>
+                                    change(s.id, {
+                                      products: e.target.checked
+                                        ? [...s.products, p]
+                                        : s.products.filter(
+                                            (x: any) => x.url !== p.url,
+                                          ),
+                                    })
+                                  }
+                                />
+                                <span>
+                                  {p.title}
+                                  <small>{p.url}</small>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        <Field label="Product links (one per line)">
+                          <textarea
+                            rows={3}
+                            placeholder="Add missing product links here"
+                            value={s.manual || ""}
+                            onChange={(e) => {
+                              const manual = e.target.value;
+                              const oldManual = (s.manual || "")
+                                .split(/\n/)
+                                .map((x: string) => x.trim());
+                              const kept = s.products.filter(
+                                (p: any) => !oldManual.includes(p.url),
+                              );
+                              const urls = [
+                                ...new Set(
+                                  manual
+                                    .split(/\n/)
+                                    .map((x) => x.trim())
+                                    .filter(Boolean),
+                                ),
+                              ];
+                              change(s.id, {
+                                manual,
+                                products: [
+                                  ...kept,
+                                  ...urls
+                                    .filter(
+                                      (url) =>
+                                        !kept.some((p: any) => p.url === url),
+                                    )
+                                    .map((url) => ({ url, title: "" })),
+                                ],
+                              });
+                            }}
+                          />
+                        </Field>
+                        <div className="form-grid">
+                          <Field label="Pins for each selected product">
                             <input
-                              type="checkbox"
-                              checked={s.products.some(
-                                (x: any) => x.url === p.url,
-                              )}
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={s.perProduct}
                               onChange={(e) =>
                                 change(s.id, {
-                                  products: e.target.checked
-                                    ? [...s.products, p]
-                                    : s.products.filter(
-                                        (x: any) => x.url !== p.url,
-                                      ),
+                                  perProduct:
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value),
                                 })
                               }
                             />
-                            <span>
-                              {p.title}
-                              <small>{p.url}</small>
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                          </Field>
+                          <Field
+                            label={
+                              s.kind === "category"
+                                ? "Pins for the whole category"
+                                : "Pins for the store overview"
+                            }
+                          >
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={s.categoryCount}
+                              onChange={(e) =>
+                                change(s.id, {
+                                  categoryCount:
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value),
+                                })
+                              }
+                            />
+                          </Field>
+                        </div>
+                        <p className="inline-help">
+                          Product pins link to each product. Overview pins link
+                          to this {s.kind === "category" ? "category" : "store"}
+                          .
+                        </p>
+                      </>
                     )}
-                    <Field label="Product links (one per line)">
-                      <textarea
-                        rows={3}
-                        placeholder="Add missing product links here"
-                        value={s.manual || ""}
-                        onChange={(e) => {
-                          const manual = e.target.value;
-                          const oldManual = (s.manual || "")
-                            .split(/\n/)
-                            .map((x: string) => x.trim());
-                          const kept = s.products.filter(
-                            (p: any) => !oldManual.includes(p.url),
-                          );
-                          const urls = [
-                            ...new Set(
-                              manual
-                                .split(/\n/)
-                                .map((x) => x.trim())
-                                .filter(Boolean),
-                            ),
-                          ];
-                          change(s.id, {
-                            manual,
-                            products: [
-                              ...kept,
-                              ...urls
-                                .filter(
-                                  (url) =>
-                                    !kept.some((p: any) => p.url === url),
-                                )
-                                .map((url) => ({ url, title: "" })),
-                            ],
-                          });
-                        }}
-                      />
-                    </Field>
-                    <div className="form-grid">
-                      <Field label="Pins for each selected product">
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={s.perProduct}
-                          onChange={(e) =>
-                            change(s.id, {
-                              perProduct:
-                                e.target.value === ""
-                                  ? ""
-                                  : Number(e.target.value),
-                            })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label={
-                          s.kind === "category"
-                            ? "Pins for the whole category"
-                            : "Pins for the store overview"
-                        }
-                      >
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={s.categoryCount}
-                          onChange={(e) =>
-                            change(s.id, {
-                              categoryCount:
-                                e.target.value === ""
-                                  ? ""
-                                  : Number(e.target.value),
-                            })
-                          }
-                        />
-                      </Field>
-                    </div>
-                    <p className="inline-help">
-                      Product pins link to each product. Overview pins link to
-                      this {s.kind === "category" ? "category" : "store"}.
-                    </p>
-                    </>)}
                   </>
                 )}
               </article>
@@ -3153,6 +3160,8 @@ function Pins({
               className="primary"
               disabled={
                 busy ||
+                postingDirty ||
+                applying ||
                 !sources.length ||
                 !Number.isSafeInteger(total) ||
                 total < 1
@@ -3170,7 +3179,22 @@ function Pins({
                       variant: variant.current,
                       notes,
                       sources: sources.map(
-                        ({ id, manual, discovered, notice, scanUnavailable, ...s }) => automatic(s) ? {...s,selection:"auto",products:[],perProduct:3} : s,
+                        ({
+                          id,
+                          manual,
+                          discovered,
+                          notice,
+                          scanUnavailable,
+                          ...s
+                        }) =>
+                          automatic(s)
+                            ? {
+                                ...s,
+                                selection: "auto",
+                                products: [],
+                                perProduct: 3,
+                              }
+                            : s,
                       ),
                     },
                   );
@@ -3182,7 +3206,13 @@ function Pins({
                 }
               }}
             >
-              {busy ? "Preparing…" : "Review request"}
+              {busy
+                ? "Preparing…"
+                : postingDirty
+                  ? "Save schedule first"
+                  : applying
+                    ? "Updating schedule…"
+                    : "Review request"}
               <ArrowRight size={16} />
             </button>
           </div>
@@ -3201,14 +3231,31 @@ function Pins({
                 <p>
                   {selected.total.toLocaleString()} pins for @
                   {selected.username}. The prompt creates the content; copying
-                  it does not queue or publish pins. Running the prompt checks access, creates the pins and marks verified pins Ready.
+                  it does not queue or publish pins. Running the prompt checks
+                  access, creates the pins and marks verified pins Ready.
                 </p>
-                {selected.selectionPending && <p>Product selection happens during research. The final product links and mixed order are checked before creating pins.</p>}
+                {selected.selectionPending && (
+                  <p>
+                    Product selection happens during research. The final product
+                    links and mixed order are checked before creating pins.
+                  </p>
+                )}
                 <div className="destination-review">
                   {selected.input.destinations?.map((d: any, i: number) => (
                     <div className="review-row" key={i}>
                       <strong>
-                        {d.count} pins · {d.title || ({"no link":"Without links","exact product":"Product","category product":"Product","category overview":"Category overview","store overview":"Store overview"} as Record<string,string>)[d.kind] || "Products"}
+                        {d.count} pins ·{" "}
+                        {d.title ||
+                          (
+                            {
+                              "no link": "Without links",
+                              "exact product": "Product",
+                              "category product": "Product",
+                              "category overview": "Category overview",
+                              "store overview": "Store overview",
+                            } as Record<string, string>
+                          )[d.kind] ||
+                          "Products"}
                       </strong>
                       <span>{d.url || "No destination link"}</span>
                     </div>
@@ -3218,10 +3265,15 @@ function Pins({
                   <>
                     <p>Planned order: one pin per product, then repeat.</p>
                     <details>
-                      <summary>See the first {selected.postingOrder.length} posting slots</summary>
+                      <summary>
+                        See the first {selected.postingOrder.length} posting
+                        slots
+                      </summary>
                       <ol>
                         {selected.postingOrder.map((pin: any) => (
-                          <li key={pin.sequence}>{pin.title} · variation {pin.productPin}</li>
+                          <li key={pin.sequence}>
+                            {pin.title} · variation {pin.productPin}
+                          </li>
                         ))}
                       </ol>
                     </details>

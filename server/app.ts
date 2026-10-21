@@ -5,6 +5,7 @@ import { auth, requireSession } from "./auth";
 import { owned } from "./access";
 import { integrations } from "./integrations";
 import { discovery, existingSetups } from "./discovery";
+import { normalizedSpacing } from "../shared/posting-schedule";
 import { validateSchedule } from "./schedule-plan";
 import { configSchema } from "./config";
 import { telegramChecks } from "./telegram";
@@ -246,6 +247,11 @@ app.put("/api/automations/:id", async (c) => {
       );
   }
   for (const account of body.config.accounts) {
+    if (account.schedule)
+      account.schedule = normalizedSpacing(
+        account.schedule,
+        account.pinsPerDay,
+      );
     if (
       account.schedule
         ? !validateSchedule(account.schedule, account.pinsPerDay)
@@ -312,7 +318,11 @@ app.post("/api/automations/:id/creation-intent", async (c) => {
     .bind(intent, a.id, c.get("user").id)
     .run();
   if (result.meta.changes !== 1)
-    throw new PublicError("busy", "An update is in progress. Wait for it to finish, then try again.", 409);
+    throw new PublicError(
+      "busy",
+      "An update is in progress. Wait for it to finish, then try again.",
+      409,
+    );
   return c.json({ ok: true });
 });
 app.post("/api/automations/:id/setup-step", async (c) => {

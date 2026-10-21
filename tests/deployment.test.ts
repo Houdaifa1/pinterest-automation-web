@@ -63,7 +63,10 @@ function provider() {
     status = "DISABLED",
     published = "",
     failImport = false,
-    runStatus = "SUCCEEDED";
+    runStatus = "SUCCEEDED",
+    retryCount = 0,
+    latestRunId = "seed-run",
+    latestRunVersion = "version-1";
   const calls: any[] = [];
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, options) => {
     const url = new URL(String(input)),
@@ -97,14 +100,25 @@ function provider() {
       if (body.type === "CHANGE_STATUS") status = body.request.status;
       return respond(flow());
     }
+    if (
+      url.pathname.endsWith("/flow-runs/seed-run/retry") &&
+      method === "POST"
+    ) {
+      latestRunId = `retry-${++retryCount}`;
+      latestRunVersion = `version-${version}`;
+      return respond({ id: latestRunId });
+    }
     const run = {
-      id: "seed-run",
+      id: latestRunId,
       flowId: "new-flow",
-      flowVersionId: "version-1",
+      flowVersionId: latestRunVersion,
       status: runStatus,
     };
     if (url.pathname.endsWith("/flow-runs")) return respond({ data: [run] });
-    if (url.pathname.endsWith("/flow-runs/seed-run"))
+    if (
+      url.pathname.endsWith("/flow-runs/seed-run") ||
+      url.pathname.endsWith(`/flow-runs/${latestRunId}`)
+    )
       return respond({
         ...run,
         steps: {
@@ -126,6 +140,9 @@ function provider() {
     },
     failNextImport() {
       failImport = true;
+    },
+    pause() {
+      status = "DISABLED";
     },
     failRun() {
       runStatus = "FAILED";
@@ -190,8 +207,79 @@ it("one Pinterest login cannot be activated in two website automations", async (
   expect(remote.created).toBe(1);
 });
 
-it("an existing-only setup cannot create any new provider flow even when discovery failed",async()=>{
- const a=await setup();await env.DB.prepare("UPDATE automations SET setup_intent='existing' WHERE id=?").bind(a.id).run();
- const p=provider();await expect(deploy(env,"member",await fresh())).rejects.toMatchObject({code:"existing_required"});expect(p.calls).toHaveLength(0);
- expect((await fresh()).flow_id).toBeNull();
+it("an existing-only setup cannot create any new provider flow even when discovery failed", async () => {
+  const a = await setup();
+  await env.DB.prepare(
+    "UPDATE automations SET setup_intent='existing' WHERE id=?",
+  )
+    .bind(a.id)
+    .run();
+  const p = provider();
+  await expect(deploy(env, "member", await fresh())).rejects.toMatchObject({
+    code: "existing_required",
+  });
+  expect(p.calls).toHaveLength(0);
+  expect((await fresh()).flow_id).toBeNull();
 });
+
+it.each(["running", "paused"])(
+  "updates the same flow with minute schedules and preserves %s state",
+  async (desired) => {
+    const scheduledEnv = { ...env, DISPATCH_KEY: "test-dispatch-key" };
+    const first = await setup(),
+      remote = provider();
+    const config = JSON.parse(first.config);
+    config.accounts[0].schedule = {
+      mode: "varied",
+      start: "09:00",
+      end: "21:00",
+      spacingMode: "auto",
+      minSpacing: 120,
+      times: [],
+    };
+    config.accounts[0].pinsPerDay = 5;
+    await env.DB.prepare("UPDATE automations SET config=? WHERE id=?")
+      .bind(JSON.stringify(config), first.id)
+      .run();
+    await deploy(scheduledEnv, "member", await fresh());
+    await reconcile(scheduledEnv, "member", await fresh());
+    const previous = await fresh();
+    if (desired === "paused") remote.pause();
+    config.accounts[0].pinsPerDay = 10;
+    config.accounts[0].schedule.minSpacing = 65;
+    await env.DB.prepare(
+      "UPDATE automations SET status=?,config=?,revision=2 WHERE id=?",
+    )
+      .bind(desired, JSON.stringify(config), first.id)
+      .run();
+    await deploy(scheduledEnv, "member", await fresh());
+    expect((await fresh()).status).toBe("applying");
+    expect((await fresh()).applied_revision).toBe(1);
+    await reconcile(scheduledEnv, "member", await fresh());
+    const done = await fresh();
+    expect(remote.created).toBe(1);
+    expect(done.flow_id).toBe(previous.flow_id);
+    expect(done.sheet_url).toBe(previous.sheet_url);
+    expect(done.status).toBe(desired);
+    expect(done.applied_revision).toBe(2);
+    expect(done.scheduler_enabled).toBe(1);
+    const imported = remote.calls
+      .filter((c) => c.body?.type === "IMPORT_FLOW")
+      .at(-1).body.request;
+    expect(imported.trigger.settings.input.cronExpression).toBe("7 0 * * *");
+    let prepare = imported.trigger;
+    while (prepare.name !== "step_3") prepare = prepare.nextAction;
+    const installed = JSON.parse(prepare.settings.input.config);
+    expect(installed.accounts[0].websiteSchedule).toMatchObject({
+      mode: "varied",
+      minSpacing: 65,
+      spacingMode: "auto",
+    });
+    expect(
+      remote.calls.some(
+        (c) =>
+          c.path.endsWith("/retry") && c.body.strategy === "ON_LATEST_VERSION",
+      ),
+    ).toBe(true);
+  },
+);

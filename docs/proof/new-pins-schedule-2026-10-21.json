@@ -1,0 +1,70 @@
+{
+  "checkedAt": "2026-10-21T10:01:00.155Z",
+  "environment": "local isolated fixture; no live flow or Pinterest writes",
+  "cases": [
+    {
+      "case": "revert daily amount",
+      "saveDisabled": true
+    },
+    {
+      "case": "duplicate exact time",
+      "blocked": true
+    },
+    {
+      "case": "revert exact minute",
+      "saveDisabled": true
+    },
+    {
+      "case": "manual daily amount persists",
+      "passed": true
+    },
+    {
+      "case": "impossible custom gap",
+      "blocked": true
+    },
+    {
+      "case": "reversed varied window",
+      "blocked": true
+    },
+    {
+      "case": "zero daily amount",
+      "blocked": true
+    },
+    {
+      "case": "editing preserves scroll and focus",
+      "passed": true
+    },
+    {
+      "case": "shared account schedule controls",
+      "passed": true
+    }
+  ],
+  "layouts": [
+    {
+      "footerPosition": "static",
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "footerPosition": "static",
+      "scrollWidth": 390,
+      "smallTargets": 0,
+      "width": 390
+    },
+    {
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "fields": 12,
+      "scrollWidth": 320,
+      "smallTargets": 0,
+      "width": 320
+    }
+  ],
+  "savedDailyAmount": 10,
+  "creationAmountUnchanged": 5,
+  "exactMinutePersisted": "08:05",
+  "otherProfilesProtectedByIntegrationTest": true,
+  "pausedAndRunningUpdatesTestedWithSimulatedProvider": true
+}

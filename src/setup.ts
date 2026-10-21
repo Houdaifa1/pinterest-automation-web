@@ -49,6 +49,7 @@ export function newPinterestAccount(connection: Connection): Account {
       start: "09:00",
       end: "21:00",
       minSpacing: 120,
+      spacingMode: "auto",
       times: [],
     },
     hours: [9, 15, 21],

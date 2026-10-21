@@ -20,7 +20,7 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Keep each automation and its Pinterest profiles together.
 - Connect Activepieces once, with readable account names.
 - Find an existing automation and keep its Sheet, schedule and Telegram without entering another token.
-- Choose varied posting windows or exact minute times, with adjustable daily amounts.
+- Change the selected profile’s schedule directly in New pins: daily amounts, varied windows, exact minute fields and automatic/custom spacing. Save & update applies it to the same automation and preserves pause state.
 - Pause, resume, start a run and inspect its status.
 - Upload picture references for each profile.
 - Mix no-link pins, individual products, category overview pins and selected store products in one request.
@@ -34,6 +34,8 @@ End-to-end publication with the revised scheduling contract, live deployed-flow 
 - Manage website members from the owner account.
 
 The website prepares instructions; it does not generate images or perform trend research in the background. Use the prompt in a content-creation session with web, image, Drive and Sheets access. That session first verifies its own Google Drive and Sheets connections and the exact Sheet/folder permissions. It then researches the designated account and sources, creates and checks the images, saves rows, and marks verified pins Ready in the same run without a member-approval step. Incomplete pins remain Draft with a reason. Website Google sign-in and saved Activepieces connections do not grant a separate creation session access; connect the required Google tools there if missing. Ready pins become eligible for the existing active schedule; they are not proof of a completed Pinterest post. Copying text does not attach image files: reference links give temporary access to the selected images. Download the prompt-and-images package when you prefer to attach the files yourself.
+
+In **New pins**, open **Posting schedule** to change the selected profile’s publishing cadence. Automatic spacing adapts to daily amount and hours; exact clocks and custom minimum gaps remain available. **Save & update** applies the existing flow, while **Updating…** remains visible until the service confirms the change. Unchanged profiles keep their saved times. Creating 100 pins does not silently change the daily posting amount.
 
 For a shop request, open **New pins → My website or store**, paste the shop/catalog URL, keep **Choose products for me**, choose the amount and click **Review request**. Individual product links are resolved during creation research. If a manual scan cannot read a store, **Use automatic research** continues without pretending the scan succeeded. You can also paste exact product links. Automatic selections are saved as a batch plan before image creation so a resumed batch keeps the same products and mixed order.
 

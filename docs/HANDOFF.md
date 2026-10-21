@@ -13,6 +13,8 @@ Source URLs, optional briefs and example pins belong in New pins; account settin
 
 Current creation policy, 21 October: the owner explicitly removed the member-approval gate. New prompts must check this creation session's Google Drive/Sheets connections, exact Sheet/account/folder and write/upload permissions before research or images, then create, verify uploads and saved rows and set passing pins Ready automatically in the same run. Draft is temporary or for incomplete/failed pins only. Never promote unrelated old Drafts or directly publish from the content prompt. Older Draft-review requirements below are superseded. Access failures require the exact missing connection/permission; website sign-in is not creation-session Google access.
 
+Current schedule UI, 21 October: New pins now has a collapsed Posting schedule control scoped to the selected profile. Shared controls also remain in account settings and creation. Save & update uses the existing flow/Sheet deployment and preserves pause state. Automatic spacing recalculates from daily amount/window (09:00–21:00: five/day=120m, ten/day=65m, twelve/day=55m); custom gaps/exact minute fields are available. Varied slots are spread with bounded randomness and overnight spacing, then stored. Schedule updates atomically preserve unaffected profiles' future jobs, cancel replaced jobs and allow cancelled future timestamps to be reused safely. Creation amount stays independent. These are scheduling defaults, not a ranking or evasion guarantee.
+
 ---
 
 ## 1. Who the owner is and how to work with him

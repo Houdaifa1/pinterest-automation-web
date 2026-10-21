@@ -1541,3 +1541,33 @@ footer {
     width: 100%;
   }
 }
+
+.posting-panel { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.posting-panel.has-changes { border-color: var(--green); }
+.posting-summary { width: 100%; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px; background:transparent; border:0; text-align:left; border-radius:0; }
+.posting-summary > span:first-child { display:grid; gap:6px; }
+.posting-summary .muted, .posting-state, .posting-zone { font-size:12px; }
+.posting-state { display:flex; align-items:center; gap:10px; color:var(--muted); }
+.posting-body { border-top:1px solid var(--line); padding:16px; }
+.posting-zone { color:var(--muted); margin:0 0 16px; }
+.posting-controls { border:0; padding:0; margin:0 0 16px; min-width:0; display:grid; gap:16px; }
+.posting-controls .field { margin:0; }
+.posting-amount { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.amount-stepper { display:flex; align-items:center; gap:4px; }
+.amount-stepper input { width:82px; text-align:center; }
+.amount-stepper button { padding:10px; }
+.posting-presets, .posting-modes { display:flex; gap:6px; }
+.posting-presets button { min-width:38px; padding:10px; }
+.posting-modes button { flex:1; }
+.posting-presets button[aria-pressed=true], .posting-modes button[aria-pressed=true] { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+.posting-times { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; max-height:260px; overflow:auto; }
+.posting-time { display:flex; align-items:center; gap:5px; }
+.posting-time input { min-width:0; flex:1; }
+.posting-time button { padding:8px; }
+.posting-spacing { color:var(--muted); font-size:12px; }
+.posting-spacing summary { cursor:pointer; padding:6px 0; }
+.schedule-validation { color:#f6b28b; font-size:13px; margin:0; }
+
+.editing-posting .request-footer { position: static; }
+.posting-presets button, .amount-stepper button, .posting-time button { min-width:44px; min-height:44px; }
+.posting-times { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }

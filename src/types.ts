@@ -23,6 +23,7 @@ export interface Account {
     start: string;
     end: string;
     minSpacing: number;
+    spacingMode?: "auto" | "custom";
     times: string[];
   };
   hours: number[];

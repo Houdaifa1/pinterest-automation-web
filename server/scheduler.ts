@@ -56,12 +56,15 @@ export async function ensurePlan(env: Env, a: ScheduledAutomation, at = now()) {
   }
   for (let start = 0; start < rows.length; start += 100) {
     await env.DB.prepare(
-      `INSERT OR IGNORE INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status) SELECT json_extract(value,'$.id'),?,json_extract(value,'$.accountId'),json_extract(value,'$.name'),?,json_extract(value,'$.at'),json_extract(value,'$.day'),json_extract(value,'$.status') FROM json_each(?)`,
+      `INSERT INTO schedule_jobs(id,automation_id,account_id,account_name,schedule_revision,planned_at,local_day,status) SELECT json_extract(value,'$.id'),?,json_extract(value,'$.accountId'),json_extract(value,'$.name'),?,json_extract(value,'$.at'),json_extract(value,'$.day'),json_extract(value,'$.status') FROM json_each(?) WHERE true
+       ON CONFLICT(automation_id,account_id,planned_at) DO UPDATE SET id=excluded.id,account_name=excluded.account_name,schedule_revision=excluded.schedule_revision,local_day=excluded.local_day,status=excluded.status,lease_token=NULL,started_at=NULL,finished_at=NULL,remote_run_id=NULL,detail=NULL
+       WHERE schedule_jobs.status='cancelled' AND schedule_jobs.planned_at>=? AND schedule_jobs.schedule_revision<>excluded.schedule_revision`,
     )
       .bind(
         a.id,
         a.applied_revision,
         JSON.stringify(rows.slice(start, start + 100)),
+        at,
       )
       .run();
   }
@@ -70,6 +73,59 @@ export async function ensurePlan(env: Env, a: ScheduledAutomation, at = now()) {
   )
     .bind(through, a.id, a.applied_revision)
     .run();
+}
+export function pendingPlanChanges(
+  env: Env,
+  previous: Automation,
+  configText: string,
+  revision: number,
+  at = now(),
+) {
+  const old = JSON.parse(previous.applied_config || "{}"),
+    next = JSON.parse(configText);
+  const key = (config: any, account: any) =>
+    JSON.stringify({
+      zone: config.timeZone,
+      name: account.name,
+      username: account.username,
+      connection: account.connection,
+      on: account.on,
+      count: account.pinsPerDay,
+      cap: account.legacyDailyCap,
+      schedule: account.schedule
+        ? {
+            mode: account.schedule.mode,
+            start: account.schedule.start,
+            end: account.schedule.end,
+            minSpacing: account.schedule.minSpacing,
+            spacingMode: account.schedule.spacingMode,
+            times: [...account.schedule.times].sort(),
+          }
+        : [...account.hours].sort((a: number, b: number) => a - b),
+    });
+  const keep = (next.accounts || [])
+    .filter((account: any) => {
+      const before = old.accounts?.find((a: any) => a.id === account.id);
+      return account.on && before && key(old, before) === key(next, account);
+    })
+    .map((a: any) => a.id);
+  return [
+    env.DB.prepare(
+      "UPDATE schedule_jobs SET schedule_revision=? WHERE automation_id=? AND status='pending' AND planned_at>=? AND schedule_revision=? AND account_id IN(SELECT value FROM json_each(?))",
+    ).bind(
+      revision,
+      previous.id,
+      at,
+      previous.applied_revision,
+      JSON.stringify(keep),
+    ),
+    env.DB.prepare(
+      "UPDATE schedule_jobs SET status='cancelled' WHERE automation_id=? AND status IN('pending','dispatched','claimed') AND schedule_revision<>?",
+    ).bind(previous.id, revision),
+    env.DB.prepare(
+      "UPDATE automations SET planned_through=NULL WHERE id=?",
+    ).bind(previous.id),
+  ];
 }
 export async function dispatchAutomation(env: Env, a: ScheduledAutomation) {
   if (

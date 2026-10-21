@@ -4,6 +4,7 @@ import { template } from "../.build/engine";
 import { buildWebsiteFlow } from "./flow-builder.mjs";
 import { defaultState } from "../engine/panel/generator.js";
 import { owned } from "./access";
+import { pendingPlanChanges } from "./scheduler";
 import { verifiedBotChat } from "./telegram";
 import { existingTelegramSheet, checkExistingProfiles } from "./discovery";
 import { ap, getIntegration, safeSheet, type Connection } from "./activepieces";
@@ -536,25 +537,18 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
         "The posting schedule could not be confirmed. Refresh its status.",
         502,
       );
-    await env.DB.prepare(
-      "UPDATE automations SET status=?,bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,flow_version_id=?,error_code=NULL WHERE id=?",
-    )
-      .bind(
+    await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE automations SET status=?,bootstrap=0,applied_config=deploy_config,applied_revision=?,seed_run_id=?,last_run_id=NULL,sheet_url=?,flow_version_id=?,error_code=NULL WHERE id=?",
+      ).bind(
         a.resume_after_apply ? "running" : "paused",
         a.target_revision,
         run.id,
         sheet,
         installedVersion,
         a.id,
-      )
-      .run();
-    await env.DB.batch([
-      env.DB.prepare(
-        "UPDATE schedule_jobs SET status='cancelled' WHERE automation_id=? AND status IN('pending','dispatched','claimed') AND schedule_revision<>?",
-      ).bind(a.id, a.target_revision),
-      env.DB.prepare(
-        "UPDATE automations SET planned_through=NULL WHERE id=?",
-      ).bind(a.id),
+      ),
+      ...pendingPlanChanges(env, a, a.deploy_config!, a.target_revision!),
     ]);
     const selected = JSON.parse(a.deploy_config!)
       .accounts.filter((x: any) => x.on)

@@ -1,30 +1,23 @@
 import { z } from "zod";
+import {
+  normalizedSpacing,
+  validSchedule,
+  variedBounds,
+} from "../shared/posting-schedule";
 import { scheduleZone } from "../engine/panel/generator.js";
 const time = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
 export const scheduleSchema = z.object({
   mode: z.enum(["varied", "fixed"]).default("varied"),
   start: time.default("09:00"),
   end: time.default("21:00"),
+  spacingMode: z.enum(["auto", "custom"]).optional(),
   minSpacing: z.number().int().min(1).max(1440).default(120),
   times: z.array(time).max(1440).default([]),
 });
 export type PostingSchedule = z.infer<typeof scheduleSchema>;
 export const minutes = (t: string) =>
   Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
-export function validateSchedule(schedule: PostingSchedule, count: number) {
-  const start = minutes(schedule.start),
-    end = minutes(schedule.end);
-  if (schedule.mode === "fixed") {
-    const times = [...new Set(schedule.times.map(minutes))].sort(
-      (a, b) => a - b,
-    );
-    return (
-      times.length === count &&
-      times.every((t, i) => !i || t - times[i - 1] >= schedule.minSpacing)
-    );
-  }
-  return end >= start && (count - 1) * schedule.minSpacing <= end - start;
-}
+export const validateSchedule = validSchedule;
 export function localDay(at: number, zone: string) {
   const p = new Intl.DateTimeFormat("en-CA", {
     timeZone: scheduleZone(zone, new Date(at * 1000)),
@@ -83,11 +76,15 @@ export function dailyMinutes(
     throw Error("The daily amount does not fit the posting hours and spacing.");
   if (schedule.mode === "fixed")
     return [...new Set(schedule.times.map(minutes))].sort((a, b) => a - b);
-  const start = minutes(schedule.start),
-    end = minutes(schedule.end),
-    slack = end - start - (count - 1) * schedule.minSpacing;
-  // Ordered random offsets preserve the requested minimum spacing without rejection loops.
-  return Array.from({ length: count }, () => Math.floor(random() * (slack + 1)))
-    .sort((a, b) => a - b)
-    .map((offset, i) => start + i * schedule.minSpacing + offset);
+  const normalized = normalizedSpacing(schedule, count);
+  const [start, end] = variedBounds(normalized);
+  const slack = end - start - (count - 1) * normalized.minSpacing;
+  // One random offset per ordered segment spreads slots without breaking spacing.
+  return Array.from(
+    { length: count },
+    (_, i) =>
+      start +
+      i * normalized.minSpacing +
+      Math.floor(((i + random()) * (slack + 1)) / count),
+  );
 }
