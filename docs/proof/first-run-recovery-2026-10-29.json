@@ -29,7 +29,10 @@
     "browser": {
       "data": "Isolated local example member and setup, no live connections",
       "retryButtonVisibleAndEnabled": true,
-      "viewportWidths": [604, 390],
+      "viewportWidths": [
+        604,
+        390
+      ],
       "horizontalOverflow": false,
       "screenshots": [
         "screenshots/first-run-recovery-local-2026-10-29.png",
@@ -39,6 +42,17 @@
   },
   "liveFlowChanges": false,
   "liveSheetOrPinterestWrites": false,
-  "release": "pending",
-  "remaining": "Release the checked website, then use Retry first run to schedule a fresh settings-only check on the same flow and workspace. A successful real scheduled first run is still required."
+  "release": {
+    "commit": "f140f10",
+    "workflow": "40952151296",
+    "buildAndTest": "passed",
+    "deployProduction": "passed",
+    "productionAsset": "/assets/index-DyDgDAs7.js",
+    "checkedBuildMatchesProduction": true,
+    "health": 200,
+    "anonymousPrivateAccess": 401,
+    "productionEnvironment": 200,
+    "developmentLogin": 404
+  },
+  "remaining": "The member must refresh the website and select Retry first run to apply saved website settings to the same flow/workspace. A successful real scheduled run is still required; the live flow was not changed during diagnosis or website release."
 }
