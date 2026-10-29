@@ -161,7 +161,7 @@ export const messages = {
     chooseProject: "Choose your Activepieces project",
     noStatus: "Status has not been checked yet.",
     firstRun:
-      "The first scheduled run can take a few minutes. You can leave this page and come back.",
+      "Allow up to 15 minutes for the first scheduled run. Leave the flow unchanged in Activepieces while setup finishes. Editor tests can create the Sheet, but do not confirm a scheduled run. You can leave this page and come back.",
     savedStyle: "Uses your saved style",
     copy: "Copy prompt",
     copied: "Copied",

@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-29",
+  "incident": {
+    "source": "Read-only inspection of the exact flow shown in the owner's screenshots",
+    "websiteStatus": "starting",
+    "appliedRevision": 0,
+    "savedSeedRun": false,
+    "recordedProductionRuns": 0,
+    "originalPublishedAtUtc": "2026-10-29T20:22:50.675Z",
+    "setupCronUtc": "25 20 29 10 *",
+    "replacementPublishedAtUtc": "2026-10-29T20:25:27.676Z",
+    "publishedVersionMatchesWebsite": false,
+    "ownerScreenshot": "The 20:42 screenshot shows a successful editor test lasting 12 seconds, including Update website status in two seconds",
+    "confirmedCause": "Reconciliation only accepted the original saved flow version and had no exit when another version was published or no scheduled run arrived",
+    "limits": "The available records do not prove why the provider did not execute the original scheduled trigger. Republishing occurred during its scheduled minute."
+  },
+  "localValidation": {
+    "runtimeChecks": 98,
+    "flowExecutionChecks": 12,
+    "engineChecks": 41,
+    "productionBuild": "passed",
+    "regressions": [
+      "A republished setup exposes recovery and retries the same flow",
+      "Editor tests cannot supply the scheduled first-run record",
+      "A missing first run exposes recovery after 15 minutes",
+      "A real in-progress run is not treated as missing",
+      "An enabled flow cannot clear an unconfirmed first-run failure"
+    ],
+    "browser": {
+      "data": "Isolated local example member and setup, no live connections",
+      "retryButtonVisibleAndEnabled": true,
+      "viewportWidths": [604, 390],
+      "horizontalOverflow": false,
+      "screenshots": [
+        "screenshots/first-run-recovery-local-2026-10-29.png",
+        "screenshots/first-run-recovery-phone-local-2026-10-29.png"
+      ]
+    }
+  },
+  "liveFlowChanges": false,
+  "liveSheetOrPinterestWrites": false,
+  "release": "pending",
+  "remaining": "Release the checked website, then use Retry first run to schedule a fresh settings-only check on the same flow and workspace. A successful real scheduled first run is still required."
+}

@@ -1076,7 +1076,7 @@ function AutomationPage() {
             <ArrowLeft size={15} />
             {t("all")}
           </Link>
-          {automation.deployed && (
+          {automation.deployed && automation.appliedRevision > 0 && (
             <button
               disabled={actionPending || saving}
               onClick={async () => {
@@ -1115,6 +1115,35 @@ function AutomationPage() {
             <Notice>
               Activepieces changed. Refresh from Activepieces to load its
               published settings before applying website edits.
+            </Notice>
+          )}
+          {automation.deployed && automation.appliedRevision === 0 && (
+            <Notice>
+              {automation.status === "problem" ? (
+                <>
+                  <p>
+                    {automation.errorCode === "setup_changed"
+                      ? "The flow was republished in Activepieces before setup was confirmed. The website is still waiting for its original version."
+                      : automation.errorCode === "first_run_missing"
+                        ? "Activepieces has not recorded the first scheduled run. Its one-time setup time has passed."
+                        : "The first setup run could not be confirmed. Check your connections, then retry."}
+                  </p>
+                  <p>
+                    Retry applies your saved website settings to the same flow
+                    and schedules a new setup check. Your existing Sheet is
+                    kept.
+                  </p>
+                  <button
+                    className="primary"
+                    disabled={actionPending || saving}
+                    onClick={() => void action("deploy")}
+                  >
+                    Retry first run
+                  </button>
+                </>
+              ) : automation.status === "starting" ? (
+                <p>{t("firstRun")}</p>
+              ) : null}
             </Notice>
           )}
           {error != null && (
@@ -1169,7 +1198,8 @@ function AutomationPage() {
               </div>
               {(automation.revision > automation.appliedRevision ||
                 pending.current) &&
-                automation.deployed && (
+                automation.deployed &&
+                automation.appliedRevision > 0 && (
                   <div className="apply-bar">
                     <span>{t("readyChanges")}</span>
                     <button

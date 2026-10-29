@@ -645,6 +645,7 @@ export async function reconcile(env: Env, userId: string, raw: Automation) {
 async function reconcileState(env: Env, userId: string, raw: Automation) {
   const a = raw as DeployAutomation;
   if (!a.flow_id) return { status: a.status };
+  if (a.bootstrap && a.status === "problem") return { status: a.status };
   if (!["starting", "applying"].includes(a.status)) {
     const { key } = await getIntegration(env, userId, a);
     const remote = await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`);
@@ -683,17 +684,42 @@ async function reconcileState(env: Env, userId: string, raw: Automation) {
     return { status };
   }
   const { integration, key } = await getIntegration(env, userId, a);
+  const remote = await ap(key, `/flows/${encodeURIComponent(a.flow_id)}`);
+  const stopSetup = async (code: string) => {
+    const result = await env.DB.prepare(
+      "UPDATE automations SET status='problem',error_code=? WHERE id=? AND flow_version_id=? AND status=? AND operation_id IS NULL",
+    )
+      .bind(code, a.id, a.flow_version_id, a.status)
+      .run();
+    return result.meta.changes
+      ? { status: "problem" }
+      : { status: a.status, pending: true };
+  };
+  if (remote.publishedVersionId !== a.flow_version_id)
+    return stopSetup("setup_changed");
   const list = await ap(
     key,
     `/flow-runs?projectId=${encodeURIComponent(integration.project_id)}&flowId=${encodeURIComponent(a.flow_id!)}&limit=25`,
   );
   const candidates = (list.data || []).filter(
-    (r: any) => r.flowId === a.flow_id && r.flowVersionId === a.flow_version_id,
+    (r: any) =>
+      r.flowId === a.flow_id &&
+      r.flowVersionId === a.flow_version_id &&
+      r.environment === "PRODUCTION",
   );
   const run = a.last_run_id
     ? candidates.find((r: any) => r.id === a.last_run_id)
     : candidates.find((r: any) => r.status === "SUCCEEDED") || candidates[0];
-  if (!run || ["RUNNING", "QUEUED", "PAUSED"].includes(run.status))
+  if (!run) {
+    if (
+      a.bootstrap &&
+      a.operation_started_at &&
+      a.operation_started_at < now() - 900
+    )
+      return stopSetup("first_run_missing");
+    return { status: a.status };
+  }
+  if (["RUNNING", "QUEUED", "PAUSED"].includes(run.status))
     return { status: a.status };
   if (run.status !== "SUCCEEDED") {
     await env.DB.prepare(

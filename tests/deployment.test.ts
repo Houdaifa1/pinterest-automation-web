@@ -64,6 +64,8 @@ function provider() {
     published = "",
     failImport = false,
     runStatus = "SUCCEEDED",
+    environment = "PRODUCTION",
+    hasRun = true,
     retryCount = 0,
     latestRunId = "seed-run",
     latestRunVersion = "version-1";
@@ -113,8 +115,10 @@ function provider() {
       flowId: "new-flow",
       flowVersionId: latestRunVersion,
       status: runStatus,
+      environment,
     };
-    if (url.pathname.endsWith("/flow-runs")) return respond({ data: [run] });
+    if (url.pathname.endsWith("/flow-runs"))
+      return respond({ data: hasRun ? [run] : [] });
     if (
       url.pathname.endsWith("/flow-runs/seed-run") ||
       url.pathname.endsWith(`/flow-runs/${latestRunId}`)
@@ -146,6 +150,19 @@ function provider() {
     },
     failRun() {
       runStatus = "FAILED";
+    },
+    noRuns() {
+      hasRun = false;
+    },
+    testRun() {
+      environment = "TESTING";
+    },
+    running() {
+      runStatus = "RUNNING";
+    },
+    republish() {
+      version++;
+      published = "version-" + version;
     },
   };
 }
@@ -195,6 +212,76 @@ it("a failed run never marks a deployment as applied", async () => {
   });
   expect((await fresh()).applied_revision).toBe(0);
   expect((await fresh()).sheet_url).toBeNull();
+  expect(await reconcile(env, "member", await fresh())).toEqual({
+    status: "problem",
+  });
+});
+
+it("a republished setup stops waiting and retries the same flow with a new setup time", async () => {
+  const a = await setup(),
+    remote = provider();
+  await deploy(env, "member", a);
+  remote.noRuns();
+  remote.republish();
+  expect(await reconcile(env, "member", await fresh())).toEqual({
+    status: "problem",
+  });
+  const failed = await fresh();
+  expect(failed.error_code).toBe("setup_changed");
+  expect(failed.applied_revision).toBe(0);
+  expect(await reconcile(env, "member", failed)).toEqual({ status: "problem" });
+  await deploy(env, "member", await fresh());
+  const retry = await fresh();
+  expect(remote.created).toBe(1);
+  expect(retry.flow_id).toBe(failed.flow_id);
+  expect(retry.status).toBe("starting");
+  expect(retry.error_code).toBeNull();
+  expect(retry.flow_version_id).not.toBe(failed.flow_version_id);
+  const imported = remote.calls
+    .filter((x) => x.body?.type === "IMPORT_FLOW")
+    .at(-1).body.request;
+  expect(
+    imported.trigger.settings.input.cronExpression.split(" "),
+  ).toHaveLength(5);
+  expect(imported.trigger.settings.input.cronExpression).not.toContain("6-23");
+});
+
+it("editor tests cannot confirm setup and a missing first run exposes recovery after 15 minutes", async () => {
+  const a = await setup(),
+    remote = provider();
+  await deploy(env, "member", a);
+  remote.testRun();
+  expect(await reconcile(env, "member", await fresh())).toEqual({
+    status: "starting",
+  });
+  expect((await fresh()).seed_run_id).toBeNull();
+  expect((await fresh()).sheet_url).toBeNull();
+  await env.DB.prepare(
+    "UPDATE automations SET operation_started_at=? WHERE id=?",
+  )
+    .bind(Math.floor(Date.now() / 1000) - 901, a.id)
+    .run();
+  expect(await reconcile(env, "member", await fresh())).toEqual({
+    status: "problem",
+  });
+  expect((await fresh()).error_code).toBe("first_run_missing");
+  expect((await fresh()).applied_revision).toBe(0);
+});
+
+it("a real first run still in progress is not treated as a missing run", async () => {
+  const a = await setup(),
+    remote = provider();
+  await deploy(env, "member", a);
+  remote.running();
+  await env.DB.prepare(
+    "UPDATE automations SET operation_started_at=? WHERE id=?",
+  )
+    .bind(Math.floor(Date.now() / 1000) - 901, a.id)
+    .run();
+  expect(await reconcile(env, "member", await fresh())).toEqual({
+    status: "starting",
+  });
+  expect((await fresh()).error_code).toBeNull();
 });
 it("one Pinterest login cannot be activated in two website automations", async () => {
   const a = await setup(),

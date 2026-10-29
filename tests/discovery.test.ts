@@ -156,6 +156,7 @@ function remote() {
       flowId: "original-flow",
       flowVersionId: "version-" + version,
       status: "SUCCEEDED",
+      environment: "PRODUCTION",
     };
     if (url.pathname.endsWith("/flow-runs")) return reply({ data: [run] });
     if (url.pathname.endsWith("/flow-runs/seed-run/retry"))
